@@ -1,0 +1,127 @@
+/* Rodapé redesenhado */
+.footer {
+  background: #fff;
+  color: #333;
+  padding: 3rem 0 2rem;
+  border-top: 1px solid #eaeaea;
+}
+
+.footer h3 {
+  color: #0c305c;
+  font-weight: 600;
+}
+
+.footer a {
+  color: #3f81d0;
+  text-decoration: none;
+  transition: color 0.3s ease;
+}
+
+.footer a:hover {
+  color: #ffd502;
+  text-decoration: underline;
+}
+
+/* Grid de parceiros */
+.partnersGrid {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 8px;
+}
+
+.partnerLogo {
+  background-color: #f5f5f0;
+  border-radius: 8px;
+  overflow: hidden;
+  aspect-ratio: 16/9;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: transform 0.3s ease, box-shadow 0.3s ease;
+}
+
+.partnerLogo:hover {
+  transform: translateY(-5px);
+  box-shadow: 0 8px 15px rgba(0, 0, 0, 0.1);
+}
+
+.partnerPlaceholder {
+  color: #0c305c;
+  font-weight: 500;
+  text-align: center;
+}
+
+/* Links sociais */
+.socialLinks {
+  display: flex;
+  gap: 0px;
+  margin-top: 20px;
+  justify-content: center;
+}
+
+.socialIcon {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 40px;
+  height: 40px;
+  background-color: #f8f9fa;
+  border-radius: 50%;
+  color: #3f81d0;
+  transition: all 0.3s ease;
+}
+
+.socialIcon:hover {
+  background-color: #3f81d0;
+  color: white;
+  transform: translateY(-3px);
+}
+
+/* Responsividade do rodapé */
+@media (max-width: 991px) {
+  .partnersGrid {
+    grid-template-columns: repeat(4 1fr);
+    gap: 0.75rem;
+  }
+
+  .socialLinks {
+    align-items: center;
+    text-align: center;
+    justify-content: center;
+  }
+}
+
+@media (max-width: 768px) {
+  .footer {
+    text-align: center;
+    justify-content: center;
+    align-items: center;
+    padding: 2.5rem 0 1.5rem;
+  }
+
+  .socialLinks {
+    justify-content: center;
+    flex-direction: row;
+  }
+
+  .partnersGrid {
+    grid-template-columns: repeat(2, 1fr);
+    gap: 0.75rem;
+  }
+}
+
+@media (max-width: 576px) {
+  .partnersGrid {
+    grid-template-columns: repeat(2, 1fr);
+    gap: 0.5rem;
+  }
+
+  .socialLinks {
+    justify-content: center;
+  }
+
+  .partnerLogo {
+    aspect-ratio: 3/2;
+  }
+
+}
