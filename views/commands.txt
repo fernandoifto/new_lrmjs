@@ -1,0 +1,16 @@
+//Iniciar projeto Nextjs
+npx create-next-app@latest views
+
+//Instalar bootstrap
+npm install bootstrap
+
+//Instalar axios
+npm install axios
+
+//Instalar cookies-next
+npm install cookies-next
+
+//Instalar react-toastify
+npm install react-toastify
+
+

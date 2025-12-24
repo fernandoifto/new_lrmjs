@@ -1,0 +1,31 @@
+/* Seção de riscos do descarte incorreto */
+.section {
+  background-color: #3f81d0;
+  position: relative;
+  overflow: hidden;
+}
+
+.selectionLogo {
+  width: 110px;
+  height: 110px;
+  object-fit: contain;
+  border-radius: 50%;
+}
+
+.section::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 8px;
+  background: linear-gradient(90deg, #ffffff, #ffd002);
+  opacity: 0.8;
+}
+
+.section h3{
+  font-weight: 100;
+  color: #f8f9fa;
+  display: inline-block;
+  font-weight: bold;
+}
