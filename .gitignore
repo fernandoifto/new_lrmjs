@@ -42,6 +42,7 @@ yarn-error.log*
 next-env.d.ts
 
 # Prisma
+# Mantém o schema.prisma e migrations, mas ignora arquivos gerados
 server/src/tools/generated/
 
 # IDE
@@ -54,3 +55,18 @@ server/src/tools/generated/
 # OS
 Thumbs.db
 
+# Logs
+logs
+*.log
+
+# Temporary files
+tmp/
+temp/
+
+# Database
+*.sqlite
+*.db
+
+# Build outputs
+*.js.map
+*.d.ts.map
