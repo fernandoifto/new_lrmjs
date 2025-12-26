@@ -1,0 +1,47 @@
+// Inicializa o projeto com as configurações padrão
+npm init -y
+
+// Instala typescript
+npm install typescript --save-dev
+
+// Instala o express
+npm install express
+
+// Instalar types do express
+npm install @types/express -D
+
+// Inicializa o typescript
+npx tsc --init
+
+// Instalar ts-node-dev
+npm install ts-node-dev -D
+
+//instalar express-async-errors
+yarn add express-async-errors
+
+//instalar cors
+npm install cors
+
+//instalar @types/cors
+npm install @types/cors -D
+npm i --save-dev @types/cors
+
+//Instalar prisma
+npm install prisma --save-dev
+npm install @prisma/client
+
+
+//inicializar o prisma
+npx prisma init
+
+//criar as migrations
+npm run prisma:generate
+npm run prisma:migrate
+
+//Instalar biblioteca de criptografia
+npm install bcryptjs
+npm install @types/bcryptjs -D
+
+//Instalar JWT
+npm install jsonwebtoken
+npm install @types/jsonwebtoken -D

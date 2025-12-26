@@ -1,0 +1,140 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+// Looking for ways to speed up your queries, or scale easily with your serverless or edge functions?
+// Try Prisma Accelerate: https://pris.ly/cli/accelerate-init
+
+generator client {
+  provider = "prisma-client-js"
+  output   = "../src/tools/generated/prisma"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model Agendamentos {
+  id          Int       @id @default(autoincrement())
+  nome        String    @db.VarChar(200)
+  endereco    String    @db.VarChar(200)
+  numero      String    @db.VarChar(20)
+  setor       String    @db.VarChar(100)
+  cep         String    @db.VarChar(9)
+  telefone    String    @db.VarChar(50)
+  datavisita  String?   @db.Text
+  id_turno    Int
+  id_user     Int?
+  created     DateTime  @default(now())
+  modified    DateTime  @updatedAt
+
+  turno       Turnos    @relation(fields: [id_turno], references: [id])
+  user        Users?    @relation(fields: [id_user], references: [id])
+  @@map("agendamentos")
+}
+
+model Turnos {
+  id        Int       @id @default(autoincrement())
+  descricao String     @db.VarChar(50)
+  created   DateTime   @default(now())
+  modified  DateTime   @updatedAt
+
+  agendamentos Agendamentos[]
+  @@map("turnos")
+}
+
+model Users {
+  id        Int       @id @default(autoincrement())
+  username  String     @db.VarChar(255)
+  email     String     @db.VarChar(255)
+  password  String     @db.VarChar(100)
+  role      String?    @db.VarChar(100)
+  created   DateTime   @default(now())
+  modified  DateTime   @updatedAt
+
+  agendamentos Agendamentos[]
+  retiradas    Retiradas[]
+  @@map("users")
+}
+
+model Lotes {
+  id                     Int       @id @default(autoincrement())
+  numero                 String     @db.VarChar(50)
+  datavencimento         DateTime
+  datafabricacao         DateTime
+  qtde                   Int
+  id_medicamento         Int
+  id_forma_farmaceutica  Int
+  id_tipo_medicamento    Int
+  created                DateTime   @default(now())
+  modified               DateTime   @updatedAt
+
+  formaFarmaceutica      FormasFarmaceuticas @relation(fields: [id_forma_farmaceutica], references: [id])
+  medicamento            Medicamentos @relation(fields: [id_medicamento], references: [id])
+  tipoMedicamento        TiposMedicamentos @relation(fields: [id_tipo_medicamento], references: [id])
+
+  retiradas Retiradas[]
+  @@map("lotes")
+}
+
+model Retiradas {
+  id            Int       @id @default(autoincrement())
+  qtde          Int
+  id_users      Int
+  id_lotes      Int
+  id_pacientes  Int
+  created       DateTime?
+  modified      DateTime?
+
+  user        Users      @relation(fields: [id_users], references: [id])
+  lotes       Lotes      @relation(fields: [id_lotes], references: [id])
+  paciente     Pacientes  @relation(fields: [id_pacientes], references: [id])
+  @@map("retiradas")
+}
+
+
+
+model FormasFarmaceuticas {
+  id        Int       @id @default(autoincrement())
+  descricao String     @db.VarChar(200)
+  created   DateTime   @default(now())
+  modified  DateTime   @updatedAt
+
+  lotes     Lotes[]
+  @@map("formas_farmaceuticas")
+}
+
+model Medicamentos {
+  id                Int       @id @default(autoincrement())
+  descricao         String     @db.VarChar(300)
+  principioativo    String     @db.VarChar(300)
+  created           DateTime   @default(now())
+  modified          DateTime   @updatedAt
+
+  lotes             Lotes[]
+  @@map("medicamentos")
+}
+
+model TiposMedicamentos {
+  id        Int       @id @default(autoincrement())
+  descricao String     @db.VarChar(200)
+  created   DateTime   @default(now())
+  modified  DateTime   @updatedAt
+
+  lotes     Lotes[]
+  @@map("tipos_medicamentos")
+}
+
+model Pacientes {
+  id            Int       @id @default(autoincrement())
+  nome          String     @db.VarChar(200)
+  cpf           String     @db.VarChar(14)
+  datanascimento DateTime
+  telefone      String     @db.VarChar(20)
+  cartaosus     Int
+  created       DateTime   @default(now())
+  modified      DateTime   @updatedAt
+
+  retiradas     Retiradas[]
+  @@map("pacientes")
+}
