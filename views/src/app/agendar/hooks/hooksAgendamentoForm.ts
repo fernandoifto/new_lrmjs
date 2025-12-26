@@ -1,4 +1,3 @@
-import { useRouter } from 'next/navigation';
 import { toast } from 'react-toastify';
 import { api } from '@/api/api';
 
@@ -19,9 +18,7 @@ export interface IAgendamentoFormData {
 }
 
 export const hooksAgendamentoForm = (turnos: ITurno[]) => {
-    const router = useRouter();
-
-    const handleCreateAgendamento = async (formData: FormData): Promise<boolean> => {
+    const handleCreateAgendamento = async (formData: FormData, resetForm: () => void): Promise<boolean> => {
         const formValues: IAgendamentoFormData = {
             nome: formData.get("nome") as string,
             endereco: formData.get("endereco") as string,
@@ -59,7 +56,7 @@ export const hooksAgendamentoForm = (turnos: ITurno[]) => {
 
             if (response.status === 201) {
                 toast.success('Agendamento criado com sucesso!');
-                router.push('/');
+                resetForm();
                 return true;
             }
             return false;

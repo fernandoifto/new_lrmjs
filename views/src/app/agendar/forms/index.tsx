@@ -1,17 +1,26 @@
 "use client";
+import { useRef } from 'react';
 import styles from './style/styles.module.css';
 import { ITurno, hooksAgendamentoForm } from '@/app/agendar/hooks/hooksAgendamentoForm';
 
 export function AgendarForm({ turnos }: { turnos: ITurno[] }) {
+    const formRef = useRef<HTMLFormElement>(null);
     const { handleCreateAgendamento } = hooksAgendamentoForm(turnos);
+
+    const resetForm = () => {
+        if (formRef.current) {
+            formRef.current.reset();
+        }
+    };
 
     return (
         <form 
+            ref={formRef}
             className={styles.form} 
             onSubmit={async (e) => {
                 e.preventDefault();
                 const formData = new FormData(e.currentTarget);
-                await handleCreateAgendamento(formData);
+                await handleCreateAgendamento(formData, resetForm);
             }}
         >
             {/* Cartão de Dados Pessoais */}
