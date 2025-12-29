@@ -1,48 +1,77 @@
+'use client';
 import 'bootstrap/dist/css/bootstrap.min.css';
 import styles from './page.module.css';
 import Link from 'next/link';
+import { useState } from 'react';
 import { api } from '@/api/api';
-import { redirect } from 'next/navigation';
-import { cookies } from 'next/headers';
+import { useRouter } from 'next/navigation';
+import { toast } from 'react-toastify';
+import { setCookie } from 'cookies-next';
 
 export default function Login() {
+  const router = useRouter();
+  const [loading, setLoading] = useState(false);
+  const [formData, setFormData] = useState({
+    email: '',
+    password: ''
+  });
 
-  async function handleLogin(formData: FormData) {
+  const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const { name, value } = e.target;
+    setFormData(prev => ({
+      ...prev,
+      [name]: value
+    }));
+  };
 
-    'use server'
-    const email = formData.get('email')
-    const password = formData.get('password')
-    
-    if(email === "" || password === "") {
-      console.log('Por favor, preencha todos os campos.')
-      return;
-    }
-  
-    try{
-      const response = await api.post('/auth', { 
-        email, 
-        password 
-      })
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setLoading(true);
 
-    if(!response.data.token) {
-      return;
-    }
-
-    const expressTime = 60 * 60 * 24 * 30 * 1000;
-    const cookieStore = await cookies();
-    cookieStore.set('session', response.data.token, {
-      httpOnly: false,
-      path: '/',
-      secure: process.env.NODE_ENV === 'production',
-      maxAge: expressTime,
-    })
-    } catch (error) {
-      console.log('Erro ao fazer login. Verifique suas credenciais.')
+    // Validações
+    if (!formData.email || !formData.password) {
+      toast.error('Por favor, preencha todos os campos!');
+      setLoading(false);
       return;
     }
 
-    redirect('/dashboard');
-    
+    // Validação básica de email
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    if (!emailRegex.test(formData.email)) {
+      toast.error('Por favor, insira um e-mail válido!');
+      setLoading(false);
+      return;
+    }
+
+    try {
+      const response = await api.post('/auth', {
+        email: formData.email,
+        password: formData.password
+      });
+
+      if (response.data && response.data.token) {
+        // Salvar token no cookie
+        const expressTime = 60 * 60 * 24 * 30; // 30 dias em segundos
+        setCookie('session', response.data.token, {
+          maxAge: expressTime,
+          path: '/',
+          secure: process.env.NODE_ENV === 'production',
+        });
+
+        toast.success('Login realizado com sucesso!');
+        setTimeout(() => {
+          router.push('/dashboard');
+        }, 1000);
+      } else {
+        toast.error('Erro ao fazer login. Tente novamente.');
+      }
+    } catch (error: any) {
+      console.error('Erro ao fazer login:', error);
+      const errorMessage = error.response?.data?.error || error.message || 'Erro ao fazer login. Verifique suas credenciais.';
+      toast.error(errorMessage);
+    } finally {
+      setLoading(false);
+    }
   }
 
   return (
@@ -60,24 +89,53 @@ export default function Login() {
           </div>
           
           <div className={styles.cardBody}>
-            <form action={handleLogin} className={styles.loginForm}>
+            <form onSubmit={handleSubmit} className={styles.loginForm}>
               <div className="mb-3">
                 <label htmlFor="email" className="form-label">E-mail</label>
-                <input type="email" className="form-control" id="email" placeholder="Digite seu e-mail" required />
+                <input 
+                  type="email" 
+                  className="form-control" 
+                  id="email" 
+                  name="email"
+                  placeholder="Digite seu e-mail" 
+                  value={formData.email}
+                  onChange={handleChange}
+                  required 
+                />
               </div>
               
               <div className="mb-3">
                 <label htmlFor="password" className="form-label">Senha</label>
-                <input type="password" className="form-control" id="password" placeholder="Digite sua senha" required />
+                <input 
+                  type="password" 
+                  className="form-control" 
+                  id="password" 
+                  name="password"
+                  placeholder="Digite sua senha" 
+                  value={formData.password}
+                  onChange={handleChange}
+                  required 
+                />
               </div>
               
               <div className="d-grid gap-2">
-                <button type="submit" className="btn btn-primary">
-                  Entrar
+                <button 
+                  type="submit" 
+                  className="btn btn-primary"
+                  disabled={loading}
+                >
+                  {loading ? 'Entrando...' : 'Entrar'}
                 </button>
               </div>
               
               <div className="text-center mt-3">
+                <span className="text-muted">Não tem uma conta? </span>
+                <Link href="/users" className="text-decoration-none">
+                  Cadastre-se
+                </Link>
+              </div>
+              
+              <div className="text-center mt-2">
                 <Link href="/esqueci-senha" className="text-decoration-none">
                   Esqueceu sua senha?
                 </Link>

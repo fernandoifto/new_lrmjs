@@ -8,8 +8,17 @@ interface IUser {
     password: string;
 }
 
+interface IAuthUser {
+    email: string;
+    password: string;
+}
+
 export class AuthUserModel {
-    async execute({ username, email, password }: IUser) {
+    async execute({ email, password }: IAuthUser) {
+        // Validação de campos obrigatórios
+        if (!email || !password) {
+            throw new Error("Email and password are required");
+        }
 
         const user = await prismaClient.users.findFirst({
             where: {
@@ -50,6 +59,15 @@ export class CreateUserModel {
         if(!email){
             throw new Error("Email is required");
         }
+        
+        if(!username){
+            throw new Error("Username is required");
+        }
+        
+        if(!password || password.length < 6){
+            throw new Error("Password must be at least 6 characters");
+        }
+
         const userAlreadyExists = await prismaClient.users.findFirst({
             where: {
                 email: email
@@ -60,11 +78,14 @@ export class CreateUserModel {
             throw new Error("User already exists");
         }
 
+        // Hash da senha antes de salvar
+        const passwordHash = await bcrypt.hash(password, 10);
+
         const user = await prismaClient.users.create({
             data: {
                 username: username,
                 email: email,
-                password: password
+                password: passwordHash
             },
             select: {
                 id: true,

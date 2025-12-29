@@ -1,16 +1,31 @@
 "use client";
-import { useRef } from 'react';
+import { useRef, useState } from 'react';
 import styles from './style/styles.module.css';
 import { ITurno, hooksAgendamentoForm } from '@/app/agendar/hooks/hooksAgendamentoForm';
+import { maskPhone, maskCEP } from '@/app/agendar/utils/masks';
 
 export function AgendarForm({ turnos }: { turnos: ITurno[] }) {
     const formRef = useRef<HTMLFormElement>(null);
     const { handleCreateAgendamento } = hooksAgendamentoForm(turnos);
+    const [phoneValue, setPhoneValue] = useState('');
+    const [cepValue, setCepValue] = useState('');
 
     const resetForm = () => {
         if (formRef.current) {
             formRef.current.reset();
+            setPhoneValue('');
+            setCepValue('');
         }
+    };
+
+    const handlePhoneChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+        const masked = maskPhone(e.target.value);
+        setPhoneValue(masked);
+    };
+
+    const handleCEPChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+        const masked = maskCEP(e.target.value);
+        setCepValue(masked);
     };
 
     return (
@@ -20,6 +35,9 @@ export function AgendarForm({ turnos }: { turnos: ITurno[] }) {
             onSubmit={async (e) => {
                 e.preventDefault();
                 const formData = new FormData(e.currentTarget);
+                // Atualiza os valores com apenas números antes de enviar
+                formData.set('telefone', phoneValue.replace(/\D/g, ''));
+                formData.set('cep', cepValue.replace(/\D/g, ''));
                 await handleCreateAgendamento(formData, resetForm);
             }}
         >
@@ -43,9 +61,18 @@ export function AgendarForm({ turnos }: { turnos: ITurno[] }) {
                             </label>
                         </div>
                         <div className={styles.inputGroup}>
-                            <label htmlFor="fone">
+                            <label htmlFor="telefone">
                                 <span>Telefone/WhatsApp</span>
-                                <input type="tel" id="telefone" required placeholder="(XX) XXXXX-XXXX" name="telefone" />
+                                <input 
+                                    type="tel" 
+                                    id="telefone" 
+                                    required 
+                                    placeholder="(XX) XXXXX-XXXX" 
+                                    name="telefone" 
+                                    value={phoneValue}
+                                    onChange={handlePhoneChange}
+                                    maxLength={15}
+                                />
                             </label>
                         </div>
                     </div>
@@ -71,7 +98,16 @@ export function AgendarForm({ turnos }: { turnos: ITurno[] }) {
                         <div className={styles.inputGroupSmall}>
                             <label htmlFor="cep">
                                 <span>CEP</span>
-                                <input type="text" id="cep" required placeholder="CEP" name="cep" />
+                                <input 
+                                    type="text" 
+                                    id="cep" 
+                                    required 
+                                    placeholder="XXXXX-XXX" 
+                                    name="cep" 
+                                    value={cepValue}
+                                    onChange={handleCEPChange}
+                                    maxLength={9}
+                                />
                             </label>
                         </div>
                     </div>

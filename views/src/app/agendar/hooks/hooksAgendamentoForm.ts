@@ -43,9 +43,15 @@ export const hooksAgendamentoForm = (turnos: ITurno[]) => {
             return false;
         }
 
+        // Remove máscaras antes de enviar (garante apenas números)
+        const cleanPhone = formValues.telefone.replace(/\D/g, '');
+        const cleanCEP = formValues.cep.replace(/\D/g, '');
+
         try {
             const response = await api.post("/agendamento", {
                 ...formValues,
+                telefone: cleanPhone,
+                cep: cleanCEP,
                 id_turno: selectedTurno.id,
                 id_user: null
             }, {
