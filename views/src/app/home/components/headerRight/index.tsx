@@ -14,7 +14,6 @@ export default function HeaderRight() {
         <Link href="/agendar" className={styles.headerButton}>Agendar</Link>
         <Link href="#como-descartar" className={styles.headerButton}>Como Descartar</Link>
         <Link href="#contato" className={styles.headerButton}>Contato</Link>
-        <Link href="/users" className={styles.headerButton}>Cadastro de Usuários</Link>
         <Link href="/login" className={styles.headerButton}>Login</Link>
       </nav>
     </div>

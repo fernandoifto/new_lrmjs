@@ -39,13 +39,22 @@ cd server
 npm install
 ```
 
-### 3. Configure o banco de dados
+### 3. Configure o banco de dados e variáveis de ambiente
 
 Crie um arquivo `.env` na pasta `server` com:
 
 ```env
 DATABASE_URL="postgresql://usuario:senha@localhost:5432/nome_do_banco?schema=public"
+JWT_SECRET="seu_secret_jwt_super_seguro_aqui"
+SMTP_HOST=smtp.gmail.com
+SMTP_PORT=587
+SMTP_USER=seu_email@gmail.com
+SMTP_PASS=sua_senha_de_app
+SMTP_FROM=seu_email@gmail.com
+FRONTEND_URL=http://localhost:3000
 ```
+
+**Nota:** Para mais detalhes sobre a configuração de e-mail, consulte [ENV_VARIABLES.md](./server/ENV_VARIABLES.md)
 
 ### 4. Execute as migrações do Prisma
 
@@ -107,6 +116,8 @@ lrm_appjs/
 - Vulnerabilidades corrigidas (Next.js, React)
 - Autenticação com JWT
 - Validação de dados no backend
+- Recuperação de senha via e-mail com token seguro (expira em 1 hora)
+- Páginas protegidas por autenticação (dashboard, cadastro de usuários)
 
 ## 📚 Documentação
 

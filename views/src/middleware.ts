@@ -12,16 +12,17 @@ export async function middleware(request: NextRequest) {
 
    const token = await getCookieServer();
     
-    if(pathname.startsWith("/dashboard")){
+    // Proteger rotas que requerem autenticação
+    if(pathname.startsWith("/dashboard") || pathname.startsWith("/users")){
         if(!token){
-            return NextResponse.redirect(new URL("/", request.url));
+            return NextResponse.redirect(new URL("/login", request.url));
         }
 
         const isValid = await validateToken(token);
         console.log(isValid);
 
         if(!isValid){
-            return NextResponse.redirect(new URL("/", request.url));
+            return NextResponse.redirect(new URL("/login", request.url));
         }
     }
 

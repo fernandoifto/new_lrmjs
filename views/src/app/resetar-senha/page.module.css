@@ -1,0 +1,136 @@
+/* Variáveis de cores */
+:root {
+  --cor-primaria: #3f81d0;
+  --cor-secundaria: #fff;
+  --cor-destaque: #fff;
+  --cor-texto: #333333;
+  --cor-texto-claro: #666666;
+  --cor-borda: #e0e0e0;
+  --cor-fundo: #f8f9fa;
+  --cor-fundo-card: #ffffff;
+  --sombra-card: 0 2px 8px rgba(0, 0, 0, 0.1);
+  --transicao: all 0.3s ease;
+}
+
+/* Página */
+.page {
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+  background-color: var(--cor-fundo);
+}
+
+/* Container principal */
+.loginContainer {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  flex: 1;
+  padding: 2rem 1rem;
+  margin-top: 2rem;
+  margin-bottom: 2rem;
+}
+
+/* Card de login */
+.loginCard {
+  width: 100%;
+  max-width: 450px;
+  background-color: var(--cor-fundo-card);
+  border-radius: 12px;
+  box-shadow: var(--sombra-card);
+  overflow: hidden;
+  transition: var(--transicao);
+}
+
+/* Cabeçalho do card */
+.cardHeader {
+  padding: 1.5rem;
+  background-color: rgba(63, 129, 208, 0.05);
+  border-bottom: 1px solid var(--cor-borda);
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+}
+
+.cardHeader h2 {
+  margin: 0;
+  color: var(--cor-primaria);
+  font-size: 1.5rem;
+  font-weight: 600;
+}
+
+/* Ícone do cabeçalho */
+.cardIcon {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 40px;
+  height: 40px;
+  background-color: var(--cor-primaria);
+  border-radius: 50%;
+  color: white;
+  font-size: 1.2rem;
+}
+
+/* Corpo do card */
+.cardBody {
+  padding: 2rem;
+}
+
+/* Formulário */
+.loginForm {
+  margin-top: 1rem;
+}
+
+/* Descrição */
+.description {
+  color: var(--cor-texto-claro);
+  margin-bottom: 1.5rem;
+  text-align: center;
+}
+
+/* Mensagem de sucesso */
+.successMessage {
+  text-align: center;
+  padding: 1rem 0;
+}
+
+.successIcon {
+  color: #28a745;
+  margin-bottom: 1rem;
+  display: flex;
+  justify-content: center;
+}
+
+.successMessage h3 {
+  color: var(--cor-primaria);
+  margin-bottom: 1rem;
+}
+
+.successMessage p {
+  color: var(--cor-texto);
+  margin-bottom: 0.5rem;
+}
+
+/* Mensagem de erro */
+.errorMessage {
+  text-align: center;
+  padding: 1rem 0;
+  color: var(--cor-texto-claro);
+}
+
+/* Responsividade */
+@media (max-width: 576px) {
+  .loginCard {
+    margin: 0 1rem;
+  }
+  
+  .cardHeader {
+    padding: 1rem;
+  }
+  
+  .cardBody {
+    padding: 1.5rem 1rem;
+  }
+}
+
