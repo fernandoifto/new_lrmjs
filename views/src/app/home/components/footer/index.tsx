@@ -5,7 +5,7 @@ export default function Footer() {
         <>
             {/* Rodapé redesenhado */}
             <footer className={styles.footer} id="contato">
-                <div className="container">
+                <div className={styles.footerWrapper}>
                     <div className='row'>
                         <div className='col-sm-12 col-md-4 col-lg-4' >
                             <h3 className="h5 mb-3 mt-4">Contatos</h3>
@@ -66,7 +66,7 @@ export default function Footer() {
                         </div>
                     </div>
                 </div>
-                <div className="border-top pt-4 mt-4 text-center">
+                <div className={styles.footerBottom}>
                     <p className="mb-0">&copy; {new Date().getFullYear()} FSA. Todos os direitos reservados. - Araguaína - TO</p>
                 </div>
             </footer>

@@ -7,6 +7,7 @@ interface IUser {
     username: string;
     email: string;
     password: string;
+    role?: string;
 }
 
 interface IAuthUser {
@@ -14,7 +15,7 @@ interface IAuthUser {
     password: string;
 }
 
-export class AuthUserModel {
+class AuthUserModel {
     async execute({ email, password }: IAuthUser) {
         // Validação de campos obrigatórios
         if (!email || !password) {
@@ -55,8 +56,8 @@ export class AuthUserModel {
     }
 }
 
-export class CreateUserModel {
-    async execute({ username, email, password }: IUser) {
+class CreateUserModel {
+    async execute({ username, email, password, role }: IUser) {
         if(!email){
             throw new Error("Email is required");
         }
@@ -86,7 +87,8 @@ export class CreateUserModel {
             data: {
                 username: username,
                 email: email,
-                password: passwordHash
+                password: passwordHash,
+                role: role || null
             },
             select: {
                 id: true,
@@ -198,6 +200,141 @@ export class ResetPasswordModel {
         return { message: "Password has been reset successfully" };
     }
 }
-    
 
-    
+interface IUpdateUser {
+    username?: string;
+    email?: string;
+    password?: string;
+    role?: string;
+}
+
+//Modelo de listar usuários
+class ListUsersModel {
+    async execute() {
+        const users = await prismaClient.users.findMany({
+            select: {
+                id: true,
+                username: true,
+                email: true,
+                role: true,
+                created: true,
+                modified: true
+            },
+            orderBy: {
+                created: 'desc'
+            }
+        });
+        return users;
+    }
+}
+
+//Modelo de visualizar usuário
+class GetUserModel {
+    async execute(id: number) {
+        const user = await prismaClient.users.findUnique({
+            where: {
+                id: id
+            },
+            select: {
+                id: true,
+                username: true,
+                email: true,
+                role: true,
+                created: true,
+                modified: true
+            }
+        });
+        
+        if (!user) {
+            throw new Error("Usuário não encontrado");
+        }
+        
+        return user;
+    }
+}
+
+//Modelo de editar usuário
+class UpdateUserModel {
+    async execute(id: number, data: IUpdateUser) {
+        const userExists = await prismaClient.users.findUnique({
+            where: { id: id }
+        });
+        
+        if (!userExists) {
+            throw new Error("Usuário não encontrado");
+        }
+        
+        const updateData: any = {};
+        
+        if (data.username) {
+            updateData.username = data.username;
+        }
+        
+        if (data.email) {
+            // Verificar se o email já existe em outro usuário
+            const emailExists = await prismaClient.users.findFirst({
+                where: {
+                    email: data.email,
+                    id: { not: id }
+                }
+            });
+            
+            if (emailExists) {
+                throw new Error("Email já está em uso por outro usuário");
+            }
+            
+            updateData.email = data.email;
+        }
+        
+        if (data.password) {
+            if (data.password.length < 6) {
+                throw new Error("A senha deve ter no mínimo 6 caracteres");
+            }
+            updateData.password = await bcrypt.hash(data.password, 10);
+        }
+        
+        if (data.role !== undefined) {
+            updateData.role = data.role;
+        }
+        
+        const user = await prismaClient.users.update({
+            where: {
+                id: id
+            },
+            data: updateData,
+            select: {
+                id: true,
+                username: true,
+                email: true,
+                role: true,
+                created: true,
+                modified: true
+            }
+        });
+        
+        return user;
+    }
+}
+
+//Modelo de deletar usuário
+class DeleteUserModel {
+    async execute(id: number) {
+        const userExists = await prismaClient.users.findUnique({
+            where: { id: id }
+        });
+        
+        if (!userExists) {
+            throw new Error("Usuário não encontrado");
+        }
+        
+        await prismaClient.users.delete({
+            where: {
+                id: id
+            }
+        });
+        
+        return { message: "Usuário deletado com sucesso" };
+    }
+}
+
+export { AuthUserModel, CreateUserModel, ListUsersModel, GetUserModel, UpdateUserModel, DeleteUserModel }

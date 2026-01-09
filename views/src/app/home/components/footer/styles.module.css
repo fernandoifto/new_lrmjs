@@ -2,8 +2,26 @@
 .footer {
   background: #fff;
   color: #333;
-  padding: 3rem 0 2rem;
+  padding: 3rem 0 0;
   border-top: 1px solid #eaeaea;
+  width: 100%;
+}
+
+.footerWrapper {
+  width: 100%;
+  padding: 0 2rem;
+  max-width: 100%;
+  margin: 0;
+  box-sizing: border-box;
+}
+
+.footerBottom {
+  border-top: 1px solid #eaeaea;
+  padding: 1.5rem 2rem;
+  margin-top: 2rem;
+  text-align: center;
+  width: 100%;
+  box-sizing: border-box;
 }
   
 
@@ -93,6 +111,14 @@
 }
 
 @media (max-width: 768px) {
+  .footerWrapper {
+    padding: 0 1rem;
+  }
+
+  .footerBottom {
+    padding: 1.5rem 1rem;
+  }
+
   .footer {
     text-align: center;
     justify-content: center;

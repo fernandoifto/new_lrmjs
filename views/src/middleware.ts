@@ -6,24 +6,41 @@ export async function middleware(request: NextRequest) {
 
     const {pathname} = request.nextUrl;
 
-    if(pathname.startsWith("/_next") || pathname === "/"){
+    // Rotas públicas que não precisam de autenticação
+    const publicRoutes = [
+        "/",
+        "/agendar",
+        "/login",
+        "/esqueci-senha",
+        "/resetar-senha"
+    ];
+
+    // Verificar se é uma rota pública
+    const isPublicRoute = publicRoutes.some(route => {
+        if (route === "/") {
+            return pathname === "/";
+        }
+        // Verifica se o pathname corresponde exatamente à rota ou começa com ela seguida de /
+        return pathname === route || pathname.startsWith(route + "/");
+    });
+
+    // Permitir rotas do Next.js e rotas públicas
+    if(pathname.startsWith("/_next") || pathname.startsWith("/api") || isPublicRoute){
         return NextResponse.next();
     }
 
-   const token = await getCookieServer();
+    // Todas as outras rotas requerem autenticação
+    const token = await getCookieServer();
     
-    // Proteger rotas que requerem autenticação
-    if(pathname.startsWith("/dashboard") || pathname.startsWith("/users")){
-        if(!token){
-            return NextResponse.redirect(new URL("/login", request.url));
-        }
+    if(!token){
+        return NextResponse.redirect(new URL("/login", request.url));
+    }
 
-        const isValid = await validateToken(token);
-        console.log(isValid);
+    const isValid = await validateToken(token);
+    console.log(isValid);
 
-        if(!isValid){
-            return NextResponse.redirect(new URL("/login", request.url));
-        }
+    if(!isValid){
+        return NextResponse.redirect(new URL("/login", request.url));
     }
 
     return NextResponse.next();

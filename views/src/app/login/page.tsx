@@ -60,7 +60,7 @@ export default function Login() {
 
         toast.success('Login realizado com sucesso!');
         setTimeout(() => {
-          router.push('/dashboard');
+          router.push('/agendamentos');
         }, 1000);
       } else {
         toast.error('Erro ao fazer login. Tente novamente.');

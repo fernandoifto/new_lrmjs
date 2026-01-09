@@ -1,4 +1,4 @@
-import { AuthUserModel, CreateUserModel, ForgotPasswordModel, ResetPasswordModel } from "../models/usersModels";
+import { AuthUserModel, CreateUserModel, ForgotPasswordModel, ResetPasswordModel, ListUsersModel, GetUserModel, UpdateUserModel, DeleteUserModel } from "../models/usersModels";
 import { Request, Response } from "express";
 import prismaClient from "../tools/prisma";
 
@@ -18,9 +18,9 @@ export class AuthUserController {
 export class CreateUserController {
     async handle(request: Request, response: Response) {
         try {
-            const { username, email, password } = request.body;
+            const { username, email, password, role } = request.body;
             const createUser = new CreateUserModel();
-            const user = await createUser.execute({ username, email, password });
+            const user = await createUser.execute({ username, email, password, role });
             return response.status(201).json(user);
         } catch (error: any) {
             return response.status(400).json({ error: error.message });
@@ -85,5 +85,65 @@ export class ResetPasswordController {
         }
     }
 }
-    
+
+export class ListUsersController {
+    async handle(request: Request, response: Response) {
+        try {
+            const listUsers = new ListUsersModel();
+            const users = await listUsers.execute();
+            return response.json(users);
+        } catch (error: any) {
+            return response.status(400).json({ error: error.message });
+        }
+    }
+}
+
+export class GetUserController {
+    async handle(request: Request, response: Response) {
+        try {
+            const { id } = request.params;
+            const getUser = new GetUserModel();
+            const user = await getUser.execute(parseInt(id));
+            return response.json(user);
+        } catch (error: any) {
+            return response.status(404).json({ error: error.message });
+        }
+    }
+}
+
+export class UpdateUserController {
+    async handle(request: Request, response: Response) {
+        try {
+            const { id } = request.params;
+            const { username, email, password, role } = request.body;
+            const updateUser = new UpdateUserModel();
+            
+            const user = await updateUser.execute(parseInt(id), {
+                username,
+                email,
+                password,
+                role
+            });
+            
+            return response.json(user);
+        } catch (error: any) {
+            return response.status(400).json({ error: error.message });
+        }
+    }
+}
+
+export class DeleteUserController {
+    async handle(request: Request, response: Response) {
+        try {
+            const { id } = request.params;
+            const deleteUser = new DeleteUserModel();
+            
+            const result = await deleteUser.execute(parseInt(id));
+            
+            return response.json(result);
+        } catch (error: any) {
+            return response.status(400).json({ error: error.message });
+        }
+    }
+}
 

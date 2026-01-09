@@ -6,6 +6,8 @@ import { useState } from 'react';
 import { api } from '@/api/api';
 import { toast } from 'react-toastify';
 import { useRouter } from 'next/navigation';
+import Header from '../home/components/header';
+import Menu from '../components/menu';
 
 export default function CadastroUsuarios() {
   const router = useRouter();
@@ -71,8 +73,11 @@ export default function CadastroUsuarios() {
   };
 
   return (
-    <main className={styles.page}>
-      <div className={styles.cadastroContainer}>
+    <>
+      <Header />
+      <Menu />
+      <main className={styles.page}>
+        <div className={styles.cadastroContainer}>
         <div className={styles.cadastroCard}>
           <div className={styles.cardHeader}>
             <div className={styles.cardIcon}>
@@ -164,7 +169,8 @@ export default function CadastroUsuarios() {
           </div>
         </div>
       </div>
-    </main>
+      </main>
+    </>
   );
 }
 

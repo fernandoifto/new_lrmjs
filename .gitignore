@@ -13,6 +13,7 @@ node_modules/
 .next
 out
 build
+old/
 
 # Production
 /dist
