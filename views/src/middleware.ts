@@ -24,8 +24,12 @@ export async function middleware(request: NextRequest) {
         return pathname === route || pathname.startsWith(route + "/");
     });
 
-    // Permitir rotas do Next.js e rotas públicas
-    if(pathname.startsWith("/_next") || pathname.startsWith("/api") || isPublicRoute){
+    // Permitir arquivos estáticos (imagens, fontes, etc.)
+    const staticFileExtensions = ['.png', '.jpg', '.jpeg', '.gif', '.svg', '.ico', '.webp', '.avif', '.css', '.js', '.woff', '.woff2', '.ttf', '.eot'];
+    const isStaticFile = staticFileExtensions.some(ext => pathname.toLowerCase().endsWith(ext));
+    
+    // Permitir rotas do Next.js, arquivos estáticos, API e rotas públicas
+    if(pathname.startsWith("/_next") || pathname.startsWith("/api") || isPublicRoute || isStaticFile){
         return NextResponse.next();
     }
 

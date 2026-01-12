@@ -8,6 +8,7 @@ import Header from '../home/components/header';
 import Menu from '../components/menu';
 import styles from './page.module.css';
 import Link from 'next/link';
+import jsPDF from 'jspdf';
 
 interface Agendamento {
     id: number;
@@ -164,6 +165,144 @@ export default function AgendamentosPage() {
         setSearchOption('nome');
     };
 
+    const handleGeneratePDF = () => {
+        try {
+            const doc = new jsPDF('landscape', 'mm', 'a4');
+            const pageWidth = doc.internal.pageSize.getWidth();
+            const pageHeight = doc.internal.pageSize.getHeight();
+            const margin = 10;
+            const startY = 20;
+            let y = startY;
+
+            // Título
+            doc.setFontSize(18);
+            doc.setFont('helvetica', 'bold');
+            doc.text('Lista de Agendamentos', pageWidth / 2, y, { align: 'center' });
+            y += 10;
+
+            // Data de geração
+            doc.setFontSize(10);
+            doc.setFont('helvetica', 'normal');
+            const dataGeracao = new Date().toLocaleDateString('pt-BR', {
+                day: '2-digit',
+                month: '2-digit',
+                year: 'numeric',
+                hour: '2-digit',
+                minute: '2-digit'
+            });
+            doc.text(`Gerado em: ${dataGeracao}`, pageWidth / 2, y, { align: 'center' });
+            y += 10;
+
+            // Informações do filtro
+            if (filtro !== 'todos') {
+                doc.setFontSize(10);
+                doc.text(`Filtro: ${filtro === 'visitados' ? 'Visitados' : 'Não Visitados'}`, margin, y);
+                y += 5;
+            }
+            if (activeSearchTerm) {
+                doc.setFontSize(10);
+                const campoBusca = {
+                    'nome': 'Nome',
+                    'endereco': 'Endereço',
+                    'setor': 'Setor',
+                    'telefone': 'Telefone/WhatsApp',
+                    'cep': 'CEP',
+                    'datavisita': 'Melhor Data',
+                    'turno': 'Turno'
+                }[activeSearchOption] || 'Campo';
+                doc.text(`Busca: ${campoBusca} - "${activeSearchTerm}"`, margin, y);
+                y += 5;
+            }
+            y += 5;
+
+            // Cabeçalho da tabela
+            doc.setFontSize(9);
+            doc.setFont('helvetica', 'bold');
+            const colWidths = [35, 40, 20, 30, 30, 30, 20, 30];
+            const headers = ['Nome', 'Endereço', 'Nº', 'Bairro/Setor', 'Telefone', 'CEP', 'Turno', 'Status'];
+            let x = margin;
+
+            headers.forEach((header, index) => {
+                doc.text(header, x, y);
+                x += colWidths[index];
+            });
+            y += 7;
+
+            // Linha separadora
+            doc.setLineWidth(0.5);
+            doc.line(margin, y - 2, pageWidth - margin, y - 2);
+            y += 2;
+
+            // Dados dos agendamentos
+            doc.setFontSize(8);
+            doc.setFont('helvetica', 'normal');
+            
+            filteredAgendamentos.forEach((agendamento, index) => {
+                // Verificar se precisa de nova página
+                if (y > pageHeight - 20) {
+                    doc.addPage();
+                    y = startY;
+                    
+                    // Repetir cabeçalho
+                    doc.setFontSize(9);
+                    doc.setFont('helvetica', 'bold');
+                    x = margin;
+                    headers.forEach((header, idx) => {
+                        doc.text(header, x, y);
+                        x += colWidths[idx];
+                    });
+                    y += 7;
+                    doc.line(margin, y - 2, pageWidth - margin, y - 2);
+                    y += 2;
+                    doc.setFontSize(8);
+                    doc.setFont('helvetica', 'normal');
+                }
+
+                x = margin;
+                const rowData = [
+                    agendamento.nome || '',
+                    agendamento.endereco || '',
+                    agendamento.numero || '',
+                    agendamento.setor || '',
+                    formatPhone(agendamento.telefone) || '',
+                    formatCEP(agendamento.cep) || '',
+                    agendamento.turno?.descricao || '',
+                    agendamento.user ? 'Visitado' : 'Não Visitado'
+                ];
+
+                rowData.forEach((data, idx) => {
+                    const text = doc.splitTextToSize(data || '', colWidths[idx] - 2);
+                    doc.text(text, x + 1, y);
+                    x += colWidths[idx];
+                });
+                y += 8;
+            });
+
+            // Rodapé
+            const totalPages = doc.getNumberOfPages();
+            for (let i = 1; i <= totalPages; i++) {
+                doc.setPage(i);
+                doc.setFontSize(8);
+                doc.setFont('helvetica', 'normal');
+                doc.text(
+                    `Página ${i} de ${totalPages} - Total de agendamentos: ${filteredAgendamentos.length}`,
+                    pageWidth / 2,
+                    pageHeight - 5,
+                    { align: 'center' }
+                );
+            }
+
+            // Nome do arquivo
+            const fileName = `agendamentos_${new Date().toISOString().split('T')[0]}.pdf`;
+            doc.save(fileName);
+            
+            toast.success('PDF gerado com sucesso!');
+        } catch (error) {
+            console.error('Erro ao gerar PDF:', error);
+            toast.error('Erro ao gerar PDF');
+        }
+    };
+
     const handleVisitar = async (id: number) => {
         try {
             const token = getCookieClient();
@@ -243,6 +382,20 @@ export default function AgendamentosPage() {
                                         Não Visitados
                                     </Link>
                             </div>
+                            {filteredAgendamentos.length > 0 && (
+                                <button
+                                    onClick={handleGeneratePDF}
+                                    className={styles.btnPDF}
+                                    title="Gerar PDF dos agendamentos listados"
+                                >
+                                    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" width="20" height="20">
+                                        <path fill="none" d="M0 0h24v24H0z" />
+                                        <path d="M19 8h-1V3H6v5H5c-1.66 0-3 1.34-3 3v6h4v4h12v-4h4v-6c0-1.66-1.34-3-3-3zM8 5h8v3H8V5zm8 12v2H8v-4h8v2zm2-2v-2H6v2H4v-4c0-.55.45-1 1-1h14c.55 0 1 .45 1 1v4h-2z" fill="currentColor" />
+                                        <circle cx="18" cy="11.5" r="1" fill="currentColor" />
+                                    </svg>
+                                    Gerar PDF
+                                </button>
+                            )}
                             <Link href="/agendamentos/novo" className={styles.btnNew}>
                                 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" width="20" height="20">
                                     <path fill="none" d="M0 0h24v24H0z" />

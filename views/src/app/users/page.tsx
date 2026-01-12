@@ -2,16 +2,29 @@
 import 'bootstrap/dist/css/bootstrap.min.css';
 import styles from './page.module.css';
 import Link from 'next/link';
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { api } from '@/api/api';
 import { toast } from 'react-toastify';
 import { useRouter } from 'next/navigation';
+import { getCookieClient } from '@/lib/cookieClient';
 import Header from '../home/components/header';
 import Menu from '../components/menu';
 
 export default function CadastroUsuarios() {
   const router = useRouter();
   const [loading, setLoading] = useState(false);
+  const [mounted, setMounted] = useState(false);
+
+  useEffect(() => {
+    setMounted(true);
+    // Verificar se o usuário está logado
+    const token = getCookieClient();
+    if (!token) {
+      toast.error('Você precisa estar logado para acessar esta página');
+      router.push('/login');
+      return;
+    }
+  }, [router]);
   const [formData, setFormData] = useState({
     username: '',
     email: '',
@@ -30,6 +43,14 @@ export default function CadastroUsuarios() {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setLoading(true);
+
+    const token = getCookieClient();
+    if (!token) {
+      toast.error('Você precisa estar logado');
+      router.push('/login');
+      setLoading(false);
+      return;
+    }
 
     // Validações
     if (!formData.username || !formData.email || !formData.password || !formData.confirmPassword) {
@@ -55,22 +76,35 @@ export default function CadastroUsuarios() {
         username: formData.username,
         email: formData.email,
         password: formData.password
+      }, {
+        headers: {
+          Authorization: `Bearer ${token}`
+        }
       });
 
       if (response.data) {
-        toast.success('Cadastro realizado com sucesso!');
+        toast.success('Usuário criado com sucesso!');
         setTimeout(() => {
-          router.push('/login');
+          router.push('/users/list');
         }, 1500);
       }
     } catch (error: any) {
       console.error('Erro ao cadastrar:', error);
-      const errorMessage = error.response?.data?.error || error.message || 'Erro ao realizar cadastro. Tente novamente.';
-      toast.error(errorMessage);
+      if (error.response?.status === 401) {
+        toast.error('Sessão expirada. Faça login novamente.');
+        router.push('/login');
+      } else {
+        const errorMessage = error.response?.data?.error || error.message || 'Erro ao realizar cadastro. Tente novamente.';
+        toast.error(errorMessage);
+      }
     } finally {
       setLoading(false);
     }
   };
+
+  if (!mounted) {
+    return null;
+  }
 
   return (
     <>

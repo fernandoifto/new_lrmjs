@@ -12,7 +12,8 @@ export default function Donate() {
                                 src="/doacao.png"
                                 alt="Doação de Medicamentos"
                                 className="img-fluid mb-4 mb-lg-0"
-                                style={{ maxHeight: '350px' }}
+                                style={{ maxHeight: '350px', width: 'auto', height: 'auto' }}
+                                loading="lazy"
                             />
                         </div>
                         <div className="col-lg-6">

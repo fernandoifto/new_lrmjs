@@ -2,6 +2,9 @@ import { Router } from "express";
 import { CreateAgendamentosController, ListAgendamentosController, GetAgendamentoController, UpdateAgendamentoController, MarcarVisitadoController, DeleteAgendamentoController } from "./controllers/agendamentosController";
 import { ListTurnosController } from "./controllers/turnosController";
 import { AuthUserController, CreateUserController, DetailUserController, ForgotPasswordController, ResetPasswordController, ListUsersController, GetUserController, UpdateUserController, DeleteUserController } from "./controllers/usersController";
+import { CreateTipoMedicamentoController, ListTiposMedicamentosController, GetTipoMedicamentoController, UpdateTipoMedicamentoController, DeleteTipoMedicamentoController } from "./controllers/tiposMedicamentosController";
+import { CreateFormaFarmaceuticaController, ListFormasFarmaceuticasController, GetFormaFarmaceuticaController, UpdateFormaFarmaceuticaController, DeleteFormaFarmaceuticaController } from "./controllers/formasFarmaceuticasController";
+import { CreateMedicamentoController, ListMedicamentosController, GetMedicamentoController, UpdateMedicamentoController, DeleteMedicamentoController } from "./controllers/medicamentosController";
 import { isAuthenticated } from "./middlewares/isAutenticated";
 
 const router = Router();
@@ -27,5 +30,26 @@ router.get("/users", isAuthenticated, new ListUsersController().handle);
 router.get("/user/:id", isAuthenticated, new GetUserController().handle);
 router.put("/user/:id", isAuthenticated, new UpdateUserController().handle);
 router.delete("/user/:id", isAuthenticated, new DeleteUserController().handle);
+
+//Rotas de tipos de medicamentos
+router.post("/tipo-medicamento", isAuthenticated, new CreateTipoMedicamentoController().handle);
+router.get("/tipos-medicamentos", isAuthenticated, new ListTiposMedicamentosController().handle);
+router.get("/tipo-medicamento/:id", isAuthenticated, new GetTipoMedicamentoController().handle);
+router.put("/tipo-medicamento/:id", isAuthenticated, new UpdateTipoMedicamentoController().handle);
+router.delete("/tipo-medicamento/:id", isAuthenticated, new DeleteTipoMedicamentoController().handle);
+
+//Rotas de formas farmacêuticas
+router.post("/forma-farmaceutica", isAuthenticated, new CreateFormaFarmaceuticaController().handle);
+router.get("/formas-farmaceuticas", isAuthenticated, new ListFormasFarmaceuticasController().handle);
+router.get("/forma-farmaceutica/:id", isAuthenticated, new GetFormaFarmaceuticaController().handle);
+router.put("/forma-farmaceutica/:id", isAuthenticated, new UpdateFormaFarmaceuticaController().handle);
+router.delete("/forma-farmaceutica/:id", isAuthenticated, new DeleteFormaFarmaceuticaController().handle);
+
+//Rotas de medicamentos
+router.post("/medicamento", isAuthenticated, new CreateMedicamentoController().handle);
+router.get("/medicamentos", isAuthenticated, new ListMedicamentosController().handle);
+router.get("/medicamento/:id", isAuthenticated, new GetMedicamentoController().handle);
+router.put("/medicamento/:id", isAuthenticated, new UpdateMedicamentoController().handle);
+router.delete("/medicamento/:id", isAuthenticated, new DeleteMedicamentoController().handle);
 
 export default router;
