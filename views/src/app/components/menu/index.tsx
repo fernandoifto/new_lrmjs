@@ -72,7 +72,10 @@ export default function Menu() {
             return pathname.startsWith('/users');
         }
         if (path === '/medicamentos') {
-            return pathname === '/medicamentos' || pathname.startsWith('/tipos-medicamentos') || pathname.startsWith('/formas-farmaceuticas');
+            return pathname === '/medicamentos' || pathname.startsWith('/tipos-medicamentos') || pathname.startsWith('/formas-farmaceuticas') || pathname.startsWith('/lotes') || pathname.startsWith('/pacientes') || pathname.startsWith('/medicamentos/');
+        }
+        if (path === '/retiradas') {
+            return pathname === '/retiradas' || pathname.startsWith('/retiradas/');
         }
         return pathname === path;
     };

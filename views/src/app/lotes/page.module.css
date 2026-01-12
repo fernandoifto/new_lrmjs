@@ -279,7 +279,7 @@
 
 .grid {
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(350px, 1fr));
+  grid-template-columns: repeat(auto-fill, minmax(380px, 1fr));
   gap: 1.5rem;
   width: 100%;
   box-sizing: border-box;
@@ -388,6 +388,23 @@
 .btnEdit,
 .btnDelete {
   flex: 1;
+  padding: 0.6rem;
+  border-radius: 6px;
+  text-decoration: none;
+  text-align: center;
+  font-weight: 500;
+  transition: var(--transicao);
+  font-size: 0.9rem;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border: none;
+  cursor: pointer;
+  min-width: 40px;
+}
+
+.btnDoar {
+  flex: 1;
   padding: 0.6rem 1rem;
   border-radius: 6px;
   text-decoration: none;
@@ -419,6 +436,28 @@
 
 .btnEdit:hover {
   background-color: #2c6aa8;
+}
+
+.btnDoar {
+  background-color: rgba(40, 167, 69, 0.1);
+  color: #28a745;
+}
+
+.btnDoar:hover {
+  background-color: rgba(40, 167, 69, 0.2);
+}
+
+.btnDoar.btnDisabled,
+.btnDoar:disabled {
+  background-color: rgba(108, 117, 125, 0.1);
+  color: #6c757d;
+  cursor: not-allowed;
+  opacity: 0.6;
+}
+
+.btnDoar.btnDisabled:hover,
+.btnDoar:disabled:hover {
+  background-color: rgba(108, 117, 125, 0.1);
 }
 
 .btnDelete {

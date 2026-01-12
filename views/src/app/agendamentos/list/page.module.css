@@ -402,7 +402,23 @@
   flex-wrap: wrap;
 }
 
-.cardFooter a,
+.cardFooter a {
+  flex: 1;
+  padding: 0.6rem;
+  border-radius: 6px;
+  text-decoration: none;
+  font-weight: 500;
+  font-size: 0.9rem;
+  text-align: center;
+  transition: var(--transicao);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border: none;
+  cursor: pointer;
+  min-width: 40px;
+}
+
 .cardFooter button {
   flex: 1;
   padding: 0.6rem 1rem;

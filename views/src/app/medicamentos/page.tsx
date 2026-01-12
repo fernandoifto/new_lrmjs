@@ -36,22 +36,12 @@ export default function MedicamentosPage() {
                                 </div>
                                 <div>
                                     <h1>Medicamentos</h1>
-                                    <p>Gerencie medicamentos, lotes de medicamentos, tipos de medicamentos e formas farmacêuticas</p>
                                 </div>
                             </div>
                         </div>
 
                         <div className={styles.buttonsGrid}>
-                            <Link href="/medicamentos/list" className={styles.buttonCard}>
-                                <div className={styles.buttonIcon}>
-                                    <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                                        <path d="M12 2L2 7l10 5 10-5-10-5zM2 17l10 5 10-5M2 12l10 5 10-5" />
-                                    </svg>
-                                </div>
-                                <h3>Medicamentos</h3>
-                                <p>Gerencie os medicamentos do sistema</p>
-                            </Link>
-
+                            
                             <Link href="/lotes" className={styles.buttonCard}>
                                 <div className={styles.buttonIcon}>
                                     <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
@@ -62,10 +52,47 @@ export default function MedicamentosPage() {
                                 <p>Gerencie os lotes de medicamentos do sistema</p>
                             </Link>
 
-                            <Link href="/tipos-medicamentos" className={styles.buttonCard}>
+                            <Link href="/retiradas" className={styles.buttonCard}>
+                                <div className={styles.buttonIcon}>
+                                    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" width="32" height="32" fill="none" stroke="currentColor" strokeWidth="2">
+                                        <path d="M16 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2" />
+                                        <circle cx="8.5" cy="7" r="4" />
+                                        <path d="M20 8v6M23 11l-3-3-3 3" />
+                                    </svg>
+                                </div>
+                                <h3>Doações</h3>
+                                <p>Gerencie as doações e retiradas de medicamentos</p>
+                            </Link>
+
+                            <Link href="/pacientes" className={styles.buttonCard}>
+                                <div className={styles.buttonIcon}>
+                                    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" width="32" height="32" fill="none" stroke="currentColor" strokeWidth="2">
+                                        <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2" />
+                                        <circle cx="9" cy="7" r="4" />
+                                        <path d="M23 21v-2a4 4 0 0 0-3-3.87M16 3.13a4 4 0 0 1 0 7.75" />
+                                    </svg>
+                                </div>
+                                <h3>Pacientes</h3>
+                                <p>Gerencie os pacientes do sistema</p>
+                            </Link>
+
+                            <Link href="/medicamentos/list" className={styles.buttonCard}>
                                 <div className={styles.buttonIcon}>
                                     <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                                        <path d="M19.5 14.25v-2.625a3.375 3.375 0 00-3.375-3.375h-1.5A1.125 1.125 0 0113.5 7.125v-1.5a3.375 3.375 0 00-3.375-3.375H8.25m0 12.75h7.5m-7.5 3H12M10.5 2.25H5.625c-.621 0-1.125.504-1.125 1.125v17.25c0 .621.504 1.125 1.125 1.125h12.75c.621 0 1.125-.504 1.125-1.125V11.25a9 9 0 00-9-9z" />
+                                        <path d="M12 2L2 7l10 5 10-5-10-5zM2 17l10 5 10-5M2 12l10 5 10-5" />
+                                    </svg>
+                                </div>
+                                <h3>Medicamentos</h3>
+                                <p>Gerencie os medicamentos do sistema</p>
+                            </Link>
+
+                            <Link href="/tipos-medicamentos" className={styles.buttonCard}>
+                                <div className={styles.buttonIcon}>
+                                    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" width="32" height="32" fill="none" stroke="currentColor" strokeWidth="2">
+                                        <path d="M4 7h16M4 12h16M4 17h16" />
+                                        <circle cx="2" cy="7" r="1" />
+                                        <circle cx="2" cy="12" r="1" />
+                                        <circle cx="2" cy="17" r="1" />
                                     </svg>
                                 </div>
                                 <h3>Tipos de Medicamentos</h3>
@@ -74,8 +101,10 @@ export default function MedicamentosPage() {
 
                             <Link href="/formas-farmaceuticas" className={styles.buttonCard}>
                                 <div className={styles.buttonIcon}>
-                                    <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                                        <path d="M19.5 14.25v-2.625a3.375 3.375 0 00-3.375-3.375h-1.5A1.125 1.125 0 0113.5 7.125v-1.5a3.375 3.375 0 00-3.375-3.375H8.25m0 12.75h7.5m-7.5 3H12M10.5 2.25H5.625c-.621 0-1.125.504-1.125 1.125v17.25c0 .621.504 1.125 1.125 1.125h12.75c.621 0 1.125-.504 1.125-1.125V11.25a9 9 0 00-9-9z" />
+                                    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" width="32" height="32" fill="none" stroke="currentColor" strokeWidth="2">
+                                        <rect x="3" y="8" width="18" height="12" rx="2" />
+                                        <path d="M7 8V6a2 2 0 0 1 2-2h6a2 2 0 0 1 2 2v2" />
+                                        <circle cx="12" cy="14" r="2" />
                                     </svg>
                                 </div>
                                 <h3>Formas Farmacêuticas</h3>

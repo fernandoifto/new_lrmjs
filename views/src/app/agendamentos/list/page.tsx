@@ -603,14 +603,22 @@ export default function AgendamentosListPage() {
                                         <Link 
                                             href={`/agendamentos/${agendamento.id}`}
                                             className={styles.btnView}
+                                            title="Ver detalhes"
                                         >
-                                            Ver Detalhes
+                                            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                                                <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z" />
+                                                <circle cx="12" cy="12" r="3" />
+                                            </svg>
                                         </Link>
                                         <Link 
                                             href={`/agendamentos/${agendamento.id}/editar`}
                                             className={styles.btnEdit}
+                                            title="Editar"
                                         >
-                                            Editar
+                                            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                                                <path d="M11 4H4a2 2 0 00-2 2v14a2 2 0 002 2h14a2 2 0 002-2v-7" />
+                                                <path d="M18.5 2.5a2.121 2.121 0 013 3L12 15l-4 1 1-4 9.5-9.5z" />
+                                            </svg>
                                         </Link>
                                         {!agendamento.user && (
                                             <button

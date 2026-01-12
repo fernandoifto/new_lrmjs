@@ -130,7 +130,7 @@ model Pacientes {
   cpf           String     @db.VarChar(14)
   datanascimento DateTime
   telefone      String     @db.VarChar(20)
-  cartaosus     Int
+  cartaosus     String     @db.VarChar(20)
   created       DateTime   @default(now())
   modified      DateTime   @updatedAt
 

@@ -60,3 +60,26 @@ export function unmaskCEP(value: string): string {
     return value.replace(/\D/g, '');
 }
 
+/**
+ * Aplica máscara de CPF brasileiro
+ * Formato: XXX.XXX.XXX-XX
+ */
+export function maskCPF(value: string): string {
+    // Remove tudo que não é número
+    const numbers = value.replace(/\D/g, '');
+    
+    // Limita a 11 dígitos
+    const limitedNumbers = numbers.slice(0, 11);
+    
+    // Aplica a máscara
+    if (limitedNumbers.length <= 3) {
+        return limitedNumbers;
+    } else if (limitedNumbers.length <= 6) {
+        return `${limitedNumbers.slice(0, 3)}.${limitedNumbers.slice(3)}`;
+    } else if (limitedNumbers.length <= 9) {
+        return `${limitedNumbers.slice(0, 3)}.${limitedNumbers.slice(3, 6)}.${limitedNumbers.slice(6)}`;
+    } else {
+        return `${limitedNumbers.slice(0, 3)}.${limitedNumbers.slice(3, 6)}.${limitedNumbers.slice(6, 9)}-${limitedNumbers.slice(9)}`;
+    }
+}
+

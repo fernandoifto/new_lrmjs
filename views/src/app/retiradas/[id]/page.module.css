@@ -36,26 +36,37 @@
 }
 
 .header {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  margin-bottom: 2rem;
-  gap: 1rem;
   width: 100%;
-  box-sizing: border-box;
-  min-height: 50px;
+  margin-bottom: 2rem;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+}
+
+.headerContent {
+  flex: 1;
+}
+
+.header h1 {
+  margin: 0;
+  font-size: 2rem;
+  color: var(--cor-texto);
 }
 
 .btnBack,
 .btnEdit {
-  padding: 0.75rem 1.5rem;
-  border-radius: 8px;
+  padding: 0.6rem 1.2rem;
+  border-radius: 6px;
   text-decoration: none;
   font-weight: 500;
   transition: var(--transicao);
+  font-size: 0.9rem;
   display: inline-flex;
   align-items: center;
   gap: 0.5rem;
+  border: none;
+  cursor: pointer;
 }
 
 .btnBack {
@@ -95,8 +106,6 @@
   box-shadow: var(--sombra-card);
   overflow: hidden;
   width: 100%;
-  box-sizing: border-box;
-  min-height: 300px;
 }
 
 .cardHeader {
@@ -121,9 +130,10 @@
 
 .cardHeader h1 {
   margin: 0;
-  font-size: 1.8rem;
+  font-size: 1.5rem;
   font-weight: 600;
   color: var(--cor-texto);
+  flex: 1;
 }
 
 .cardBody {
@@ -138,94 +148,16 @@
   margin-bottom: 0;
 }
 
-.section h3 {
-  margin: 0 0 1.5rem 0;
-  font-size: 1.3rem;
+.section h2 {
+  margin: 0 0 1rem 0;
+  font-size: 1.2rem;
   font-weight: 600;
   color: var(--cor-primaria);
-  padding-bottom: 0.75rem;
-  border-bottom: 2px solid var(--cor-borda);
+  padding-bottom: 0.5rem;
+  border-bottom: 2px solid rgba(63, 129, 208, 0.2);
 }
 
-.infoGrid {
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
-  gap: 1.5rem;
-}
-
-.infoItem {
-  display: flex;
-  flex-direction: column;
-  gap: 0.5rem;
-}
-
-.label {
-  font-weight: 600;
-  color: var(--cor-texto);
-  font-size: 0.9rem;
-  text-transform: uppercase;
-  letter-spacing: 0.5px;
-}
-
-.value {
-  color: var(--cor-texto-claro);
-  font-size: 1.1rem;
-}
-
-/* Estilos para a seção de lotes */
-.loadingLotes,
-.emptyLotes {
-  text-align: center;
-  padding: 2rem;
-  color: var(--cor-texto-claro);
-}
-
-.emptyLotes p {
-  margin: 0;
-  font-size: 1rem;
-}
-
-.lotesGrid {
-  display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
-  gap: 1.5rem;
-  margin-top: 1rem;
-}
-
-.loteCard {
-  background-color: var(--cor-fundo);
-  border: 1px solid var(--cor-borda);
-  border-radius: 8px;
-  overflow: hidden;
-  transition: var(--transicao);
-}
-
-.loteCard:hover {
-  box-shadow: var(--sombra-card);
-  transform: translateY(-2px);
-}
-
-.loteHeader {
-  padding: 1rem 1.5rem;
-  background-color: rgba(63, 129, 208, 0.05);
-  border-bottom: 1px solid var(--cor-borda);
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-}
-
-.loteHeader h4 {
-  margin: 0;
-  font-size: 1.1rem;
-  font-weight: 600;
-  color: var(--cor-texto);
-}
-
-.loteBody {
-  padding: 1.5rem;
-}
-
-.loteInfo {
+.infoRow {
   display: flex;
   justify-content: space-between;
   align-items: flex-start;
@@ -233,62 +165,26 @@
   gap: 1rem;
 }
 
-.loteInfo:last-child {
+.infoRow:last-child {
   margin-bottom: 0;
 }
 
-.loteLabel {
+.label {
   font-weight: 600;
   color: var(--cor-texto);
-  font-size: 0.9rem;
-  min-width: 140px;
+  min-width: 180px;
 }
 
-.loteValue {
+.infoRow span:not(.label) {
   color: var(--cor-texto-claro);
-  font-size: 0.95rem;
   text-align: right;
   flex: 1;
 }
 
-.loteFooter {
-  padding: 1rem 1.5rem;
-  border-top: 1px solid var(--cor-borda);
-  background-color: rgba(63, 129, 208, 0.02);
-}
-
-.btnViewLote {
-  display: inline-block;
-  width: 100%;
-  padding: 0.6rem 1rem;
-  border-radius: 6px;
-  text-decoration: none;
-  text-align: center;
-  font-weight: 500;
-  font-size: 0.9rem;
-  background-color: rgba(63, 129, 208, 0.1);
-  color: var(--cor-primaria);
-  transition: var(--transicao);
-}
-
-.btnViewLote:hover {
-  background-color: rgba(63, 129, 208, 0.2);
-}
-
-/* Cores para status de vencimento */
-.expired {
-  color: #dc3545 !important;
+.highlight {
+  color: var(--cor-primaria) !important;
   font-weight: 600;
-}
-
-.warning {
-  color: #ff9800 !important;
-  font-weight: 600;
-}
-
-.safe {
-  color: #28a745 !important;
-  font-weight: 600;
+  font-size: 1.1rem;
 }
 
 /* Responsividade */
@@ -299,6 +195,10 @@
 }
 
 @media (max-width: 768px) {
+  .main {
+    padding: 1rem 0;
+  }
+
   .container {
     padding: 0 1rem;
   }
@@ -309,29 +209,32 @@
 
   .header {
     flex-direction: column;
-    align-items: stretch;
+    align-items: flex-start;
   }
 
-  .btnBack,
-  .btnEdit {
-    width: 100%;
-    justify-content: center;
+  .header h1 {
+    font-size: 1.5rem;
   }
 
   .cardHeader {
     padding: 1rem 1.5rem;
   }
 
-  .cardHeader h1 {
-    font-size: 1.4rem;
-  }
-
   .cardBody {
     padding: 1.5rem;
   }
 
-  .infoGrid {
-    grid-template-columns: 1fr;
+  .infoRow {
+    flex-direction: column;
+    gap: 0.25rem;
+  }
+
+  .label {
+    min-width: auto;
+  }
+
+  .infoRow span:not(.label) {
+    text-align: left;
   }
 }
 

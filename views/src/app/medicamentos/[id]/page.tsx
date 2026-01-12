@@ -18,17 +18,39 @@ interface Medicamento {
     modified: string;
 }
 
+interface Lote {
+    id: number;
+    numero: string;
+    datavencimento: string;
+    datafabricacao: string;
+    qtde: number;
+    formaFarmaceutica: {
+        id: number;
+        descricao: string;
+    };
+    tipoMedicamento: {
+        id: number;
+        descricao: string;
+    };
+    created: string;
+    modified: string;
+}
+
 export default function MedicamentoViewPage() {
     const router = useRouter();
     const params = useParams();
     const [medicamento, setMedicamento] = useState<Medicamento | null>(null);
+    const [lotes, setLotes] = useState<Lote[]>([]);
     const [loading, setLoading] = useState(true);
+    const [loadingLotes, setLoadingLotes] = useState(true);
     const [mounted, setMounted] = useState(false);
 
     useEffect(() => {
         setMounted(true);
         if (params.id) {
-            loadMedicamento(Number(params.id));
+            const medicamentoId = Number(params.id);
+            loadMedicamento(medicamentoId);
+            loadLotes(medicamentoId);
         }
     }, [params.id]);
 
@@ -66,6 +88,40 @@ export default function MedicamentoViewPage() {
         }
     };
 
+    const loadLotes = async (medicamentoId: number) => {
+        try {
+            setLoadingLotes(true);
+            const token = getCookieClient();
+
+            if (!token) {
+                return;
+            }
+
+            const response = await api.get('/lotes', {
+                headers: {
+                    Authorization: `Bearer ${token}`
+                }
+            });
+
+            // Filtrar lotes que pertencem a este medicamento
+            const lotesDoMedicamento = response.data.filter((lote: any) => 
+                lote.medicamento?.id === medicamentoId
+            );
+
+            setLotes(lotesDoMedicamento);
+        } catch (error: any) {
+            console.error('Erro ao carregar lotes:', error);
+            if (error.response?.status === 401) {
+                toast.error('Sessão expirada. Faça login novamente.');
+                router.push('/login');
+            } else {
+                toast.error('Erro ao carregar lotes');
+            }
+        } finally {
+            setLoadingLotes(false);
+        }
+    };
+
     const formatDate = (dateString: string) => {
         const date = new Date(dateString);
         return date.toLocaleDateString('pt-BR', {
@@ -75,6 +131,32 @@ export default function MedicamentoViewPage() {
             hour: '2-digit',
             minute: '2-digit'
         });
+    };
+
+    const formatDateOnly = (dateString: string) => {
+        const date = new Date(dateString);
+        return date.toLocaleDateString('pt-BR', {
+            day: '2-digit',
+            month: '2-digit',
+            year: 'numeric'
+        });
+    };
+
+    const getVencimentoStatus = (dataVencimento: string) => {
+        const hoje = new Date();
+        hoje.setHours(0, 0, 0, 0);
+        const vencimento = new Date(dataVencimento);
+        vencimento.setHours(0, 0, 0, 0);
+        const diffTime = vencimento.getTime() - hoje.getTime();
+        const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+
+        if (diffDays < 0) {
+            return { status: 'vencido', label: 'Vencido', className: 'expired' };
+        } else if (diffDays <= 90) {
+            return { status: 'proximo', label: 'Próximo do vencimento', className: 'warning' };
+        } else {
+            return { status: 'ok', label: 'OK', className: 'safe' };
+        }
     };
 
     if (!mounted) {
@@ -151,6 +233,64 @@ export default function MedicamentoViewPage() {
                                                 <span className={styles.value}>{formatDate(medicamento.modified)}</span>
                                             </div>
                                         </div>
+                                    </div>
+
+                                    <div className={styles.section}>
+                                        <h3>Lotes deste Medicamento</h3>
+                                        {loadingLotes ? (
+                                            <div className={styles.loadingLotes}>
+                                                <p>Carregando lotes...</p>
+                                            </div>
+                                        ) : lotes.length === 0 ? (
+                                            <div className={styles.emptyLotes}>
+                                                <p>Nenhum lote encontrado para este medicamento.</p>
+                                            </div>
+                                        ) : (
+                                            <div className={styles.lotesGrid}>
+                                                {lotes.map((lote) => {
+                                                    const vencimentoStatus = getVencimentoStatus(lote.datavencimento);
+                                                    return (
+                                                        <div key={lote.id} className={styles.loteCard}>
+                                                            <div className={styles.loteHeader}>
+                                                                <h4>Lote {lote.numero}</h4>
+                                                                <span className={styles[vencimentoStatus.className]}>
+                                                                    {vencimentoStatus.label}
+                                                                </span>
+                                                            </div>
+                                                            <div className={styles.loteBody}>
+                                                                <div className={styles.loteInfo}>
+                                                                    <span className={styles.loteLabel}>Quantidade:</span>
+                                                                    <span className={styles.loteValue}>{lote.qtde}</span>
+                                                                </div>
+                                                                <div className={styles.loteInfo}>
+                                                                    <span className={styles.loteLabel}>Data de Fabricação:</span>
+                                                                    <span className={styles.loteValue}>{formatDateOnly(lote.datafabricacao)}</span>
+                                                                </div>
+                                                                <div className={styles.loteInfo}>
+                                                                    <span className={styles.loteLabel}>Data de Vencimento:</span>
+                                                                    <span className={`${styles.loteValue} ${styles[vencimentoStatus.className]}`}>
+                                                                        {formatDateOnly(lote.datavencimento)}
+                                                                    </span>
+                                                                </div>
+                                                                <div className={styles.loteInfo}>
+                                                                    <span className={styles.loteLabel}>Forma Farmacêutica:</span>
+                                                                    <span className={styles.loteValue}>{lote.formaFarmaceutica.descricao}</span>
+                                                                </div>
+                                                                <div className={styles.loteInfo}>
+                                                                    <span className={styles.loteLabel}>Tipo de Medicamento:</span>
+                                                                    <span className={styles.loteValue}>{lote.tipoMedicamento.descricao}</span>
+                                                                </div>
+                                                            </div>
+                                                            <div className={styles.loteFooter}>
+                                                                <Link href={`/lotes/${lote.id}`} className={styles.btnViewLote}>
+                                                                    Ver Detalhes
+                                                                </Link>
+                                                            </div>
+                                                        </div>
+                                                    );
+                                                })}
+                                            </div>
+                                        )}
                                     </div>
                                 </div>
                             </div>

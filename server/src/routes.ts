@@ -6,6 +6,8 @@ import { CreateTipoMedicamentoController, ListTiposMedicamentosController, GetTi
 import { CreateFormaFarmaceuticaController, ListFormasFarmaceuticasController, GetFormaFarmaceuticaController, UpdateFormaFarmaceuticaController, DeleteFormaFarmaceuticaController } from "./controllers/formasFarmaceuticasController";
 import { CreateMedicamentoController, ListMedicamentosController, GetMedicamentoController, UpdateMedicamentoController, DeleteMedicamentoController } from "./controllers/medicamentosController";
 import { CreateLoteController, ListLotesController, GetLoteController, UpdateLoteController, DeleteLoteController } from "./controllers/lotesController";
+import { CreatePacienteController, ListPacientesController, GetPacienteController, UpdatePacienteController, DeletePacienteController } from "./controllers/pacientesController";
+import { CreateRetiradaController, ListRetiradasController, GetRetiradaController, UpdateRetiradaController, DeleteRetiradaController } from "./controllers/retiradasController";
 import { isAuthenticated } from "./middlewares/isAutenticated";
 
 const router = Router();
@@ -59,5 +61,19 @@ router.get("/lotes", isAuthenticated, new ListLotesController().handle);
 router.get("/lote/:id", isAuthenticated, new GetLoteController().handle);
 router.put("/lote/:id", isAuthenticated, new UpdateLoteController().handle);
 router.delete("/lote/:id", isAuthenticated, new DeleteLoteController().handle);
+
+//Rotas de pacientes
+router.post("/paciente", isAuthenticated, new CreatePacienteController().handle);
+router.get("/pacientes", isAuthenticated, new ListPacientesController().handle);
+router.get("/paciente/:id", isAuthenticated, new GetPacienteController().handle);
+router.put("/paciente/:id", isAuthenticated, new UpdatePacienteController().handle);
+router.delete("/paciente/:id", isAuthenticated, new DeletePacienteController().handle);
+
+//Rotas de retiradas
+router.post("/retirada", isAuthenticated, new CreateRetiradaController().handle);
+router.get("/retiradas", isAuthenticated, new ListRetiradasController().handle);
+router.get("/retirada/:id", isAuthenticated, new GetRetiradaController().handle);
+router.put("/retirada/:id", isAuthenticated, new UpdateRetiradaController().handle);
+router.delete("/retirada/:id", isAuthenticated, new DeleteRetiradaController().handle);
 
 export default router;

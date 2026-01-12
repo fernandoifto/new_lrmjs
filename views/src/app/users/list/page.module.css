@@ -213,7 +213,7 @@
 .btnEdit,
 .btnDelete {
   flex: 1;
-  padding: 0.6rem 1rem;
+  padding: 0.6rem;
   border-radius: 6px;
   text-decoration: none;
   text-align: center;
@@ -223,9 +223,9 @@
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  gap: 0.5rem;
   border: none;
   cursor: pointer;
+  min-width: 40px;
 }
 
 .btnView {

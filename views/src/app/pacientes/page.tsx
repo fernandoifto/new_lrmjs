@@ -5,40 +5,43 @@ import { api } from '@/api/api';
 import { useRouter } from 'next/navigation';
 import { toast } from 'react-toastify';
 import { getCookieClient } from '@/lib/cookieClient';
-import Header from '../../home/components/header';
-import Menu from '../../components/menu';
+import Header from '../home/components/header';
+import Menu from '../components/menu';
 import styles from './page.module.css';
 import Link from 'next/link';
 
-interface Medicamento {
+interface Paciente {
     id: number;
-    descricao: string;
-    principioativo: string;
+    nome: string;
+    cpf: string;
+    datanascimento: string;
+    telefone: string;
+    cartaosus: string;
     created: string;
     modified: string;
 }
 
-export default function MedicamentosListPage() {
+export default function PacientesPage() {
     const router = useRouter();
-    const [medicamentos, setMedicamentos] = useState<Medicamento[]>([]);
-    const [filteredMedicamentos, setFilteredMedicamentos] = useState<Medicamento[]>([]);
+    const [pacientes, setPacientes] = useState<Paciente[]>([]);
+    const [filteredPacientes, setFilteredPacientes] = useState<Paciente[]>([]);
     const [loading, setLoading] = useState(true);
     const [mounted, setMounted] = useState(false);
     const [searchTerm, setSearchTerm] = useState('');
-    const [searchOption, setSearchOption] = useState('descricao');
+    const [searchOption, setSearchOption] = useState('nome');
     const [activeSearchTerm, setActiveSearchTerm] = useState('');
-    const [activeSearchOption, setActiveSearchOption] = useState('descricao');
+    const [activeSearchOption, setActiveSearchOption] = useState('nome');
 
     useEffect(() => {
         setMounted(true);
-        loadMedicamentos();
+        loadPacientes();
     }, []);
 
     useEffect(() => {
-        filterMedicamentos();
-    }, [medicamentos, activeSearchTerm, activeSearchOption]);
+        filterPacientes();
+    }, [pacientes, activeSearchTerm, activeSearchOption]);
 
-    const loadMedicamentos = async () => {
+    const loadPacientes = async () => {
         try {
             setLoading(true);
             const token = getCookieClient();
@@ -49,56 +52,24 @@ export default function MedicamentosListPage() {
                 return;
             }
 
-            const response = await api.get('/medicamentos', {
+            const response = await api.get('/pacientes', {
                 headers: {
                     Authorization: `Bearer ${token}`
                 }
             });
 
-            setMedicamentos(response.data);
-            setFilteredMedicamentos(response.data);
+            setPacientes(response.data);
+            setFilteredPacientes(response.data);
         } catch (error: any) {
-            console.error('Erro ao carregar medicamentos:', error);
+            console.error('Erro ao carregar pacientes:', error);
             if (error.response?.status === 401) {
                 toast.error('Sessão expirada. Faça login novamente.');
                 router.push('/login');
             } else {
-                toast.error('Erro ao carregar medicamentos');
+                toast.error('Erro ao carregar pacientes');
             }
         } finally {
             setLoading(false);
-        }
-    };
-
-    const handleDelete = async (id: number, descricao: string) => {
-        if (!confirm(`Tem certeza que deseja excluir o medicamento "${descricao}"?`)) {
-            return;
-        }
-
-        try {
-            const token = getCookieClient();
-            if (!token) {
-                toast.error('Você precisa estar logado');
-                router.push('/login');
-                return;
-            }
-
-            await api.delete(`/medicamento/${id}`, {
-                headers: {
-                    Authorization: `Bearer ${token}`
-                }
-            });
-
-            toast.success('Medicamento excluído com sucesso!');
-            loadMedicamentos();
-        } catch (error: any) {
-            console.error('Erro ao excluir medicamento:', error);
-            if (error.response?.status === 401) {
-                toast.error('Sessão expirada. Faça login novamente.');
-                router.push('/login');
-            } else {
-                toast.error(error.response?.data?.error || 'Erro ao excluir medicamento');
-            }
         }
     };
 
@@ -111,24 +82,46 @@ export default function MedicamentosListPage() {
         });
     };
 
-    const filterMedicamentos = () => {
-        let filtered = [...medicamentos];
+    const formatCPF = (cpf: string) => {
+        const cleaned = cpf.replace(/\D/g, '');
+        if (cleaned.length === 11) {
+            return cleaned.replace(/(\d{3})(\d{3})(\d{3})(\d{2})/, '$1.$2.$3-$4');
+        }
+        return cpf;
+    };
+
+    const formatPhone = (phone: string) => {
+        const cleaned = phone.replace(/\D/g, '');
+        if (cleaned.length === 11) {
+            return cleaned.replace(/(\d{2})(\d{5})(\d{4})/, '($1) $2-$3');
+        } else if (cleaned.length === 10) {
+            return cleaned.replace(/(\d{2})(\d{4})(\d{4})/, '($1) $2-$3');
+        }
+        return phone;
+    };
+
+    const filterPacientes = () => {
+        let filtered = [...pacientes];
         
         if (activeSearchTerm.trim() !== '') {
             const searchLower = activeSearchTerm.toLowerCase().trim();
-            filtered = filtered.filter(medicamento => {
+            filtered = filtered.filter(paciente => {
                 switch (activeSearchOption) {
-                    case 'descricao':
-                        return medicamento.descricao.toLowerCase().includes(searchLower);
-                    case 'principioativo':
-                        return medicamento.principioativo.toLowerCase().includes(searchLower);
+                    case 'nome':
+                        return paciente.nome.toLowerCase().includes(searchLower);
+                    case 'cpf':
+                        return paciente.cpf.replace(/\D/g, '').includes(searchLower.replace(/\D/g, ''));
+                    case 'telefone':
+                        return paciente.telefone.replace(/\D/g, '').includes(searchLower.replace(/\D/g, ''));
+                    case 'cartaosus':
+                        return paciente.cartaosus.toLowerCase().includes(searchLower);
                     default:
                         return true;
                 }
             });
         }
         
-        setFilteredMedicamentos(filtered);
+        setFilteredPacientes(filtered);
     };
 
     const handleSearch = () => {
@@ -139,8 +132,40 @@ export default function MedicamentosListPage() {
     const handleClearSearch = () => {
         setSearchTerm('');
         setActiveSearchTerm('');
-        setActiveSearchOption('descricao');
-        setSearchOption('descricao');
+        setActiveSearchOption('nome');
+        setSearchOption('nome');
+    };
+
+    const handleDelete = async (id: number, nome: string) => {
+        if (!confirm(`Tem certeza que deseja excluir o paciente "${nome}"?`)) {
+            return;
+        }
+
+        try {
+            const token = getCookieClient();
+            if (!token) {
+                toast.error('Você precisa estar logado');
+                router.push('/login');
+                return;
+            }
+
+            await api.delete(`/paciente/${id}`, {
+                headers: {
+                    Authorization: `Bearer ${token}`
+                }
+            });
+
+            toast.success('Paciente excluído com sucesso!');
+            loadPacientes();
+        } catch (error: any) {
+            console.error('Erro ao excluir paciente:', error);
+            if (error.response?.status === 401) {
+                toast.error('Sessão expirada. Faça login novamente.');
+                router.push('/login');
+            } else {
+                toast.error(error.response?.data?.error || 'Erro ao excluir paciente');
+            }
+        }
     };
 
     if (!mounted) {
@@ -157,20 +182,21 @@ export default function MedicamentosListPage() {
                         <div className={styles.header}>
                             <div className={styles.headerContent}>
                                 <div className={styles.headerIcon}>
-                                    <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                                        <path d="M12 2L2 7l10 5 10-5-10-5zM2 17l10 5 10-5M2 12l10 5 10-5" />
+                                    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" width="24" height="24">
+                                        <path fill="none" d="M0 0h24v24H0z" />
+                                        <path d="M12 22C6.477 22 2 17.523 2 12S6.477 2 12 2s10 4.477 10 10-4.477 10-10 10zm-4.987-3.744A7.966 7.966 0 0 0 12 20c1.97 0 3.773-.712 5.167-1.892A6.979 6.979 0 0 0 12.16 16a6.981 6.981 0 0 0-5.147 2.256zM5.616 16.82A8.975 8.975 0 0 1 12.16 14a8.972 8.972 0 0 1 6.362 2.634 8 8 0 1 0-12.906.187zM12 13a4 4 0 1 1 0-8 4 4 0 0 1 0 8zm0-2a2 2 0 1 0 0-4 2 2 0 0 0 0 4z" fill="currentColor" />
                                     </svg>
                                 </div>
                                 <div>
-                                    <h1>Medicamentos</h1>
-                                    <p>Gerencie os medicamentos do sistema</p>
+                                    <h1>Pacientes</h1>
+                                    <p>Gerencie os pacientes do sistema</p>
                                 </div>
                             </div>
-                            <Link href="/medicamentos/novo" className={styles.btnNew}>
+                            <Link href="/pacientes/novo" className={styles.btnNew}>
                                 <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
                                     <path d="M12 5v14m7-7H5" />
                                 </svg>
-                                Novo Medicamento
+                                Novo Paciente
                             </Link>
                         </div>
 
@@ -184,21 +210,41 @@ export default function MedicamentosListPage() {
                                             <input
                                                 type="radio"
                                                 name="searchOption"
-                                                value="descricao"
-                                                checked={searchOption === 'descricao'}
+                                                value="nome"
+                                                checked={searchOption === 'nome'}
                                                 onChange={(e) => setSearchOption(e.target.value)}
                                             />
-                                            <span>Descrição</span>
+                                            <span>Nome</span>
                                         </label>
                                         <label className={styles.radioOption}>
                                             <input
                                                 type="radio"
                                                 name="searchOption"
-                                                value="principioativo"
-                                                checked={searchOption === 'principioativo'}
+                                                value="cpf"
+                                                checked={searchOption === 'cpf'}
                                                 onChange={(e) => setSearchOption(e.target.value)}
                                             />
-                                            <span>Princípio Ativo</span>
+                                            <span>CPF</span>
+                                        </label>
+                                        <label className={styles.radioOption}>
+                                            <input
+                                                type="radio"
+                                                name="searchOption"
+                                                value="telefone"
+                                                checked={searchOption === 'telefone'}
+                                                onChange={(e) => setSearchOption(e.target.value)}
+                                            />
+                                            <span>Telefone</span>
+                                        </label>
+                                        <label className={styles.radioOption}>
+                                            <input
+                                                type="radio"
+                                                name="searchOption"
+                                                value="cartaosus"
+                                                checked={searchOption === 'cartaosus'}
+                                                onChange={(e) => setSearchOption(e.target.value)}
+                                            />
+                                            <span>Cartão SUS</span>
                                         </label>
                                     </div>
                                 </div>
@@ -246,8 +292,8 @@ export default function MedicamentosListPage() {
                                     </button>
                                     {activeSearchTerm && (
                                         <div className={styles.searchResults}>
-                                            {filteredMedicamentos.length > 0 ? (
-                                                <span>{filteredMedicamentos.length} resultado(s) encontrado(s)</span>
+                                            {filteredPacientes.length > 0 ? (
+                                                <span>{filteredPacientes.length} resultado(s) encontrado(s)</span>
                                             ) : (
                                                 <span>Nenhum resultado encontrado</span>
                                             )}
@@ -259,62 +305,82 @@ export default function MedicamentosListPage() {
 
                         {loading ? (
                             <div className={styles.loadingContainer}>
-                                <p>Carregando...</p>
+                                <p>Carregando pacientes...</p>
                             </div>
-                        ) : filteredMedicamentos.length === 0 ? (
+                        ) : filteredPacientes.length === 0 ? (
                             <div className={styles.emptyState}>
                                 <p>
                                     {activeSearchTerm 
-                                        ? 'Nenhum medicamento encontrado com os critérios de busca' 
-                                        : 'Nenhum medicamento cadastrado'}
+                                        ? 'Nenhum paciente encontrado com os critérios de busca' 
+                                        : 'Nenhum paciente cadastrado'}
                                 </p>
                                 {!activeSearchTerm && (
-                                    <Link href="/medicamentos/novo" className={styles.btnNew}>
-                                        Cadastrar Primeiro Medicamento
+                                    <Link href="/pacientes/novo" className={styles.btnNew}>
+                                        Cadastrar Primeiro Paciente
                                     </Link>
                                 )}
                             </div>
                         ) : (
                             <div className={styles.grid}>
-                                {filteredMedicamentos.map((medicamento) => (
-                                    <div key={medicamento.id} className={styles.card}>
+                                {filteredPacientes.map((paciente) => (
+                                    <div key={paciente.id} className={styles.card}>
                                         <div className={styles.cardHeader}>
                                             <div className={styles.cardIcon}>
-                                                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                                                    <path d="M12 2L2 7l10 5 10-5-10-5zM2 17l10 5 10-5M2 12l10 5 10-5" />
+                                                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" width="20" height="20">
+                                                    <path fill="none" d="M0 0h24v24H0z" />
+                                                    <path d="M12 22C6.477 22 2 17.523 2 12S6.477 2 12 2s10 4.477 10 10-4.477 10-10 10zm-4.987-3.744A7.966 7.966 0 0 0 12 20c1.97 0 3.773-.712 5.167-1.892A6.979 6.979 0 0 0 12.16 16a6.981 6.981 0 0 0-5.147 2.256zM5.616 16.82A8.975 8.975 0 0 1 12.16 14a8.972 8.972 0 0 1 6.362 2.634 8 8 0 1 0-12.906.187zM12 13a4 4 0 1 1 0-8 4 4 0 0 1 0 8zm0-2a2 2 0 1 0 0-4 2 2 0 0 0 0 4z" fill="currentColor" />
                                                 </svg>
                                             </div>
-                                            <h3>{medicamento.descricao}</h3>
+                                            <h3>{paciente.nome}</h3>
                                         </div>
                                         <div className={styles.cardBody}>
                                             <div className={styles.infoRow}>
-                                                <span className={styles.label}>Princípio Ativo:</span>
-                                                <span>{medicamento.principioativo}</span>
+                                                <span className={styles.label}>CPF:</span>
+                                                <span>{formatCPF(paciente.cpf)}</span>
                                             </div>
                                             <div className={styles.infoRow}>
-                                                <span className={styles.label}>Criado em:</span>
-                                                <span>{formatDate(medicamento.created)}</span>
+                                                <span className={styles.label}>Telefone:</span>
+                                                <span>{formatPhone(paciente.telefone)}</span>
                                             </div>
                                             <div className={styles.infoRow}>
-                                                <span className={styles.label}>Modificado em:</span>
-                                                <span>{formatDate(medicamento.modified)}</span>
+                                                <span className={styles.label}>Data de Nascimento:</span>
+                                                <span>{formatDate(paciente.datanascimento)}</span>
+                                            </div>
+                                            <div className={styles.infoRow}>
+                                                <span className={styles.label}>Cartão SUS:</span>
+                                                <span>{paciente.cartaosus}</span>
+                                            </div>
+                                            <div className={styles.infoRow}>
+                                                <span className={styles.label}>Cadastrado em:</span>
+                                                <span>{formatDate(paciente.created)}</span>
                                             </div>
                                         </div>
                                         <div className={styles.cardFooter}>
-                                            <Link href={`/medicamentos/${medicamento.id}`} className={styles.btnView} title="Ver detalhes">
+                                            <Link href={`/pacientes/${paciente.id}`} className={styles.btnView} title="Ver detalhes">
                                                 <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
                                                     <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z" />
                                                     <circle cx="12" cy="12" r="3" />
                                                 </svg>
                                             </Link>
-                                            <Link href={`/medicamentos/${medicamento.id}/editar`} className={styles.btnEdit} title="Editar">
+                                            <Link href={`/pacientes/${paciente.id}/editar`} className={styles.btnEdit} title="Editar">
                                                 <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
                                                     <path d="M11 4H4a2 2 0 00-2 2v14a2 2 0 002 2h14a2 2 0 002-2v-7" />
                                                     <path d="M18.5 2.5a2.121 2.121 0 013 3L12 15l-4 1 1-4 9.5-9.5z" />
                                                 </svg>
                                             </Link>
+                                            <Link 
+                                                href={`/retiradas/novo?paciente=${paciente.id}`}
+                                                className={styles.btnDoar}
+                                            >
+                                                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                                                    <path d="M16 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2" />
+                                                    <circle cx="8.5" cy="7" r="4" />
+                                                    <path d="M20 8v6M23 11l-3-3-3 3" />
+                                                </svg>
+                                                Doar
+                                            </Link>
                                             <button
-                                                onClick={() => handleDelete(medicamento.id, medicamento.descricao)}
+                                                onClick={() => handleDelete(paciente.id, paciente.nome)}
                                                 className={styles.btnDelete}
                                                 title="Excluir"
                                             >
