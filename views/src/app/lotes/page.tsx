@@ -9,6 +9,7 @@ import Header from '../home/components/header';
 import Menu from '../components/menu';
 import styles from './page.module.css';
 import Link from 'next/link';
+import jsPDF from 'jspdf';
 
 interface Lote {
     id: number;
@@ -36,13 +37,22 @@ interface Lote {
 export default function LotesPage() {
     const router = useRouter();
     const [lotes, setLotes] = useState<Lote[]>([]);
+    const [filteredLotes, setFilteredLotes] = useState<Lote[]>([]);
     const [loading, setLoading] = useState(true);
     const [mounted, setMounted] = useState(false);
+    const [searchTerm, setSearchTerm] = useState('');
+    const [searchOption, setSearchOption] = useState('numero');
+    const [activeSearchTerm, setActiveSearchTerm] = useState('');
+    const [activeSearchOption, setActiveSearchOption] = useState('numero');
 
     useEffect(() => {
         setMounted(true);
         loadLotes();
     }, []);
+
+    useEffect(() => {
+        filterLotes();
+    }, [lotes, activeSearchTerm, activeSearchOption]);
 
     const loadLotes = async () => {
         try {
@@ -62,6 +72,7 @@ export default function LotesPage() {
             });
 
             setLotes(response.data);
+            setFilteredLotes(response.data);
         } catch (error: any) {
             console.error('Erro ao carregar lotes:', error);
             if (error.response?.status === 401) {
@@ -134,6 +145,181 @@ export default function LotesPage() {
         }
     };
 
+    const filterLotes = () => {
+        let filtered = [...lotes];
+        
+        if (activeSearchTerm.trim() !== '') {
+            const searchLower = activeSearchTerm.toLowerCase().trim();
+            filtered = filtered.filter(lote => {
+                switch (activeSearchOption) {
+                    case 'numero':
+                        return lote.numero.toLowerCase().includes(searchLower);
+                    case 'medicamento':
+                        return lote.medicamento.descricao.toLowerCase().includes(searchLower);
+                    case 'principioativo':
+                        return lote.medicamento.principioativo.toLowerCase().includes(searchLower);
+                    case 'formafarmaceutica':
+                        return lote.formaFarmaceutica.descricao.toLowerCase().includes(searchLower);
+                    case 'tipomedicamento':
+                        return lote.tipoMedicamento.descricao.toLowerCase().includes(searchLower);
+                    case 'quantidade':
+                        return lote.qtde.toString().includes(searchLower);
+                    case 'datafabricacao':
+                        return formatDate(lote.datafabricacao).toLowerCase().includes(searchLower);
+                    case 'datavencimento':
+                        return formatDate(lote.datavencimento).toLowerCase().includes(searchLower);
+                    default:
+                        return true;
+                }
+            });
+        }
+        
+        setFilteredLotes(filtered);
+    };
+
+    const handleSearch = () => {
+        setActiveSearchTerm(searchTerm);
+        setActiveSearchOption(searchOption);
+    };
+
+    const handleClearSearch = () => {
+        setSearchTerm('');
+        setActiveSearchTerm('');
+        setActiveSearchOption('numero');
+        setSearchOption('numero');
+    };
+
+    const handleGeneratePDF = () => {
+        try {
+            const doc = new jsPDF('landscape', 'mm', 'a4');
+            const pageWidth = doc.internal.pageSize.getWidth();
+            const pageHeight = doc.internal.pageSize.getHeight();
+            const margin = 10;
+            const startY = 20;
+            let y = startY;
+
+            doc.setFontSize(18);
+            doc.setFont('helvetica', 'bold');
+            doc.text('Lista de Lotes', pageWidth / 2, y, { align: 'center' });
+            y += 10;
+
+            doc.setFontSize(10);
+            doc.setFont('helvetica', 'normal');
+            const dataGeracao = new Date().toLocaleDateString('pt-BR', {
+                day: '2-digit',
+                month: '2-digit',
+                year: 'numeric',
+                hour: '2-digit',
+                minute: '2-digit'
+            });
+            doc.text(`Gerado em: ${dataGeracao}`, pageWidth / 2, y, { align: 'center' });
+            y += 10;
+
+            if (activeSearchTerm) {
+                doc.setFontSize(10);
+                const campoBusca = {
+                    'numero': 'Número',
+                    'medicamento': 'Medicamento',
+                    'principioativo': 'Princípio Ativo',
+                    'formafarmaceutica': 'Forma Farmacêutica',
+                    'tipomedicamento': 'Tipo de Medicamento',
+                    'quantidade': 'Quantidade',
+                    'datafabricacao': 'Data de Fabricação',
+                    'datavencimento': 'Data de Vencimento'
+                }[activeSearchOption] || 'Campo';
+                doc.text(`Busca: ${campoBusca} - "${activeSearchTerm}"`, margin, y);
+                y += 5;
+            }
+            y += 5;
+
+            doc.setFontSize(9);
+            doc.setFont('helvetica', 'bold');
+            const colWidths = [25, 50, 35, 30, 25, 25, 25, 25];
+            const headers = ['Número', 'Medicamento', 'Forma Farm.', 'Tipo', 'Qtde', 'Fab.', 'Venc.', 'Status'];
+            let x = margin;
+
+            headers.forEach((header, index) => {
+                doc.text(header, x, y);
+                x += colWidths[index];
+            });
+            y += 7;
+
+            doc.setLineWidth(0.5);
+            doc.line(margin, y - 2, pageWidth - margin, y - 2);
+            y += 2;
+
+            doc.setFontSize(8);
+            doc.setFont('helvetica', 'normal');
+            
+            filteredLotes.forEach((lote) => {
+                if (y > pageHeight - 20) {
+                    doc.addPage();
+                    y = startY;
+                    
+                    doc.setFontSize(9);
+                    doc.setFont('helvetica', 'bold');
+                    x = margin;
+                    headers.forEach((header, idx) => {
+                        doc.text(header, x, y);
+                        x += colWidths[idx];
+                    });
+                    y += 7;
+                    doc.line(margin, y - 2, pageWidth - margin, y - 2);
+                    y += 2;
+                    doc.setFontSize(8);
+                    doc.setFont('helvetica', 'normal');
+                }
+
+                const vencimentoStatus = getVencimentoStatus(lote.datavencimento);
+                const statusText = vencimentoStatus.status === 'vencido' 
+                    ? 'Vencido' 
+                    : vencimentoStatus.status === 'proximo' 
+                    ? `${vencimentoStatus.days}d` 
+                    : 'OK';
+
+                x = margin;
+                const rowData = [
+                    lote.numero || '',
+                    lote.medicamento.descricao || '',
+                    lote.formaFarmaceutica.descricao || '',
+                    lote.tipoMedicamento.descricao || '',
+                    lote.qtde.toString() || '',
+                    formatDate(lote.datafabricacao) || '',
+                    formatDate(lote.datavencimento) || '',
+                    statusText
+                ];
+
+                rowData.forEach((data, idx) => {
+                    const text = doc.splitTextToSize(data || '', colWidths[idx] - 2);
+                    doc.text(text, x + 1, y);
+                    x += colWidths[idx];
+                });
+                y += 8;
+            });
+
+            const totalPages = doc.getNumberOfPages();
+            for (let i = 1; i <= totalPages; i++) {
+                doc.setPage(i);
+                doc.setFontSize(8);
+                doc.setFont('helvetica', 'normal');
+                doc.text(
+                    `Página ${i} de ${totalPages} - Total de lotes: ${filteredLotes.length}`,
+                    pageWidth / 2,
+                    pageHeight - 5,
+                    { align: 'center' }
+                );
+            }
+
+            const fileName = `lotes_${new Date().toISOString().split('T')[0]}.pdf`;
+            doc.save(fileName);
+            
+            toast.success('PDF gerado com sucesso!');
+        } catch (error) {
+            console.error('Erro ao gerar PDF:', error);
+            toast.error('Erro ao gerar PDF');
+        }
+    };
+
     if (!mounted) {
         return null;
     }
@@ -157,28 +343,193 @@ export default function LotesPage() {
                                     <p>Gerencie os lotes de medicamentos do sistema</p>
                                 </div>
                             </div>
-                            <Link href="/lotes/novo" className={styles.btnNew}>
-                                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                                    <path d="M12 5v14m7-7H5" />
-                                </svg>
-                                Novo Lote
-                            </Link>
+                            <div className={styles.headerActions}>
+                                {filteredLotes.length > 0 && (
+                                    <button
+                                        onClick={handleGeneratePDF}
+                                        className={styles.btnPDF}
+                                        title="Gerar PDF dos lotes listados"
+                                    >
+                                        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" width="20" height="20">
+                                            <path fill="none" d="M0 0h24v24H0z" />
+                                            <path d="M19 8h-1V3H6v5H5c-1.66 0-3 1.34-3 3v6h4v4h12v-4h4v-6c0-1.66-1.34-3-3-3zM8 5h8v3H8V5zm8 12v2H8v-4h8v2zm2-2v-2H6v2H4v-4c0-.55.45-1 1-1h14c.55 0 1 .45 1 1v4h-2z" fill="currentColor" />
+                                            <circle cx="18" cy="11.5" r="1" fill="currentColor" />
+                                        </svg>
+                                        Gerar PDF
+                                    </button>
+                                )}
+                                <Link href="/lotes/novo" className={styles.btnNew}>
+                                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                                        <path d="M12 5v14m7-7H5" />
+                                    </svg>
+                                    Novo Lote
+                                </Link>
+                            </div>
+                        </div>
+
+                        {/* Campo de Busca */}
+                        <div className={styles.searchContainer}>
+                            <div className={styles.searchPanel}>
+                                <div className={styles.searchHeader}>
+                                    <b>Buscar por:</b>
+                                    <div className={styles.searchOptions}>
+                                        <label className={styles.radioOption}>
+                                            <input
+                                                type="radio"
+                                                name="searchOption"
+                                                value="numero"
+                                                checked={searchOption === 'numero'}
+                                                onChange={(e) => setSearchOption(e.target.value)}
+                                            />
+                                            <span>Número</span>
+                                        </label>
+                                        <label className={styles.radioOption}>
+                                            <input
+                                                type="radio"
+                                                name="searchOption"
+                                                value="medicamento"
+                                                checked={searchOption === 'medicamento'}
+                                                onChange={(e) => setSearchOption(e.target.value)}
+                                            />
+                                            <span>Medicamento</span>
+                                        </label>
+                                        <label className={styles.radioOption}>
+                                            <input
+                                                type="radio"
+                                                name="searchOption"
+                                                value="principioativo"
+                                                checked={searchOption === 'principioativo'}
+                                                onChange={(e) => setSearchOption(e.target.value)}
+                                            />
+                                            <span>Princípio Ativo</span>
+                                        </label>
+                                        <label className={styles.radioOption}>
+                                            <input
+                                                type="radio"
+                                                name="searchOption"
+                                                value="formafarmaceutica"
+                                                checked={searchOption === 'formafarmaceutica'}
+                                                onChange={(e) => setSearchOption(e.target.value)}
+                                            />
+                                            <span>Forma Farmacêutica</span>
+                                        </label>
+                                        <label className={styles.radioOption}>
+                                            <input
+                                                type="radio"
+                                                name="searchOption"
+                                                value="tipomedicamento"
+                                                checked={searchOption === 'tipomedicamento'}
+                                                onChange={(e) => setSearchOption(e.target.value)}
+                                            />
+                                            <span>Tipo de Medicamento</span>
+                                        </label>
+                                        <label className={styles.radioOption}>
+                                            <input
+                                                type="radio"
+                                                name="searchOption"
+                                                value="quantidade"
+                                                checked={searchOption === 'quantidade'}
+                                                onChange={(e) => setSearchOption(e.target.value)}
+                                            />
+                                            <span>Quantidade</span>
+                                        </label>
+                                        <label className={styles.radioOption}>
+                                            <input
+                                                type="radio"
+                                                name="searchOption"
+                                                value="datafabricacao"
+                                                checked={searchOption === 'datafabricacao'}
+                                                onChange={(e) => setSearchOption(e.target.value)}
+                                            />
+                                            <span>Data Fabricação</span>
+                                        </label>
+                                        <label className={styles.radioOption}>
+                                            <input
+                                                type="radio"
+                                                name="searchOption"
+                                                value="datavencimento"
+                                                checked={searchOption === 'datavencimento'}
+                                                onChange={(e) => setSearchOption(e.target.value)}
+                                            />
+                                            <span>Data Vencimento</span>
+                                        </label>
+                                    </div>
+                                </div>
+                                <div className={styles.searchBody}>
+                                    <div className={styles.searchBox}>
+                                        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" width="20" height="20" className={styles.searchIcon}>
+                                            <path fill="none" d="M0 0h24v24H0z" />
+                                            <path d="M18.031 16.617l4.283 4.282-1.415 1.415-4.282-4.283A8.96 8.96 0 0 1 11 20c-4.968 0-9-4.032-9-9s4.032-9 9-9 9 4.032 9 9a8.96 8.96 0 0 1-1.969 5.617zm-2.006-.742A6.977 6.977 0 0 0 18 11c0-3.868-3.133-7-7-7-3.868 0-7 3.132-7 7 0 3.867 3.132 7 7 7a6.977 6.977 0 0 0 4.875-1.975l.15-.15z" fill="currentColor" />
+                                        </svg>
+                                        <input
+                                            type="text"
+                                            placeholder="Digite aqui sua pesquisa"
+                                            value={searchTerm}
+                                            onChange={(e) => setSearchTerm(e.target.value)}
+                                            onKeyPress={(e) => {
+                                                if (e.key === 'Enter') {
+                                                    handleSearch();
+                                                }
+                                            }}
+                                            className={styles.searchInput}
+                                        />
+                                        {searchTerm && (
+                                            <button
+                                                onClick={handleClearSearch}
+                                                className={styles.clearButton}
+                                                title="Limpar busca"
+                                            >
+                                                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" width="18" height="18">
+                                                    <path fill="none" d="M0 0h24v24H0z" />
+                                                    <path d="M12 22C6.477 22 2 17.523 2 12S6.477 2 12 2s10 4.477 10 10-4.477 10-10 10zm0-2a8 8 0 1 0 0-16 8 8 0 0 0 0 16zm-4-9h8v2H8v-2z" fill="currentColor" />
+                                                </svg>
+                                            </button>
+                                        )}
+                                    </div>
+                                    <button
+                                        onClick={handleSearch}
+                                        className={styles.searchButton}
+                                        title="Buscar"
+                                    >
+                                        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" width="20" height="20">
+                                            <path fill="none" d="M0 0h24v24H0z" />
+                                            <path d="M18.031 16.617l4.283 4.282-1.415 1.415-4.282-4.283A8.96 8.96 0 0 1 11 20c-4.968 0-9-4.032-9-9s4.032-9 9-9 9 4.032 9 9a8.96 8.96 0 0 1-1.969 5.617zm-2.006-.742A6.977 6.977 0 0 0 18 11c0-3.868-3.133-7-7-7-3.868 0-7 3.132-7 7 0 3.867 3.132 7 7 7a6.977 6.977 0 0 0 4.875-1.975l.15-.15z" fill="currentColor" />
+                                        </svg>
+                                        Buscar
+                                    </button>
+                                    {activeSearchTerm && (
+                                        <div className={styles.searchResults}>
+                                            {filteredLotes.length > 0 ? (
+                                                <span>{filteredLotes.length} resultado(s) encontrado(s)</span>
+                                            ) : (
+                                                <span>Nenhum resultado encontrado</span>
+                                            )}
+                                        </div>
+                                    )}
+                                </div>
+                            </div>
                         </div>
 
                         {loading ? (
                             <div className={styles.loadingContainer}>
                                 <p>Carregando...</p>
                             </div>
-                        ) : lotes.length === 0 ? (
+                        ) : filteredLotes.length === 0 ? (
                             <div className={styles.emptyState}>
-                                <p>Nenhum lote cadastrado</p>
-                                <Link href="/lotes/novo" className={styles.btnNew}>
-                                    Cadastrar Primeiro Lote
-                                </Link>
+                                <p>
+                                    {activeSearchTerm 
+                                        ? 'Nenhum lote encontrado com os critérios de busca' 
+                                        : 'Nenhum lote cadastrado'}
+                                </p>
+                                {!activeSearchTerm && (
+                                    <Link href="/lotes/novo" className={styles.btnNew}>
+                                        Cadastrar Primeiro Lote
+                                    </Link>
+                                )}
                             </div>
                         ) : (
                             <div className={styles.grid}>
-                                {lotes.map((lote) => {
+                                {filteredLotes.map((lote) => {
                                     const vencimentoStatus = getVencimentoStatus(lote.datavencimento);
                                     return (
                                         <div key={lote.id} className={styles.card}>

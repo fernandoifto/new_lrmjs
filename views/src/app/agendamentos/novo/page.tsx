@@ -116,7 +116,7 @@ function NovoAgendamentoForm({ turnos, router }: { turnos: ITurno[]; router: App
         const success = await handleCreateAgendamento(formData, resetForm);
         if (success) {
             setTimeout(() => {
-                router.push('/agendamentos');
+                router.push('/agendamentos/list');
             }, 1500);
         }
     };

@@ -70,7 +70,7 @@ export default function AgendamentoViewPage() {
                 router.push('/login');
             } else if (error.response?.status === 404) {
                 toast.error('Agendamento não encontrado');
-                router.push('/agendamentos');
+                router.push('/agendamentos/list');
             } else {
                 toast.error('Erro ao carregar agendamento');
             }
@@ -163,7 +163,7 @@ export default function AgendamentoViewPage() {
             });
 
             toast.success('Agendamento excluído com sucesso!');
-            router.push('/agendamentos');
+            router.push('/agendamentos/list');
         } catch (error: any) {
             console.error('Erro ao excluir agendamento:', error);
             if (error.response?.status === 401) {
@@ -186,7 +186,7 @@ export default function AgendamentoViewPage() {
                 <div className={styles.container}>
                     <div className={styles.contentWrapper}>
                         <div className={styles.header}>
-                            <Link href="/agendamentos" className={styles.btnBack}>
+                            <Link href="/agendamentos/list" className={styles.btnBack}>
                                 ← Voltar
                             </Link>
                             <div style={{ display: 'flex', gap: '0.75rem', alignItems: 'center' }}>
@@ -243,7 +243,7 @@ export default function AgendamentoViewPage() {
                         ) : !agendamento ? (
                             <div className={styles.errorContainer}>
                                 <p>Agendamento não encontrado</p>
-                                <Link href="/agendamentos" className={styles.btnBack}>
+                                <Link href="/agendamentos/list" className={styles.btnBack}>
                                     Voltar para lista
                                 </Link>
                             </div>

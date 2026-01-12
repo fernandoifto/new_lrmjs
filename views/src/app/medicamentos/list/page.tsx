@@ -21,13 +21,22 @@ interface Medicamento {
 export default function MedicamentosListPage() {
     const router = useRouter();
     const [medicamentos, setMedicamentos] = useState<Medicamento[]>([]);
+    const [filteredMedicamentos, setFilteredMedicamentos] = useState<Medicamento[]>([]);
     const [loading, setLoading] = useState(true);
     const [mounted, setMounted] = useState(false);
+    const [searchTerm, setSearchTerm] = useState('');
+    const [searchOption, setSearchOption] = useState('descricao');
+    const [activeSearchTerm, setActiveSearchTerm] = useState('');
+    const [activeSearchOption, setActiveSearchOption] = useState('descricao');
 
     useEffect(() => {
         setMounted(true);
         loadMedicamentos();
     }, []);
+
+    useEffect(() => {
+        filterMedicamentos();
+    }, [medicamentos, activeSearchTerm, activeSearchOption]);
 
     const loadMedicamentos = async () => {
         try {
@@ -47,6 +56,7 @@ export default function MedicamentosListPage() {
             });
 
             setMedicamentos(response.data);
+            setFilteredMedicamentos(response.data);
         } catch (error: any) {
             console.error('Erro ao carregar medicamentos:', error);
             if (error.response?.status === 401) {
@@ -101,6 +111,38 @@ export default function MedicamentosListPage() {
         });
     };
 
+    const filterMedicamentos = () => {
+        let filtered = [...medicamentos];
+        
+        if (activeSearchTerm.trim() !== '') {
+            const searchLower = activeSearchTerm.toLowerCase().trim();
+            filtered = filtered.filter(medicamento => {
+                switch (activeSearchOption) {
+                    case 'descricao':
+                        return medicamento.descricao.toLowerCase().includes(searchLower);
+                    case 'principioativo':
+                        return medicamento.principioativo.toLowerCase().includes(searchLower);
+                    default:
+                        return true;
+                }
+            });
+        }
+        
+        setFilteredMedicamentos(filtered);
+    };
+
+    const handleSearch = () => {
+        setActiveSearchTerm(searchTerm);
+        setActiveSearchOption(searchOption);
+    };
+
+    const handleClearSearch = () => {
+        setSearchTerm('');
+        setActiveSearchTerm('');
+        setActiveSearchOption('descricao');
+        setSearchOption('descricao');
+    };
+
     if (!mounted) {
         return null;
     }
@@ -132,20 +174,109 @@ export default function MedicamentosListPage() {
                             </Link>
                         </div>
 
+                        {/* Campo de Busca */}
+                        <div className={styles.searchContainer}>
+                            <div className={styles.searchPanel}>
+                                <div className={styles.searchHeader}>
+                                    <b>Buscar por:</b>
+                                    <div className={styles.searchOptions}>
+                                        <label className={styles.radioOption}>
+                                            <input
+                                                type="radio"
+                                                name="searchOption"
+                                                value="descricao"
+                                                checked={searchOption === 'descricao'}
+                                                onChange={(e) => setSearchOption(e.target.value)}
+                                            />
+                                            <span>Descrição</span>
+                                        </label>
+                                        <label className={styles.radioOption}>
+                                            <input
+                                                type="radio"
+                                                name="searchOption"
+                                                value="principioativo"
+                                                checked={searchOption === 'principioativo'}
+                                                onChange={(e) => setSearchOption(e.target.value)}
+                                            />
+                                            <span>Princípio Ativo</span>
+                                        </label>
+                                    </div>
+                                </div>
+                                <div className={styles.searchBody}>
+                                    <div className={styles.searchBox}>
+                                        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" width="20" height="20" className={styles.searchIcon}>
+                                            <path fill="none" d="M0 0h24v24H0z" />
+                                            <path d="M18.031 16.617l4.283 4.282-1.415 1.415-4.282-4.283A8.96 8.96 0 0 1 11 20c-4.968 0-9-4.032-9-9s4.032-9 9-9 9 4.032 9 9a8.96 8.96 0 0 1-1.969 5.617zm-2.006-.742A6.977 6.977 0 0 0 18 11c0-3.868-3.133-7-7-7-3.868 0-7 3.132-7 7 0 3.867 3.132 7 7 7a6.977 6.977 0 0 0 4.875-1.975l.15-.15z" fill="currentColor" />
+                                        </svg>
+                                        <input
+                                            type="text"
+                                            placeholder="Digite aqui sua pesquisa"
+                                            value={searchTerm}
+                                            onChange={(e) => setSearchTerm(e.target.value)}
+                                            onKeyPress={(e) => {
+                                                if (e.key === 'Enter') {
+                                                    handleSearch();
+                                                }
+                                            }}
+                                            className={styles.searchInput}
+                                        />
+                                        {searchTerm && (
+                                            <button
+                                                onClick={handleClearSearch}
+                                                className={styles.clearButton}
+                                                title="Limpar busca"
+                                            >
+                                                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" width="18" height="18">
+                                                    <path fill="none" d="M0 0h24v24H0z" />
+                                                    <path d="M12 22C6.477 22 2 17.523 2 12S6.477 2 12 2s10 4.477 10 10-4.477 10-10 10zm0-2a8 8 0 1 0 0-16 8 8 0 0 0 0 16zm-4-9h8v2H8v-2z" fill="currentColor" />
+                                                </svg>
+                                            </button>
+                                        )}
+                                    </div>
+                                    <button
+                                        onClick={handleSearch}
+                                        className={styles.searchButton}
+                                        title="Buscar"
+                                    >
+                                        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" width="20" height="20">
+                                            <path fill="none" d="M0 0h24v24H0z" />
+                                            <path d="M18.031 16.617l4.283 4.282-1.415 1.415-4.282-4.283A8.96 8.96 0 0 1 11 20c-4.968 0-9-4.032-9-9s4.032-9 9-9 9 4.032 9 9a8.96 8.96 0 0 1-1.969 5.617zm-2.006-.742A6.977 6.977 0 0 0 18 11c0-3.868-3.133-7-7-7-3.868 0-7 3.132-7 7 0 3.867 3.132 7 7 7a6.977 6.977 0 0 0 4.875-1.975l.15-.15z" fill="currentColor" />
+                                        </svg>
+                                        Buscar
+                                    </button>
+                                    {activeSearchTerm && (
+                                        <div className={styles.searchResults}>
+                                            {filteredMedicamentos.length > 0 ? (
+                                                <span>{filteredMedicamentos.length} resultado(s) encontrado(s)</span>
+                                            ) : (
+                                                <span>Nenhum resultado encontrado</span>
+                                            )}
+                                        </div>
+                                    )}
+                                </div>
+                            </div>
+                        </div>
+
                         {loading ? (
                             <div className={styles.loadingContainer}>
                                 <p>Carregando...</p>
                             </div>
-                        ) : medicamentos.length === 0 ? (
+                        ) : filteredMedicamentos.length === 0 ? (
                             <div className={styles.emptyState}>
-                                <p>Nenhum medicamento cadastrado</p>
-                                <Link href="/medicamentos/novo" className={styles.btnNew}>
-                                    Cadastrar Primeiro Medicamento
-                                </Link>
+                                <p>
+                                    {activeSearchTerm 
+                                        ? 'Nenhum medicamento encontrado com os critérios de busca' 
+                                        : 'Nenhum medicamento cadastrado'}
+                                </p>
+                                {!activeSearchTerm && (
+                                    <Link href="/medicamentos/novo" className={styles.btnNew}>
+                                        Cadastrar Primeiro Medicamento
+                                    </Link>
+                                )}
                             </div>
                         ) : (
                             <div className={styles.grid}>
-                                {medicamentos.map((medicamento) => (
+                                {filteredMedicamentos.map((medicamento) => (
                                     <div key={medicamento.id} className={styles.card}>
                                         <div className={styles.cardHeader}>
                                             <div className={styles.cardIcon}>
