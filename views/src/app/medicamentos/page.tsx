@@ -36,7 +36,7 @@ export default function MedicamentosPage() {
                                 </div>
                                 <div>
                                     <h1>Medicamentos</h1>
-                                    <p>Gerencie medicamentos, tipos e formas farmacêuticas</p>
+                                    <p>Gerencie medicamentos, lotes de medicamentos, tipos de medicamentos e formas farmacêuticas</p>
                                 </div>
                             </div>
                         </div>
@@ -50,6 +50,16 @@ export default function MedicamentosPage() {
                                 </div>
                                 <h3>Medicamentos</h3>
                                 <p>Gerencie os medicamentos do sistema</p>
+                            </Link>
+
+                            <Link href="/lotes" className={styles.buttonCard}>
+                                <div className={styles.buttonIcon}>
+                                    <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                                        <path d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4" />
+                                    </svg>
+                                </div>
+                                <h3>Lotes</h3>
+                                <p>Gerencie os lotes de medicamentos do sistema</p>
                             </Link>
 
                             <Link href="/tipos-medicamentos" className={styles.buttonCard}>

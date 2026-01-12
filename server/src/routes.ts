@@ -5,6 +5,7 @@ import { AuthUserController, CreateUserController, DetailUserController, ForgotP
 import { CreateTipoMedicamentoController, ListTiposMedicamentosController, GetTipoMedicamentoController, UpdateTipoMedicamentoController, DeleteTipoMedicamentoController } from "./controllers/tiposMedicamentosController";
 import { CreateFormaFarmaceuticaController, ListFormasFarmaceuticasController, GetFormaFarmaceuticaController, UpdateFormaFarmaceuticaController, DeleteFormaFarmaceuticaController } from "./controllers/formasFarmaceuticasController";
 import { CreateMedicamentoController, ListMedicamentosController, GetMedicamentoController, UpdateMedicamentoController, DeleteMedicamentoController } from "./controllers/medicamentosController";
+import { CreateLoteController, ListLotesController, GetLoteController, UpdateLoteController, DeleteLoteController } from "./controllers/lotesController";
 import { isAuthenticated } from "./middlewares/isAutenticated";
 
 const router = Router();
@@ -51,5 +52,12 @@ router.get("/medicamentos", isAuthenticated, new ListMedicamentosController().ha
 router.get("/medicamento/:id", isAuthenticated, new GetMedicamentoController().handle);
 router.put("/medicamento/:id", isAuthenticated, new UpdateMedicamentoController().handle);
 router.delete("/medicamento/:id", isAuthenticated, new DeleteMedicamentoController().handle);
+
+//Rotas de lotes
+router.post("/lote", isAuthenticated, new CreateLoteController().handle);
+router.get("/lotes", isAuthenticated, new ListLotesController().handle);
+router.get("/lote/:id", isAuthenticated, new GetLoteController().handle);
+router.put("/lote/:id", isAuthenticated, new UpdateLoteController().handle);
+router.delete("/lote/:id", isAuthenticated, new DeleteLoteController().handle);
 
 export default router;
