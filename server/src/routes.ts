@@ -8,6 +8,8 @@ import { CreateMedicamentoController, ListMedicamentosController, GetMedicamento
 import { CreateLoteController, ListLotesController, GetLoteController, UpdateLoteController, DeleteLoteController } from "./controllers/lotesController";
 import { CreatePacienteController, ListPacientesController, GetPacienteController, UpdatePacienteController, DeletePacienteController } from "./controllers/pacientesController";
 import { CreateRetiradaController, ListRetiradasController, GetRetiradaController, UpdateRetiradaController, DeleteRetiradaController } from "./controllers/retiradasController";
+import { CreatePermissaoController, ListPermissoesController, GetPermissaoController, UpdatePermissaoController, DeletePermissaoController } from "./controllers/permissoesController";
+import { CreateRoleController, ListRolesController, GetRoleController, UpdateRoleController, DeleteRoleController, UpdateRolePermissoesController, GetUserPermissoesController } from "./controllers/rolesController";
 import { isAuthenticated } from "./middlewares/isAutenticated";
 
 const router = Router();
@@ -75,5 +77,23 @@ router.get("/retiradas", isAuthenticated, new ListRetiradasController().handle);
 router.get("/retirada/:id", isAuthenticated, new GetRetiradaController().handle);
 router.put("/retirada/:id", isAuthenticated, new UpdateRetiradaController().handle);
 router.delete("/retirada/:id", isAuthenticated, new DeleteRetiradaController().handle);
+
+//Rotas de permissões
+router.post("/permissao", isAuthenticated, new CreatePermissaoController().handle);
+router.get("/permissoes", isAuthenticated, new ListPermissoesController().handle);
+router.get("/permissao/:id", isAuthenticated, new GetPermissaoController().handle);
+router.put("/permissao/:id", isAuthenticated, new UpdatePermissaoController().handle);
+router.delete("/permissao/:id", isAuthenticated, new DeletePermissaoController().handle);
+
+//Rotas de roles
+router.post("/role", isAuthenticated, new CreateRoleController().handle);
+router.get("/roles", isAuthenticated, new ListRolesController().handle);
+router.get("/role/:id", isAuthenticated, new GetRoleController().handle);
+router.put("/role/:id", isAuthenticated, new UpdateRoleController().handle);
+router.delete("/role/:id", isAuthenticated, new DeleteRoleController().handle);
+router.put("/role/:id/permissoes", isAuthenticated, new UpdateRolePermissoesController().handle);
+
+//Rotas de permissões do usuário
+router.get("/user-permissoes", isAuthenticated, new GetUserPermissoesController().handle);
 
 export default router;

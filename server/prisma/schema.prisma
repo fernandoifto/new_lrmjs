@@ -48,12 +48,65 @@ model Users {
   email     String     @db.VarChar(255)
   password  String     @db.VarChar(100)
   role      String?    @db.VarChar(100)
+  is_admin  Boolean    @default(false)
   created   DateTime   @default(now())
   modified  DateTime   @updatedAt
 
   agendamentos Agendamentos[]
   retiradas    Retiradas[]
+  userRoles    UserRoles[]
   @@map("users")
+}
+
+model Roles {
+  id          Int       @id @default(autoincrement())
+  nome        String     @db.VarChar(100)
+  descricao   String?    @db.VarChar(500)
+  created     DateTime   @default(now())
+  modified    DateTime   @updatedAt
+
+  rolePermissoes RolePermissoes[]
+  userRoles      UserRoles[]
+  @@map("roles")
+}
+
+model Permissoes {
+  id          Int       @id @default(autoincrement())
+  nome        String     @db.VarChar(100)
+  descricao   String?    @db.VarChar(500)
+  pagina      String?    @db.VarChar(200)
+  acao        String?    @db.VarChar(100)
+  created     DateTime   @default(now())
+  modified    DateTime   @updatedAt
+
+  rolePermissoes RolePermissoes[]
+  @@map("permissoes")
+}
+
+model RolePermissoes {
+  id            Int       @id @default(autoincrement())
+  id_role       Int
+  id_permissao  Int
+  created       DateTime   @default(now())
+
+  role       Roles       @relation(fields: [id_role], references: [id], onDelete: Cascade)
+  permissao  Permissoes @relation(fields: [id_permissao], references: [id], onDelete: Cascade)
+
+  @@unique([id_role, id_permissao])
+  @@map("role_permissoes")
+}
+
+model UserRoles {
+  id        Int       @id @default(autoincrement())
+  id_user   Int
+  id_role   Int
+  created   DateTime   @default(now())
+
+  user  Users @relation(fields: [id_user], references: [id], onDelete: Cascade)
+  role  Roles @relation(fields: [id_role], references: [id], onDelete: Cascade)
+
+  @@unique([id_user, id_role])
+  @@map("user_roles")
 }
 
 model Lotes {

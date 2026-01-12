@@ -51,6 +51,7 @@ class AuthUserModel {
             username: user.username,    
             email: user.email,
             role: user.role,
+            is_admin: user.is_admin,
             token: token
         };
     }

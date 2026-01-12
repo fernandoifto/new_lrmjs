@@ -45,7 +45,8 @@ export class DetailUserController {
                     id: true,
                     username: true,
                     email: true,
-                    role: true
+                    role: true,
+                    is_admin: true
                 }
             });
 
