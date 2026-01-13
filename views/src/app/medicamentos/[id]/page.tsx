@@ -7,6 +7,8 @@ import { toast } from 'react-toastify';
 import { getCookieClient } from '@/lib/cookieClient';
 import Header from '../../home/components/header';
 import Menu from '../../components/menu';
+import WithPermission from '@/components/withPermission';
+import { usePermissions } from '@/hooks/usePermissions';
 import styles from './page.module.css';
 import Link from 'next/link';
 
@@ -39,6 +41,7 @@ interface Lote {
 export default function MedicamentoViewPage() {
     const router = useRouter();
     const params = useParams();
+    const { hasPermission } = usePermissions();
     const [medicamento, setMedicamento] = useState<Medicamento | null>(null);
     const [lotes, setLotes] = useState<Lote[]>([]);
     const [loading, setLoading] = useState(true);
@@ -164,7 +167,7 @@ export default function MedicamentoViewPage() {
     }
 
     return (
-        <>
+        <WithPermission requiredPermission="medicamentos.ver">
             <Header />
             <Menu />
             <main className={styles.main}>
@@ -174,8 +177,8 @@ export default function MedicamentoViewPage() {
                             <Link href="/medicamentos/list" className={styles.btnBack}>
                                 ← Voltar
                             </Link>
-                            {medicamento && (
-                                <Link 
+                            {medicamento && hasPermission('medicamentos.editar') && (
+                                <Link
                                     href={`/medicamentos/${medicamento.id}/editar`}
                                     className={styles.btnEdit}
                                 >
@@ -298,7 +301,7 @@ export default function MedicamentoViewPage() {
                     </div>
                 </div>
             </main>
-        </>
+        </WithPermission>
     );
 }
 

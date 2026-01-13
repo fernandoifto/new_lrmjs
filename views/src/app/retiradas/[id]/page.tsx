@@ -7,6 +7,8 @@ import { toast } from 'react-toastify';
 import { getCookieClient } from '@/lib/cookieClient';
 import Header from '../../home/components/header';
 import Menu from '../../components/menu';
+import WithPermission from '@/components/withPermission';
+import { usePermissions } from '@/hooks/usePermissions';
 import styles from './page.module.css';
 import Link from 'next/link';
 
@@ -51,6 +53,7 @@ interface Retirada {
 export default function RetiradaViewPage() {
     const router = useRouter();
     const params = useParams();
+    const { hasPermission } = usePermissions();
     const [retirada, setRetirada] = useState<Retirada | null>(null);
     const [loading, setLoading] = useState(true);
     const [mounted, setMounted] = useState(false);
@@ -116,7 +119,7 @@ export default function RetiradaViewPage() {
     }
 
     return (
-        <>
+        <WithPermission requiredPermission="retiradas.ver">
             <Header />
             <Menu />
             <main className={styles.main}>
@@ -129,7 +132,7 @@ export default function RetiradaViewPage() {
                             <div className={styles.headerContent}>
                                 <h1>Detalhes da Retirada</h1>
                             </div>
-                            {retirada && (
+                            {retirada && hasPermission('retiradas.editar') && (
                                 <Link href={`/retiradas/${retirada.id}/editar`} className={styles.btnEdit}>
                                     <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
                                         <path d="M11 4H4a2 2 0 00-2 2v14a2 2 0 002 2h14a2 2 0 002-2v-7" />
@@ -239,7 +242,7 @@ export default function RetiradaViewPage() {
                     </div>
                 </div>
             </main>
-        </>
+        </WithPermission>
     );
 }
 

@@ -7,7 +7,7 @@ interface IUser {
     username: string;
     email: string;
     password: string;
-    role?: string;
+    grupos_ids?: number[];
 }
 
 interface IAuthUser {
@@ -39,8 +39,7 @@ class AuthUserModel {
         }
 
         const token = sign({ 
-            email: user.email, 
-            role: user.role 
+            email: user.email
         }, process.env.JWT_SECRET as string, {
             subject: user.id.toString(),
             expiresIn: "1d"
@@ -50,7 +49,6 @@ class AuthUserModel {
             id: user.id,
             username: user.username,    
             email: user.email,
-            role: user.role,
             is_admin: user.is_admin,
             token: token
         };
@@ -58,7 +56,7 @@ class AuthUserModel {
 }
 
 class CreateUserModel {
-    async execute({ username, email, password, role }: IUser) {
+    async execute({ username, email, password, grupos_ids }: IUser) {
         if(!email){
             throw new Error("Email is required");
         }
@@ -88,16 +86,24 @@ class CreateUserModel {
             data: {
                 username: username,
                 email: email,
-                password: passwordHash,
-                role: role || null
+                password: passwordHash
             },
             select: {
                 id: true,
                 username: true,
-                email: true,
-                role: true
+                email: true
             }
         });
+
+        // Atribuir grupos ao usuário se fornecidos
+        if (grupos_ids && grupos_ids.length > 0) {
+            await prismaClient.userRoles.createMany({
+                data: grupos_ids.map(id_role => ({
+                    id_user: user.id,
+                    id_role
+                }))
+            });
+        }
 
         return user;
     }
@@ -206,7 +212,6 @@ interface IUpdateUser {
     username?: string;
     email?: string;
     password?: string;
-    role?: string;
 }
 
 //Modelo de listar usuários
@@ -217,7 +222,6 @@ class ListUsersModel {
                 id: true,
                 username: true,
                 email: true,
-                role: true,
                 created: true,
                 modified: true
             },
@@ -236,13 +240,18 @@ class GetUserModel {
             where: {
                 id: id
             },
-            select: {
-                id: true,
-                username: true,
-                email: true,
-                role: true,
-                created: true,
-                modified: true
+            include: {
+                userRoles: {
+                    include: {
+                        role: {
+                            select: {
+                                id: true,
+                                nome: true,
+                                descricao: true
+                            }
+                        }
+                    }
+                }
             }
         });
         
@@ -250,7 +259,15 @@ class GetUserModel {
             throw new Error("Usuário não encontrado");
         }
         
-        return user;
+        return {
+            id: user.id,
+            username: user.username,
+            email: user.email,
+            is_admin: user.is_admin,
+            created: user.created,
+            modified: user.modified,
+            grupos: user.userRoles.map(ur => ur.role)
+        };
     }
 }
 
@@ -294,10 +311,6 @@ class UpdateUserModel {
             updateData.password = await bcrypt.hash(data.password, 10);
         }
         
-        if (data.role !== undefined) {
-            updateData.role = data.role;
-        }
-        
         const user = await prismaClient.users.update({
             where: {
                 id: id
@@ -307,7 +320,6 @@ class UpdateUserModel {
                 id: true,
                 username: true,
                 email: true,
-                role: true,
                 created: true,
                 modified: true
             }

@@ -47,7 +47,6 @@ model Users {
   username  String     @db.VarChar(255)
   email     String     @db.VarChar(255)
   password  String     @db.VarChar(100)
-  role      String?    @db.VarChar(100)
   is_admin  Boolean    @default(false)
   created   DateTime   @default(now())
   modified  DateTime   @updatedAt

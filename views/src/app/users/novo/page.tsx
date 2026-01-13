@@ -1,27 +1,58 @@
 'use client';
 
-import { useState, useRef } from 'react';
+import { useState, useRef, useEffect } from 'react';
 import { api } from '@/api/api';
 import { useRouter } from 'next/navigation';
 import { toast } from 'react-toastify';
 import { getCookieClient } from '@/lib/cookieClient';
 import Header from '../../home/components/header';
 import Menu from '../../components/menu';
+import WithPermission from '@/components/withPermission';
 import styles from './page.module.css';
 import formStyles from '@/app/agendar/forms/style/styles.module.css';
 import Link from 'next/link';
+
+interface Grupo {
+    id: number;
+    nome: string;
+    descricao?: string;
+}
 
 export default function NovoUserPage() {
     const router = useRouter();
     const formRef = useRef<HTMLFormElement>(null);
     const [saving, setSaving] = useState(false);
+    const [grupos, setGrupos] = useState<Grupo[]>([]);
+    const [selectedGrupos, setSelectedGrupos] = useState<number[]>([]);
+    const [loadingGrupos, setLoadingGrupos] = useState(true);
     const [formData, setFormData] = useState({
         username: '',
         email: '',
         password: '',
-        confirmPassword: '',
-        role: ''
+        confirmPassword: ''
     });
+
+    useEffect(() => {
+        loadGrupos();
+    }, []);
+
+    const loadGrupos = async () => {
+        try {
+            setLoadingGrupos(true);
+            const token = getCookieClient();
+            if (!token) return;
+
+            const response = await api.get('/roles', {
+                headers: { Authorization: `Bearer ${token}` }
+            });
+
+            setGrupos(response.data);
+        } catch (error: any) {
+            console.error('Erro ao carregar grupos:', error);
+        } finally {
+            setLoadingGrupos(false);
+        }
+    };
 
     const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
         const { name, value } = e.target;
@@ -29,6 +60,25 @@ export default function NovoUserPage() {
             ...prev,
             [name]: value
         }));
+    };
+
+    const handleToggleGrupo = (grupoId: number) => {
+        setSelectedGrupos(prev => {
+            if (prev.includes(grupoId)) {
+                return prev.filter(id => id !== grupoId);
+            } else {
+                return [...prev, grupoId];
+            }
+        });
+    };
+
+    const handleSelectAllGrupos = () => {
+        const allGruposIds = grupos.map(g => g.id);
+        setSelectedGrupos(allGruposIds);
+    };
+
+    const handleDeselectAllGrupos = () => {
+        setSelectedGrupos([]);
     };
 
     const handleSubmit = async (e: React.FormEvent) => {
@@ -60,11 +110,11 @@ export default function NovoUserPage() {
         }
 
         try {
-            await api.post('/user', {
+            const response = await api.post('/user', {
                 username: formData.username,
                 email: formData.email,
                 password: formData.password,
-                role: formData.role || null
+                grupos_ids: selectedGrupos
             }, {
                 headers: {
                     Authorization: `Bearer ${token}`
@@ -89,7 +139,7 @@ export default function NovoUserPage() {
     };
 
     return (
-        <>
+        <WithPermission requiredPermission="admin">
             <Header />
             <Menu />
             <main className={styles.main}>
@@ -145,24 +195,6 @@ export default function NovoUserPage() {
                                         </label>
                                     </div>
                                     </div>
-                                    <div className={formStyles.inputRow}>
-                                        <div className={formStyles.inputGroup}>
-                                        <label htmlFor="role">
-                                            <span>Função</span>
-                                            <select 
-                                                id="role" 
-                                                name="role"
-                                                value={formData.role}
-                                                onChange={handleChange}
-                                            >
-                                                <option value="">Sem função</option>
-                                                <option value="Administrador">Administrador</option>
-                                                <option value="Farmacêutico(a)">Farmacêutico(a)</option>
-                                                <option value="Usuário">Usuário</option>
-                                            </select>
-                                        </label>
-                                        </div>
-                                    </div>
                                 </div>
                             </div>
 
@@ -208,8 +240,74 @@ export default function NovoUserPage() {
                                             />
                                         </label>
                                     </div>
+                                    </div>
                                 </div>
                             </div>
+
+                            <div className={formStyles.card}>
+                                <div className={formStyles.cardHeader}>
+                                    <div className={formStyles.cardIcon}>
+                                        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                                            <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2" />
+                                            <circle cx="9" cy="7" r="4" />
+                                            <path d="M23 21v-2a4 4 0 0 0-3-3.87M16 3.13a4 4 0 0 1 0 7.75" />
+                                        </svg>
+                                    </div>
+                                    <h3>Grupos (Opcional)</h3>
+                                </div>
+                                <div className={formStyles.cardBody}>
+                                    {loadingGrupos ? (
+                                        <div className={formStyles.emptyState}>
+                                            <p>Carregando grupos...</p>
+                                        </div>
+                                    ) : grupos.length === 0 ? (
+                                        <div className={formStyles.emptyState}>
+                                            <p>Nenhum grupo cadastrado. Crie grupos primeiro.</p>
+                                        </div>
+                                    ) : (
+                                        <>
+                                            <div className={formStyles.gruposHeader}>
+                                                <p>Selecione os grupos para este usuário:</p>
+                                                <div className={formStyles.selectButtons}>
+                                                    <button
+                                                        type="button"
+                                                        onClick={handleSelectAllGrupos}
+                                                        className={formStyles.btnSelectAll}
+                                                    >
+                                                        Marcar Tudo
+                                                    </button>
+                                                    <button
+                                                        type="button"
+                                                        onClick={handleDeselectAllGrupos}
+                                                        className={formStyles.btnDeselectAll}
+                                                    >
+                                                        Desmarcar Tudo
+                                                    </button>
+                                                </div>
+                                            </div>
+                                            <div className={formStyles.gruposList}>
+                                                {grupos.map((grupo) => (
+                                                    <label
+                                                        key={grupo.id}
+                                                        className={`${formStyles.grupoItem} ${selectedGrupos.includes(grupo.id) ? formStyles.selected : ''}`}
+                                                    >
+                                                        <input
+                                                            type="checkbox"
+                                                            checked={selectedGrupos.includes(grupo.id)}
+                                                            onChange={() => handleToggleGrupo(grupo.id)}
+                                                        />
+                                                        <div className={formStyles.grupoContent}>
+                                                            <span className={formStyles.grupoNome}>{grupo.nome}</span>
+                                                            {grupo.descricao && (
+                                                                <span className={formStyles.grupoDescricao}>{grupo.descricao}</span>
+                                                            )}
+                                                        </div>
+                                                    </label>
+                                                ))}
+                                            </div>
+                                        </>
+                                    )}
+                                </div>
                             </div>
                             <div className={formStyles.formFooter}>
                                 <button
@@ -224,7 +322,7 @@ export default function NovoUserPage() {
                     </div>
                 </div>
             </main>
-        </>
+        </WithPermission>
     );
 }
 

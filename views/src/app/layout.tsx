@@ -1,29 +1,15 @@
 import type { Metadata } from "next";
-import { Geist, Geist_Mono } from "next/font/google";
+import { Inter } from "next/font/google";
 import "./globals.css";
-import VLibrasComponent from "@/app/home/components/vlibras";
 import { ToastContainer } from "react-toastify";
 import "react-toastify/dist/ReactToastify.css";
+import VLibrasComponent from "./home/components/vlibras";
 
-const geistSans = Geist({
-  variable: "--font-geist-sans",
-  subsets: ["latin"],
-});
-
-const geistMono = Geist_Mono({
-  variable: "--font-geist-mono",
-  subsets: ["latin"],
-});
+const inter = Inter({ subsets: ["latin"] });
 
 export const metadata: Metadata = {
-  title: "Logistica reversa de medicamentos - LRM",
-  description: "Sistema de logistica reversa de medicamentos",
-  icons: {
-    icon: [
-      { url: '/favicon.svg', type: 'image/svg+xml' },
-      { url: '/favicon.ico', sizes: 'any' }
-    ],
-  },
+  title: "LRM - Sistema de Gestão",
+  description: "Sistema de gestão de medicamentos e agendamentos",
 };
 
 export default function RootLayout({
@@ -32,11 +18,22 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="en">
-      <body className={`${geistSans.variable} ${geistMono.variable}`}>
-        <ToastContainer autoClose={5000} position="bottom-right"/>
-        <VLibrasComponent />
+    <html lang="pt-BR">
+      <body className={inter.className}>
         {children}
+        <ToastContainer
+          position="top-right"
+          autoClose={3000}
+          hideProgressBar={false}
+          newestOnTop={false}
+          closeOnClick
+          rtl={false}
+          pauseOnFocusLoss
+          draggable
+          pauseOnHover
+          theme="light"
+        />
+        <VLibrasComponent />
       </body>
     </html>
   );

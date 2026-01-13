@@ -7,6 +7,7 @@ import { toast } from 'react-toastify';
 import { getCookieClient } from '@/lib/cookieClient';
 import Header from '../../home/components/header';
 import Menu from '../../components/menu';
+import WithPermission from '@/components/withPermission';
 import { hooksAgendamentoForm, ITurno } from '@/app/agendar/hooks/hooksAgendamentoForm';
 import { maskPhone, maskCEP } from '@/app/agendar/utils/masks';
 import styles from './page.module.css';
@@ -58,7 +59,7 @@ export default function NovoAgendamentoPage() {
     }
 
     return (
-        <>
+        <WithPermission requiredPermission="agendamentos.criar">
             <Header />
             <Menu />
             <main className={styles.main}>
@@ -79,7 +80,7 @@ export default function NovoAgendamentoPage() {
                     </div>
                 </div>
             </main>
-        </>
+        </WithPermission>
     );
 }
 

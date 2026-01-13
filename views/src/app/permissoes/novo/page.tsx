@@ -7,6 +7,7 @@ import { toast } from 'react-toastify';
 import { getCookieClient } from '@/lib/cookieClient';
 import Header from '../../home/components/header';
 import Menu from '../../components/menu';
+import WithPermission from '@/components/withPermission';
 import styles from './page.module.css';
 import formStyles from '@/app/agendar/forms/style/styles.module.css';
 import Link from 'next/link';
@@ -85,7 +86,7 @@ export default function NovaPermissaoPage() {
     };
 
     return (
-        <>
+        <WithPermission requiredPermission="admin">
             <Header />
             <Menu />
             <main className={styles.main}>
@@ -189,6 +190,6 @@ export default function NovaPermissaoPage() {
                     </div>
                 </div>
             </main>
-        </>
+        </WithPermission>
     );
 }

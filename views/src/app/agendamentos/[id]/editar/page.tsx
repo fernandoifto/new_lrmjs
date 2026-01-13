@@ -6,6 +6,7 @@ import { toast } from 'react-toastify';
 import { getCookieClient } from '@/lib/cookieClient';
 import Header from '../../../home/components/header';
 import Menu from '../../../components/menu';
+import WithPermission from '@/components/withPermission';
 import styles from './page.module.css';
 import Link from 'next/link';
 import { maskPhone, maskCEP } from '@/app/agendar/utils/masks';
@@ -191,7 +192,7 @@ export default function EditarAgendamentoPage() {
     const currentTurnoIndex = agendamento ? turnos.findIndex(t => t.id === agendamento.id_turno) : -1;
 
     return (
-        <>
+        <WithPermission requiredPermission="agendamentos.editar">
             <Header />
             <Menu />
             <main className={styles.main}>
@@ -409,7 +410,7 @@ export default function EditarAgendamentoPage() {
                     </div>
                 </div>
             </main>
-        </>
+        </WithPermission>
     );
 }
 

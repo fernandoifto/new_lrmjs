@@ -7,6 +7,7 @@ import { toast } from 'react-toastify';
 import { getCookieClient } from '@/lib/cookieClient';
 import Header from '../../../../home/components/header';
 import Menu from '../../../../components/menu';
+import WithPermission from '@/components/withPermission';
 import styles from './page.module.css';
 import formStyles from '@/app/agendar/forms/style/styles.module.css';
 import Link from 'next/link';
@@ -126,7 +127,7 @@ export default function EditarMedicamentoPage() {
 
     if (!mounted || loading) {
         return (
-            <>
+            <WithPermission requiredPermission="tipos_medicamentos.editar">
                 <Header />
                 <Menu />
                 <main className={styles.main}>
@@ -138,7 +139,7 @@ export default function EditarMedicamentoPage() {
                         </div>
                     </div>
                 </main>
-            </>
+            </WithPermission>
         );
     }
 
@@ -199,7 +200,7 @@ export default function EditarMedicamentoPage() {
                     </div>
                 </div>
             </main>
-        </>
+        </WithPermission>
     );
 }
 

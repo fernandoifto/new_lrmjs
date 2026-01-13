@@ -7,6 +7,9 @@ import { toast } from 'react-toastify';
 import { getCookieClient } from '@/lib/cookieClient';
 import Header from '../home/components/header';
 import Menu from '../components/menu';
+import WithPermission from '@/components/withPermission';
+import { usePermissions } from '@/hooks/usePermissions';
+import { FaTags, FaPlus, FaEye, FaEdit, FaTrash } from 'react-icons/fa';
 import styles from './page.module.css';
 import Link from 'next/link';
 
@@ -19,6 +22,7 @@ interface TipoMedicamento {
 
 export default function TiposMedicamentosPage() {
     const router = useRouter();
+    const { hasPermission } = usePermissions();
     const [tiposMedicamentos, setTiposMedicamentos] = useState<TipoMedicamento[]>([]);
     const [loading, setLoading] = useState(true);
     const [mounted, setMounted] = useState(false);
@@ -105,7 +109,7 @@ export default function TiposMedicamentosPage() {
     }
 
     return (
-        <>
+        <WithPermission requiredPermission="tipos_medicamentos.ver">
             <Header />
             <Menu />
             <main className={styles.main}>
@@ -114,21 +118,19 @@ export default function TiposMedicamentosPage() {
                         <div className={styles.header}>
                             <div className={styles.headerContent}>
                                 <div className={styles.headerIcon}>
-                                    <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                                        <path d="M19.5 14.25v-2.625a3.375 3.375 0 00-3.375-3.375h-1.5A1.125 1.125 0 0113.5 7.125v-1.5a3.375 3.375 0 00-3.375-3.375H8.25m0 12.75h7.5m-7.5 3H12M10.5 2.25H5.625c-.621 0-1.125.504-1.125 1.125v17.25c0 .621.504 1.125 1.125 1.125h12.75c.621 0 1.125-.504 1.125-1.125V11.25a9 9 0 00-9-9z" />
-                                    </svg>
+                                    <FaTags size={24} />
                                 </div>
                                 <div>
                                     <h1>Tipos de Medicamentos</h1>
                                     <p>Gerencie os tipos de medicamentos do sistema</p>
                                 </div>
                             </div>
-                            <Link href="/tipos-medicamentos/novo" className={styles.btnNew}>
-                                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                                    <path d="M12 5v14m7-7H5" />
-                                </svg>
-                                Novo Tipo
-                            </Link>
+                            {hasPermission('tipos_medicamentos.criar') && (
+                                <Link href="/tipos-medicamentos/novo" className={styles.btnNew}>
+                                    <FaPlus size={20} />
+                                    Novo Tipo
+                                </Link>
+                            )}
                         </div>
 
                         {loading ? (
@@ -138,9 +140,11 @@ export default function TiposMedicamentosPage() {
                         ) : tiposMedicamentos.length === 0 ? (
                             <div className={styles.emptyState}>
                                 <p>Nenhum tipo de medicamento cadastrado</p>
-                                <Link href="/tipos-medicamentos/novo" className={styles.btnNew}>
-                                    Cadastrar Primeiro Tipo
-                                </Link>
+                                {hasPermission('tipos_medicamentos.criar') && (
+                                    <Link href="/tipos-medicamentos/novo" className={styles.btnNew}>
+                                        Cadastrar Primeiro Tipo
+                                    </Link>
+                                )}
                             </div>
                         ) : (
                             <div className={styles.grid}>
@@ -166,26 +170,22 @@ export default function TiposMedicamentosPage() {
                                         </div>
                                         <div className={styles.cardFooter}>
                                             <Link href={`/tipos-medicamentos/${tipo.id}`} className={styles.btnView} title="Ver detalhes">
-                                                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                                                    <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z" />
-                                                    <circle cx="12" cy="12" r="3" />
-                                                </svg>
+                                                <FaEye size={16} />
                                             </Link>
-                                            <Link href={`/tipos-medicamentos/${tipo.id}/editar`} className={styles.btnEdit} title="Editar">
-                                                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                                                    <path d="M11 4H4a2 2 0 00-2 2v14a2 2 0 002 2h14a2 2 0 002-2v-7" />
-                                                    <path d="M18.5 2.5a2.121 2.121 0 013 3L12 15l-4 1 1-4 9.5-9.5z" />
-                                                </svg>
-                                            </Link>
-                                            <button
-                                                onClick={() => handleDelete(tipo.id, tipo.descricao)}
-                                                className={styles.btnDelete}
-                                                title="Excluir"
-                                            >
-                                                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                                                    <path d="M3 6h18M19 6v14a2 2 0 01-2 2H7a2 2 0 01-2-2V6m3 0V4a2 2 0 012-2h4a2 2 0 012 2v2" />
-                                                </svg>
-                                            </button>
+                                            {hasPermission('tipos_medicamentos.editar') && (
+                                                <Link href={`/tipos-medicamentos/${tipo.id}/editar`} className={styles.btnEdit} title="Editar">
+                                                    <FaEdit size={16} />
+                                                </Link>
+                                            )}
+                                            {hasPermission('tipos_medicamentos.editar') && (
+                                                <button
+                                                    onClick={() => handleDelete(tipo.id, tipo.descricao)}
+                                                    className={styles.btnDelete}
+                                                    title="Excluir"
+                                                >
+                                                    <FaTrash size={16} />
+                                                </button>
+                                            )}
                                         </div>
                                     </div>
                                 ))}
@@ -194,7 +194,7 @@ export default function TiposMedicamentosPage() {
                     </div>
                 </div>
             </main>
-        </>
+        </WithPermission>
     );
 }
 

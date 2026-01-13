@@ -7,6 +7,9 @@ import { toast } from 'react-toastify';
 import { getCookieClient } from '@/lib/cookieClient';
 import Header from '../../home/components/header';
 import Menu from '../../components/menu';
+import WithPermission from '@/components/withPermission';
+import { usePermissions } from '@/hooks/usePermissions';
+import { FaUsers, FaPlus, FaEye, FaEdit, FaTrash } from 'react-icons/fa';
 import styles from './page.module.css';
 import Link from 'next/link';
 
@@ -21,6 +24,7 @@ interface User {
 
 export default function UsersListPage() {
     const router = useRouter();
+    const { isAdmin } = usePermissions();
     const [users, setUsers] = useState<User[]>([]);
     const [loading, setLoading] = useState(true);
     const [mounted, setMounted] = useState(false);
@@ -109,7 +113,7 @@ export default function UsersListPage() {
     }
 
     return (
-        <>
+        <WithPermission requiredPermission="admin">
             <Header />
             <Menu />
             <main className={styles.main}>
@@ -118,23 +122,19 @@ export default function UsersListPage() {
                         <div className={styles.header}>
                             <div className={styles.headerContent}>
                                 <div className={styles.headerIcon}>
-                                    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" width="24" height="24">
-                                        <path fill="none" d="M0 0h24v24H0z" />
-                                        <path d="M12 22C6.477 22 2 17.523 2 12S6.477 2 12 2s10 4.477 10 10-4.477 10-10 10zm-4.987-3.744A7.966 7.966 0 0 0 12 20c1.97 0 3.773-.712 5.167-1.892A6.979 6.979 0 0 0 12.16 16a6.981 6.981 0 0 0-5.147 2.256zM5.616 16.82A8.975 8.975 0 0 1 12.16 14a8.972 8.972 0 0 1 6.362 2.634 8 8 0 1 0-12.906.187zM12 13a4 4 0 1 1 0-8 4 4 0 0 1 0 8zm0-2a2 2 0 1 0 0-4 2 2 0 0 0 0 4z" fill="currentColor" />
-                                    </svg>
+                                    <FaUsers size={24} />
                                 </div>
                                 <div>
                                     <h1>Usuários</h1>
                                     <p>Lista de todos os usuários cadastrados</p>
                                 </div>
                             </div>
-                            <Link href="/users/novo" className={styles.btnNew}>
-                                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" width="20" height="20">
-                                    <path fill="none" d="M0 0h24v24H0z" />
-                                    <path d="M11 11V5h2v6h6v2h-6v6h-2v-6H5v-2h6z" fill="currentColor" />
-                                </svg>
-                                Novo Usuário
-                            </Link>
+                            {isAdmin && (
+                                <Link href="/users/novo" className={styles.btnNew}>
+                                    <FaPlus size={20} />
+                                    Novo Usuário
+                                </Link>
+                            )}
                         </div>
 
                         {loading ? (
@@ -144,9 +144,11 @@ export default function UsersListPage() {
                         ) : users.length === 0 ? (
                             <div className={styles.emptyState}>
                                 <p>Nenhum usuário encontrado</p>
-                                <Link href="/users/novo" className={styles.btnNew}>
-                                    Criar primeiro usuário
-                                </Link>
+                                {isAdmin && (
+                                    <Link href="/users/novo" className={styles.btnNew}>
+                                        Criar primeiro usuário
+                                    </Link>
+                                )}
                             </div>
                         ) : (
                             <div className={styles.grid}>
@@ -183,31 +185,26 @@ export default function UsersListPage() {
                                                 className={styles.btnView}
                                                 title="Ver detalhes"
                                             >
-                                                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                                                    <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z" />
-                                                    <circle cx="12" cy="12" r="3" />
-                                                </svg>
+                                                <FaEye size={16} />
                                             </Link>
-                                            <Link 
-                                                href={`/users/${user.id}/editar`}
-                                                className={styles.btnEdit}
-                                                title="Editar"
-                                            >
-                                                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                                                    <path d="M11 4H4a2 2 0 00-2 2v14a2 2 0 002 2h14a2 2 0 002-2v-7" />
-                                                    <path d="M18.5 2.5a2.121 2.121 0 013 3L12 15l-4 1 1-4 9.5-9.5z" />
-                                                </svg>
-                                            </Link>
-                                            <button
-                                                onClick={() => handleDelete(user.id, user.username)}
-                                                className={styles.btnDelete}
-                                                title="Excluir usuário"
-                                            >
-                                                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" width="18" height="18">
-                                                    <path fill="none" d="M0 0h24v24H0z" />
-                                                    <path d="M17 6h5v2h-2v13a1 1 0 0 1-1 1H5a1 1 0 0 1-1-1V8H2V6h5V3a1 1 0 0 1 1-1h8a1 1 0 0 1 1 1v3zm1 2H6v12h12V8zm-9 3h2v6H9v-6zm4 0h2v6h-2v-6zM9 4v2h6V4H9z" fill="currentColor" />
-                                                </svg>
-                                            </button>
+                                            {isAdmin && (
+                                                <Link 
+                                                    href={`/users/${user.id}/editar`}
+                                                    className={styles.btnEdit}
+                                                    title="Editar"
+                                                >
+                                                    <FaEdit size={16} />
+                                                </Link>
+                                            )}
+                                            {isAdmin && (
+                                                <button
+                                                    onClick={() => handleDelete(user.id, user.username)}
+                                                    className={styles.btnDelete}
+                                                    title="Excluir usuário"
+                                                >
+                                                    <FaTrash size={18} />
+                                                </button>
+                                            )}
                                         </div>
                                     </div>
                                 ))}
@@ -216,7 +213,7 @@ export default function UsersListPage() {
                     </div>
                 </div>
             </main>
-        </>
+        </WithPermission>
     );
 }
 

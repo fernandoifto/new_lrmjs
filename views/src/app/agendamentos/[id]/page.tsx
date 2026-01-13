@@ -6,6 +6,9 @@ import { toast } from 'react-toastify';
 import { getCookieClient } from '@/lib/cookieClient';
 import Header from '../../home/components/header';
 import Menu from '../../components/menu';
+import WithPermission from '@/components/withPermission';
+import { usePermissions } from '@/hooks/usePermissions';
+import { FaCheckCircle, FaEdit, FaTrash, FaUserCircle, FaArrowLeft } from 'react-icons/fa';
 import styles from './page.module.css';
 import Link from 'next/link';
 
@@ -34,6 +37,7 @@ interface Agendamento {
 export default function AgendamentoViewPage() {
     const router = useRouter();
     const params = useParams();
+    const { hasPermission } = usePermissions();
     const [agendamento, setAgendamento] = useState<Agendamento | null>(null);
     const [loading, setLoading] = useState(true);
     const [mounted, setMounted] = useState(false);
@@ -180,14 +184,14 @@ export default function AgendamentoViewPage() {
     }
 
     return (
-        <>
+        <WithPermission requiredPermission="agendamentos.ver">
             <Header />
             <main className={styles.main}>
                 <div className={styles.container}>
                     <div className={styles.contentWrapper}>
                         <div className={styles.header}>
                             <Link href="/agendamentos/list" className={styles.btnBack}>
-                                ← Voltar
+                                <FaArrowLeft size={16} /> Voltar
                             </Link>
                             <div style={{ display: 'flex', gap: '0.75rem', alignItems: 'center' }}>
                                 {agendamento && !agendamento.user && (
@@ -196,10 +200,7 @@ export default function AgendamentoViewPage() {
                                         className={styles.btnVisitar}
                                         title="Marcar como visitado"
                                     >
-                                        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" width="18" height="18">
-                                            <path fill="none" d="M0 0h24v24H0z" />
-                                            <path d="M9 16.17L4.83 12l-1.42 1.41L9 19 21 7l-1.41-1.41z" fill="currentColor" />
-                                        </svg>
+                                        <FaCheckCircle size={18} />
                                         Visitar
                                     </button>
                                 )}
@@ -212,24 +213,21 @@ export default function AgendamentoViewPage() {
                                         Visitado
                                     </span>
                                 )}
-                                {agendamento && (
-                                    <Link 
+                                {agendamento && hasPermission('agendamentos.editar') && (
+                                    <Link
                                         href={`/agendamentos/${agendamento.id}/editar`}
                                         className={styles.btnEdit}
                                     >
                                         Editar
                                     </Link>
                                 )}
-                                {agendamento && (
+                                {agendamento && hasPermission('agendamentos.editar') && (
                                     <button
                                         onClick={() => handleDelete(agendamento.id)}
                                         className={styles.btnDelete}
                                         title="Excluir agendamento"
                                     >
-                                        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" width="18" height="18">
-                                            <path fill="none" d="M0 0h24v24H0z" />
-                                            <path d="M17 6h5v2h-2v13a1 1 0 0 1-1 1H5a1 1 0 0 1-1-1V8H2V6h5V3a1 1 0 0 1 1-1h8a1 1 0 0 1 1 1v3zm1 2H6v12h12V8zm-9 3h2v6H9v-6zm4 0h2v6h-2v-6zM9 4v2h6V4H9z" fill="currentColor" />
-                                        </svg>
+                                        <FaTrash size={18} />
                                         Excluir
                                     </button>
                                 )}
@@ -251,10 +249,7 @@ export default function AgendamentoViewPage() {
                             <div className={styles.card}>
                         <div className={styles.cardHeader}>
                             <div className={styles.cardIcon}>
-                                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" width="24" height="24">
-                                    <path fill="none" d="M0 0h24v24H0z" />
-                                    <path d="M12 22C6.477 22 2 17.523 2 12S6.477 2 12 2s10 4.477 10 10-4.477 10-10 10zm-4.987-3.744A7.966 7.966 0 0 0 12 20c1.97 0 3.773-.712 5.167-1.892A6.979 6.979 0 0 0 12.16 16a6.981 6.981 0 0 0-5.147 2.256zM5.616 16.82A8.975 8.975 0 0 1 12.16 14a8.972 8.972 0 0 1 6.362 2.634 8 8 0 1 0-12.906.187zM12 13a4 4 0 1 1 0-8 4 4 0 0 1 0 8zm0-2a2 2 0 1 0 0-4 2 2 0 0 0 0 4z" fill="currentColor" />
-                                </svg>
+                                <FaUserCircle size={24} />
                             </div>
                             <h1>{agendamento.nome}</h1>
                         </div>
@@ -333,7 +328,7 @@ export default function AgendamentoViewPage() {
                     </div>
                 </div>
             </main>
-        </>
+        </WithPermission>
     );
 }
 

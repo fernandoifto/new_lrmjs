@@ -31,25 +31,19 @@
 
 .contentWrapper {
   width: 100%;
-  max-width: 1200px;
+  max-width: 72%;
   box-sizing: border-box;
 }
 
 .header {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  margin-bottom: 2rem;
-  gap: 1rem;
+  margin-bottom: 3rem;
   width: 100%;
-  box-sizing: border-box;
 }
 
 .headerContent {
   display: flex;
   align-items: center;
   gap: 1rem;
-  flex: 1;
 }
 
 .headerIcon {
@@ -65,8 +59,7 @@
 
 .headerContent h1 {
   margin: 0;
-  font-size: 1.8rem;
-  font-weight: 600;
+  font-size: 2rem;
   color: var(--cor-texto);
 }
 
@@ -76,137 +69,55 @@
   font-size: 0.95rem;
 }
 
-.headerActions {
-  display: flex;
-  gap: 0.75rem;
-  align-items: center;
-}
-
-.btnNew {
-  padding: 0.75rem 1.5rem;
-  background-color: var(--cor-primaria);
-  color: white;
-  border-radius: 8px;
-  text-decoration: none;
-  font-weight: 500;
-  transition: var(--transicao);
-  display: inline-flex;
-  align-items: center;
-  gap: 0.5rem;
-}
-
-.btnNew:hover {
-  background-color: #2c6aa8;
-}
-
-.loadingContainer,
-.emptyState {
-  text-align: center;
-  padding: 4rem 2rem;
-  background-color: var(--cor-fundo-card);
-  border-radius: 12px;
-  box-shadow: var(--sombra-card);
-}
-
-.emptyState p {
-  color: var(--cor-texto-claro);
-  margin-bottom: 1.5rem;
-  font-size: 1.1rem;
-}
-
-.grid {
+.buttonsGrid {
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
-  gap: 1.5rem;
+  grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+  gap: 2rem;
   width: 100%;
-  box-sizing: border-box;
 }
 
-.card {
+.buttonCard {
   background-color: var(--cor-fundo-card);
   border-radius: 12px;
   box-shadow: var(--sombra-card);
-  overflow: hidden;
-  transition: var(--transicao);
+  padding: 2rem;
   text-decoration: none;
   color: inherit;
+  transition: var(--transicao);
   display: flex;
   flex-direction: column;
+  align-items: center;
+  text-align: center;
+  gap: 1rem;
 }
 
-.card:hover {
+.buttonCard:hover {
   transform: translateY(-4px);
   box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
 }
 
-.cardHeader {
-  padding: 1.5rem;
-  background-color: rgba(63, 129, 208, 0.05);
-  border-bottom: 1px solid var(--cor-borda);
-  display: flex;
-  align-items: center;
-  gap: 1rem;
-}
-
-.cardIcon {
+.buttonIcon {
   display: flex;
   align-items: center;
   justify-content: center;
-  width: 40px;
-  height: 40px;
-  background-color: var(--cor-primaria);
+  width: 64px;
+  height: 64px;
+  background-color: rgba(63, 129, 208, 0.1);
   border-radius: 50%;
-  color: white;
-}
-
-.cardHeader h3 {
-  margin: 0;
-  font-size: 1.3rem;
-  font-weight: 600;
-  color: var(--cor-texto);
-  flex: 1;
-}
-
-.cardBody {
-  padding: 1.5rem;
-  flex: 1;
-}
-
-.description {
-  color: var(--cor-texto-claro);
-  margin-bottom: 1rem;
-  font-size: 0.95rem;
-  line-height: 1.5;
-}
-
-.infoRow {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  padding: 0.5rem 0;
-  border-top: 1px solid var(--cor-borda);
-}
-
-.infoRow:first-of-type {
-  border-top: none;
-}
-
-.label {
-  font-weight: 600;
-  color: var(--cor-texto);
-  font-size: 0.9rem;
-}
-
-.cardFooter {
-  padding: 1rem 1.5rem;
-  background-color: rgba(63, 129, 208, 0.02);
-  border-top: 1px solid var(--cor-borda);
-}
-
-.btnView {
   color: var(--cor-primaria);
-  font-weight: 500;
-  font-size: 0.9rem;
+}
+
+.buttonCard h3 {
+  margin: 0;
+  font-size: 1.5rem;
+  color: var(--cor-texto);
+  font-weight: 600;
+}
+
+.buttonCard p {
+  margin: 0;
+  color: var(--cor-texto-claro);
+  font-size: 0.95rem;
 }
 
 /* Responsividade */
@@ -217,6 +128,10 @@
 }
 
 @media (max-width: 768px) {
+  .main {
+    padding: 1rem 0;
+  }
+
   .container {
     padding: 0 1rem;
   }
@@ -225,23 +140,16 @@
     max-width: 100%;
   }
 
-  .header {
-    flex-direction: column;
-    align-items: stretch;
+  .headerContent h1 {
+    font-size: 1.5rem;
   }
 
-  .headerActions {
-    flex-direction: column;
-    width: 100%;
-  }
-
-  .btnNew {
-    width: 100%;
-    justify-content: center;
-  }
-
-  .grid {
+  .buttonsGrid {
     grid-template-columns: 1fr;
+    gap: 1.5rem;
+  }
+
+  .buttonCard {
+    padding: 1.5rem;
   }
 }
-

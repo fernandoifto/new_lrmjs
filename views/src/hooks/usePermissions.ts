@@ -19,16 +19,24 @@ export function usePermissions() {
                 return;
             }
 
-            const response = await api.get('/user-permissoes', {
-                headers: { Authorization: `Bearer ${token}` }
-            });
-
-            // Verificar se o usuário é admin (se retornar todas as permissões ou um flag especial)
+            // Verificar se o usuário é admin primeiro
             const userDetail = await api.get('/detail', {
                 headers: { Authorization: `Bearer ${token}` }
             });
 
             setIsAdmin(userDetail.data.is_admin || false);
+
+            // Se for admin, não precisa buscar permissões (tem todas)
+            if (userDetail.data.is_admin) {
+                setPermissoes([]); // Admin tem todas as permissões
+                setLoading(false);
+                return;
+            }
+
+            const response = await api.get('/user-permissoes', {
+                headers: { Authorization: `Bearer ${token}` }
+            });
+
             setPermissoes(response.data.permissoes || []);
         } catch (error) {
             console.error('Erro ao carregar permissões:', error);

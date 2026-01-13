@@ -7,6 +7,7 @@ import { toast } from 'react-toastify';
 import { getCookieClient } from '@/lib/cookieClient';
 import Header from '../../home/components/header';
 import Menu from '../../components/menu';
+import WithPermission from '@/components/withPermission';
 import styles from './page.module.css';
 import Link from 'next/link';
 
@@ -81,7 +82,7 @@ export default function FormaFarmaceuticaViewPage() {
     }
 
     return (
-        <>
+        <WithPermission requiredPermission="formas_farmaceuticas.ver">
             <Header />
             <Menu />
             <main className={styles.main}>
@@ -153,7 +154,7 @@ export default function FormaFarmaceuticaViewPage() {
                     </div>
                 </div>
             </main>
-        </>
+        </WithPermission>
     );
 }
 

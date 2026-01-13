@@ -12,7 +12,8 @@ export async function middleware(request: NextRequest) {
         "/agendar",
         "/login",
         "/esqueci-senha",
-        "/resetar-senha"
+        "/resetar-senha",
+        "/sem-permissao"
     ];
 
     // Verificar se é uma rota pública

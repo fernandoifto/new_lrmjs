@@ -172,6 +172,39 @@
   font-size: 1.1rem;
 }
 
+.badgeAdmin {
+  display: inline-block;
+  padding: 0.25rem 0.75rem;
+  background-color: #28a745;
+  color: white;
+  border-radius: 12px;
+  font-size: 0.85rem;
+  font-weight: 600;
+}
+
+.gruposList {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.75rem;
+}
+
+.grupoBadge {
+  display: inline-block;
+  padding: 0.5rem 1rem;
+  background-color: rgba(63, 129, 208, 0.1);
+  color: var(--cor-primaria);
+  border-radius: 8px;
+  text-decoration: none;
+  font-weight: 500;
+  transition: var(--transicao);
+  border: 1px solid rgba(63, 129, 208, 0.2);
+}
+
+.grupoBadge:hover {
+  background-color: rgba(63, 129, 208, 0.2);
+  transform: translateY(-2px);
+}
+
 /* Responsividade */
 @media (max-width: 1024px) {
   .contentWrapper {

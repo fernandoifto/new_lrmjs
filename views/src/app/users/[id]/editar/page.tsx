@@ -7,15 +7,23 @@ import { toast } from 'react-toastify';
 import { getCookieClient } from '@/lib/cookieClient';
 import Header from '../../../home/components/header';
 import Menu from '../../../components/menu';
+import WithPermission from '@/components/withPermission';
 import styles from './page.module.css';
 import formStyles from '@/app/agendar/forms/style/styles.module.css';
 import Link from 'next/link';
+
+interface Grupo {
+    id: number;
+    nome: string;
+    descricao?: string;
+}
 
 interface User {
     id: number;
     username: string;
     email: string;
     role: string | null;
+    grupos?: Grupo[];
 }
 
 export default function EditarUserPage() {
@@ -26,12 +34,13 @@ export default function EditarUserPage() {
     const [saving, setSaving] = useState(false);
     const [user, setUser] = useState<User | null>(null);
     const [mounted, setMounted] = useState(false);
+    const [grupos, setGrupos] = useState<Grupo[]>([]);
+    const [selectedGrupos, setSelectedGrupos] = useState<number[]>([]);
     const [formData, setFormData] = useState({
         username: '',
         email: '',
         password: '',
-        confirmPassword: '',
-        role: ''
+        confirmPassword: ''
     });
 
     useEffect(() => {
@@ -52,20 +61,33 @@ export default function EditarUserPage() {
                 return;
             }
 
-            const response = await api.get(`/user/${id}`, {
-                headers: {
-                    Authorization: `Bearer ${token}`
-                }
+            const [userRes, gruposRes] = await Promise.all([
+                api.get(`/user/${id}`, {
+                    headers: {
+                        Authorization: `Bearer ${token}`
+                    }
+                }),
+                api.get('/roles', {
+                    headers: {
+                        Authorization: `Bearer ${token}`
+                    }
+                })
+            ]);
+
+            setUser(userRes.data);
+            setGrupos(gruposRes.data);
+            setFormData({
+                username: userRes.data.username,
+                email: userRes.data.email,
+                password: '',
+                confirmPassword: ''
             });
 
-            setUser(response.data);
-            setFormData({
-                username: response.data.username,
-                email: response.data.email,
-                password: '',
-                confirmPassword: '',
-                role: response.data.role || ''
-            });
+            // Marcar grupos já atribuídos
+            if (userRes.data.grupos) {
+                const gruposIds = userRes.data.grupos.map((g: Grupo) => g.id);
+                setSelectedGrupos(gruposIds);
+            }
         } catch (error: any) {
             console.error('Erro ao carregar usuário:', error);
             if (error.response?.status === 401) {
@@ -88,6 +110,25 @@ export default function EditarUserPage() {
             ...prev,
             [name]: value
         }));
+    };
+
+    const handleToggleGrupo = (grupoId: number) => {
+        setSelectedGrupos(prev => {
+            if (prev.includes(grupoId)) {
+                return prev.filter(id => id !== grupoId);
+            } else {
+                return [...prev, grupoId];
+            }
+        });
+    };
+
+    const handleSelectAllGrupos = () => {
+        const allGruposIds = grupos.map(g => g.id);
+        setSelectedGrupos(allGruposIds);
+    };
+
+    const handleDeselectAllGrupos = () => {
+        setSelectedGrupos([]);
     };
 
     const handleSubmit = async (e: React.FormEvent) => {
@@ -120,21 +161,30 @@ export default function EditarUserPage() {
         }
 
         try {
+            // Atualizar dados do usuário
             const updateData: any = {
                 username: formData.username,
-                email: formData.email,
-                role: formData.role || null
+                email: formData.email
             };
 
             if (formData.password) {
                 updateData.password = formData.password;
             }
 
-            await api.put(`/user/${user.id}`, updateData, {
-                headers: {
-                    Authorization: `Bearer ${token}`
-                }
-            });
+            await Promise.all([
+                api.put(`/user/${user.id}`, updateData, {
+                    headers: {
+                        Authorization: `Bearer ${token}`
+                    }
+                }),
+                api.put(`/user/${user.id}/grupos`, {
+                    grupos_ids: selectedGrupos
+                }, {
+                    headers: {
+                        Authorization: `Bearer ${token}`
+                    }
+                })
+            ]);
 
             toast.success('Usuário atualizado com sucesso!');
             setTimeout(() => {
@@ -158,7 +208,7 @@ export default function EditarUserPage() {
     }
 
     return (
-        <>
+        <WithPermission requiredPermission="admin">
             <Header />
             <Menu />
             <main className={styles.main}>
@@ -228,24 +278,6 @@ export default function EditarUserPage() {
                                             </label>
                                         </div>
                                         </div>
-                                        <div className={formStyles.inputRow}>
-                                            <div className={formStyles.inputGroup}>
-                                            <label htmlFor="role">
-                                                <span>Função</span>
-                                                <select 
-                                                    id="role" 
-                                                    name="role"
-                                                    value={formData.role}
-                                                    onChange={handleChange}
-                                                >
-                                                    <option value="">Sem função</option>
-                                                    <option value="Administrador">Administrador</option>
-                                                    <option value="Farmacêutico(a)">Farmacêutico(a)</option>
-                                                    <option value="Usuário">Usuário</option>
-                                                </select>
-                                            </label>
-                                            </div>
-                                        </div>
                                     </div>
                                 </div>
 
@@ -293,6 +325,66 @@ export default function EditarUserPage() {
                                         )}
                                     </div>
                                 </div>
+
+                                <div className={formStyles.card}>
+                                    <div className={formStyles.cardHeader}>
+                                        <div className={formStyles.cardIcon}>
+                                            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                                                <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2" />
+                                                <circle cx="9" cy="7" r="4" />
+                                                <path d="M23 21v-2a4 4 0 0 0-3-3.87M16 3.13a4 4 0 0 1 0 7.75" />
+                                            </svg>
+                                        </div>
+                                        <h3>Grupos</h3>
+                                    </div>
+                                    <div className={formStyles.cardBody}>
+                                        <div className={formStyles.gruposHeader}>
+                                            <p>Selecione os grupos para este usuário:</p>
+                                            <div className={formStyles.selectButtons}>
+                                                <button
+                                                    type="button"
+                                                    onClick={handleSelectAllGrupos}
+                                                    className={formStyles.btnSelectAll}
+                                                >
+                                                    Marcar Tudo
+                                                </button>
+                                                <button
+                                                    type="button"
+                                                    onClick={handleDeselectAllGrupos}
+                                                    className={formStyles.btnDeselectAll}
+                                                >
+                                                    Desmarcar Tudo
+                                                </button>
+                                            </div>
+                                        </div>
+                                        {grupos.length === 0 ? (
+                                            <div className={formStyles.emptyState}>
+                                                <p>Nenhum grupo cadastrado. Crie grupos primeiro.</p>
+                                            </div>
+                                        ) : (
+                                            <div className={formStyles.gruposList}>
+                                                {grupos.map((grupo) => (
+                                                    <label
+                                                        key={grupo.id}
+                                                        className={`${formStyles.grupoItem} ${selectedGrupos.includes(grupo.id) ? formStyles.selected : ''}`}
+                                                    >
+                                                        <input
+                                                            type="checkbox"
+                                                            checked={selectedGrupos.includes(grupo.id)}
+                                                            onChange={() => handleToggleGrupo(grupo.id)}
+                                                        />
+                                                        <div className={formStyles.grupoContent}>
+                                                            <span className={formStyles.grupoNome}>{grupo.nome}</span>
+                                                            {grupo.descricao && (
+                                                                <span className={formStyles.grupoDescricao}>{grupo.descricao}</span>
+                                                            )}
+                                                        </div>
+                                                    </label>
+                                                ))}
+                                            </div>
+                                        )}
+                                    </div>
+                                </div>
                                 </div>
                                 <div className={formStyles.formFooter}>
                                     <button
@@ -308,7 +400,7 @@ export default function EditarUserPage() {
                     </div>
                 </div>
             </main>
-        </>
+        </WithPermission>
     );
 }
 

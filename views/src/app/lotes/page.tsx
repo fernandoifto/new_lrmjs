@@ -7,6 +7,9 @@ import { toast } from 'react-toastify';
 import { getCookieClient } from '@/lib/cookieClient';
 import Header from '../home/components/header';
 import Menu from '../components/menu';
+import WithPermission from '@/components/withPermission';
+import { usePermissions } from '@/hooks/usePermissions';
+import { FaBoxes, FaFilePdf, FaPlus, FaSearch, FaTimes, FaEye, FaEdit, FaTrash, FaHandHoldingHeart } from 'react-icons/fa';
 import styles from './page.module.css';
 import Link from 'next/link';
 import jsPDF from 'jspdf';
@@ -36,6 +39,7 @@ interface Lote {
 
 export default function LotesPage() {
     const router = useRouter();
+    const { hasPermission } = usePermissions();
     const [lotes, setLotes] = useState<Lote[]>([]);
     const [filteredLotes, setFilteredLotes] = useState<Lote[]>([]);
     const [loading, setLoading] = useState(true);
@@ -325,7 +329,7 @@ export default function LotesPage() {
     }
 
     return (
-        <>
+        <WithPermission requiredPermission="lotes.ver">
             <Header />
             <Menu />
             <main className={styles.main}>
@@ -334,9 +338,7 @@ export default function LotesPage() {
                         <div className={styles.header}>
                             <div className={styles.headerContent}>
                                 <div className={styles.headerIcon}>
-                                    <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                                        <path d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4" />
-                                    </svg>
+                                    <FaBoxes size={24} />
                                 </div>
                                 <div>
                                     <h1>Lotes</h1>
@@ -350,20 +352,16 @@ export default function LotesPage() {
                                         className={styles.btnPDF}
                                         title="Gerar PDF dos lotes listados"
                                     >
-                                        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" width="20" height="20">
-                                            <path fill="none" d="M0 0h24v24H0z" />
-                                            <path d="M19 8h-1V3H6v5H5c-1.66 0-3 1.34-3 3v6h4v4h12v-4h4v-6c0-1.66-1.34-3-3-3zM8 5h8v3H8V5zm8 12v2H8v-4h8v2zm2-2v-2H6v2H4v-4c0-.55.45-1 1-1h14c.55 0 1 .45 1 1v4h-2z" fill="currentColor" />
-                                            <circle cx="18" cy="11.5" r="1" fill="currentColor" />
-                                        </svg>
+                                        <FaFilePdf size={20} />
                                         Gerar PDF
                                     </button>
                                 )}
-                                <Link href="/lotes/novo" className={styles.btnNew}>
-                                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                                        <path d="M12 5v14m7-7H5" />
-                                    </svg>
-                                    Novo Lote
-                                </Link>
+                                {hasPermission('lotes.criar') && (
+                                    <Link href="/lotes/novo" className={styles.btnNew}>
+                                        <FaPlus size={20} />
+                                        Novo Lote
+                                    </Link>
+                                )}
                             </div>
                         </div>
 
@@ -457,10 +455,7 @@ export default function LotesPage() {
                                 </div>
                                 <div className={styles.searchBody}>
                                     <div className={styles.searchBox}>
-                                        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" width="20" height="20" className={styles.searchIcon}>
-                                            <path fill="none" d="M0 0h24v24H0z" />
-                                            <path d="M18.031 16.617l4.283 4.282-1.415 1.415-4.282-4.283A8.96 8.96 0 0 1 11 20c-4.968 0-9-4.032-9-9s4.032-9 9-9 9 4.032 9 9a8.96 8.96 0 0 1-1.969 5.617zm-2.006-.742A6.977 6.977 0 0 0 18 11c0-3.868-3.133-7-7-7-3.868 0-7 3.132-7 7 0 3.867 3.132 7 7 7a6.977 6.977 0 0 0 4.875-1.975l.15-.15z" fill="currentColor" />
-                                        </svg>
+                                        <FaSearch size={20} className={styles.searchIcon} />
                                         <input
                                             type="text"
                                             placeholder="Digite aqui sua pesquisa"
@@ -479,10 +474,7 @@ export default function LotesPage() {
                                                 className={styles.clearButton}
                                                 title="Limpar busca"
                                             >
-                                                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" width="18" height="18">
-                                                    <path fill="none" d="M0 0h24v24H0z" />
-                                                    <path d="M12 22C6.477 22 2 17.523 2 12S6.477 2 12 2s10 4.477 10 10-4.477 10-10 10zm0-2a8 8 0 1 0 0-16 8 8 0 0 0 0 16zm-4-9h8v2H8v-2z" fill="currentColor" />
-                                                </svg>
+                                                <FaTimes size={18} />
                                             </button>
                                         )}
                                     </div>
@@ -491,10 +483,7 @@ export default function LotesPage() {
                                         className={styles.searchButton}
                                         title="Buscar"
                                     >
-                                        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" width="20" height="20">
-                                            <path fill="none" d="M0 0h24v24H0z" />
-                                            <path d="M18.031 16.617l4.283 4.282-1.415 1.415-4.282-4.283A8.96 8.96 0 0 1 11 20c-4.968 0-9-4.032-9-9s4.032-9 9-9 9 4.032 9 9a8.96 8.96 0 0 1-1.969 5.617zm-2.006-.742A6.977 6.977 0 0 0 18 11c0-3.868-3.133-7-7-7-3.868 0-7 3.132-7 7 0 3.867 3.132 7 7 7a6.977 6.977 0 0 0 4.875-1.975l.15-.15z" fill="currentColor" />
-                                        </svg>
+                                        <FaSearch size={20} />
                                         Buscar
                                     </button>
                                     {activeSearchTerm && (
@@ -535,9 +524,7 @@ export default function LotesPage() {
                                         <div key={lote.id} className={styles.card}>
                                             <div className={styles.cardHeader}>
                                                 <div className={styles.cardIcon}>
-                                                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                                                        <path d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4" />
-                                                    </svg>
+                                                    <FaBoxes size={20} />
                                                 </div>
                                                 <h3>Lote {lote.numero}</h3>
                                             </div>
@@ -573,28 +560,20 @@ export default function LotesPage() {
                                             </div>
                                             <div className={styles.cardFooter}>
                                                 <Link href={`/lotes/${lote.id}`} className={styles.btnView} title="Ver detalhes">
-                                                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                                                        <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z" />
-                                                        <circle cx="12" cy="12" r="3" />
-                                                    </svg>
+                                                    <FaEye size={16} />
                                                 </Link>
-                                                <Link href={`/lotes/${lote.id}/editar`} className={styles.btnEdit} title="Editar">
-                                                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                                                        <path d="M11 4H4a2 2 0 00-2 2v14a2 2 0 002 2h14a2 2 0 002-2v-7" />
-                                                        <path d="M18.5 2.5a2.121 2.121 0 013 3L12 15l-4 1 1-4 9.5-9.5z" />
-                                                    </svg>
-                                                </Link>
+                                                {hasPermission('lotes.editar') && (
+                                                    <Link href={`/lotes/${lote.id}/editar`} className={styles.btnEdit} title="Editar">
+                                                        <FaEdit size={16} />
+                                                    </Link>
+                                                )}
                                                 {vencimentoStatus.status === 'vencido' ? (
                                                     <button
                                                         className={`${styles.btnDoar} ${styles.btnDisabled}`}
                                                         disabled
                                                         title="Não é possível doar medicamento vencido"
                                                     >
-                                                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                                                            <path d="M16 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2" />
-                                                            <circle cx="8.5" cy="7" r="4" />
-                                                            <path d="M20 8v6M23 11l-3-3-3 3" />
-                                                        </svg>
+                                                        <FaHandHoldingHeart size={16} />
                                                         Doar
                                                     </button>
                                                 ) : (
@@ -602,23 +581,19 @@ export default function LotesPage() {
                                                         href={`/retiradas/novo?lote=${lote.id}`}
                                                         className={styles.btnDoar}
                                                     >
-                                                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                                                            <path d="M16 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2" />
-                                                            <circle cx="8.5" cy="7" r="4" />
-                                                            <path d="M20 8v6M23 11l-3-3-3 3" />
-                                                        </svg>
+                                                        <FaHandHoldingHeart size={16} />
                                                         Doar
                                                     </Link>
                                                 )}
-                                                <button
-                                                    onClick={() => handleDelete(lote.id, lote.numero)}
-                                                    className={styles.btnDelete}
-                                                    title="Excluir"
-                                                >
-                                                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                                                        <path d="M3 6h18M19 6v14a2 2 0 01-2 2H7a2 2 0 01-2-2V6m3 0V4a2 2 0 012-2h4a2 2 0 012 2v2" />
-                                                    </svg>
-                                                </button>
+                                                {hasPermission('lotes.editar') && (
+                                                    <button
+                                                        onClick={() => handleDelete(lote.id, lote.numero)}
+                                                        className={styles.btnDelete}
+                                                        title="Excluir"
+                                                    >
+                                                        <FaTrash size={16} />
+                                                    </button>
+                                                )}
                                             </div>
                                         </div>
                                     );
@@ -628,7 +603,7 @@ export default function LotesPage() {
                     </div>
                 </div>
             </main>
-        </>
+        </WithPermission>
     );
 }
 

@@ -10,17 +10,19 @@ import { CreatePacienteController, ListPacientesController, GetPacienteControlle
 import { CreateRetiradaController, ListRetiradasController, GetRetiradaController, UpdateRetiradaController, DeleteRetiradaController } from "./controllers/retiradasController";
 import { CreatePermissaoController, ListPermissoesController, GetPermissaoController, UpdatePermissaoController, DeletePermissaoController } from "./controllers/permissoesController";
 import { CreateRoleController, ListRolesController, GetRoleController, UpdateRoleController, DeleteRoleController, UpdateRolePermissoesController, GetUserPermissoesController } from "./controllers/rolesController";
+import { UpdateUserGruposController } from "./controllers/userGruposController";
 import { isAuthenticated } from "./middlewares/isAutenticated";
+import { hasPermission } from "./middlewares/hasPermission";
 
 const router = Router();
 
 //Rotas de agendamentos
-router.post("/agendamento", new CreateAgendamentosController().handle);
-router.get("/agendamentos", isAuthenticated, new ListAgendamentosController().handle);
-router.get("/agendamento/:id", isAuthenticated, new GetAgendamentoController().handle);
-router.put("/agendamento/:id", isAuthenticated, new UpdateAgendamentoController().handle);
-router.patch("/agendamento/:id/visitar", isAuthenticated, new MarcarVisitadoController().handle);
-router.delete("/agendamento/:id", isAuthenticated, new DeleteAgendamentoController().handle);
+router.post("/agendamento", new CreateAgendamentosController().handle); // Rota pública para criação de agendamentos
+router.get("/agendamentos", isAuthenticated, hasPermission("agendamentos.ver"), new ListAgendamentosController().handle);
+router.get("/agendamento/:id", isAuthenticated, hasPermission("agendamentos.ver"), new GetAgendamentoController().handle);
+router.put("/agendamento/:id", isAuthenticated, hasPermission("agendamentos.editar"), new UpdateAgendamentoController().handle);
+router.patch("/agendamento/:id/visitar", isAuthenticated, hasPermission("agendamentos.visitar"), new MarcarVisitadoController().handle);
+router.delete("/agendamento/:id", isAuthenticated, hasPermission("agendamentos.excluir"), new DeleteAgendamentoController().handle);
 
 //Rotas de turnos
 router.get("/turnos", new ListTurnosController().handle);
@@ -35,48 +37,49 @@ router.get("/users", isAuthenticated, new ListUsersController().handle);
 router.get("/user/:id", isAuthenticated, new GetUserController().handle);
 router.put("/user/:id", isAuthenticated, new UpdateUserController().handle);
 router.delete("/user/:id", isAuthenticated, new DeleteUserController().handle);
+router.put("/user/:id/grupos", isAuthenticated, new UpdateUserGruposController().handle);
 
 //Rotas de tipos de medicamentos
-router.post("/tipo-medicamento", isAuthenticated, new CreateTipoMedicamentoController().handle);
-router.get("/tipos-medicamentos", isAuthenticated, new ListTiposMedicamentosController().handle);
-router.get("/tipo-medicamento/:id", isAuthenticated, new GetTipoMedicamentoController().handle);
-router.put("/tipo-medicamento/:id", isAuthenticated, new UpdateTipoMedicamentoController().handle);
-router.delete("/tipo-medicamento/:id", isAuthenticated, new DeleteTipoMedicamentoController().handle);
+router.post("/tipo-medicamento", isAuthenticated, hasPermission("tipos_medicamentos.criar"), new CreateTipoMedicamentoController().handle);
+router.get("/tipos-medicamentos", isAuthenticated, hasPermission("tipos_medicamentos.ver"), new ListTiposMedicamentosController().handle);
+router.get("/tipo-medicamento/:id", isAuthenticated, hasPermission("tipos_medicamentos.ver"), new GetTipoMedicamentoController().handle);
+router.put("/tipo-medicamento/:id", isAuthenticated, hasPermission("tipos_medicamentos.editar"), new UpdateTipoMedicamentoController().handle);
+router.delete("/tipo-medicamento/:id", isAuthenticated, hasPermission("tipos_medicamentos.excluir"), new DeleteTipoMedicamentoController().handle);
 
 //Rotas de formas farmacêuticas
-router.post("/forma-farmaceutica", isAuthenticated, new CreateFormaFarmaceuticaController().handle);
-router.get("/formas-farmaceuticas", isAuthenticated, new ListFormasFarmaceuticasController().handle);
-router.get("/forma-farmaceutica/:id", isAuthenticated, new GetFormaFarmaceuticaController().handle);
-router.put("/forma-farmaceutica/:id", isAuthenticated, new UpdateFormaFarmaceuticaController().handle);
-router.delete("/forma-farmaceutica/:id", isAuthenticated, new DeleteFormaFarmaceuticaController().handle);
+router.post("/forma-farmaceutica", isAuthenticated, hasPermission("formas_farmaceuticas.criar"), new CreateFormaFarmaceuticaController().handle);
+router.get("/formas-farmaceuticas", isAuthenticated, hasPermission("formas_farmaceuticas.ver"), new ListFormasFarmaceuticasController().handle);
+router.get("/forma-farmaceutica/:id", isAuthenticated, hasPermission("formas_farmaceuticas.ver"), new GetFormaFarmaceuticaController().handle);
+router.put("/forma-farmaceutica/:id", isAuthenticated, hasPermission("formas_farmaceuticas.editar"), new UpdateFormaFarmaceuticaController().handle);
+router.delete("/forma-farmaceutica/:id", isAuthenticated, hasPermission("formas_farmaceuticas.excluir"), new DeleteFormaFarmaceuticaController().handle);
 
 //Rotas de medicamentos
-router.post("/medicamento", isAuthenticated, new CreateMedicamentoController().handle);
-router.get("/medicamentos", isAuthenticated, new ListMedicamentosController().handle);
-router.get("/medicamento/:id", isAuthenticated, new GetMedicamentoController().handle);
-router.put("/medicamento/:id", isAuthenticated, new UpdateMedicamentoController().handle);
-router.delete("/medicamento/:id", isAuthenticated, new DeleteMedicamentoController().handle);
+router.post("/medicamento", isAuthenticated, hasPermission("medicamentos.criar"), new CreateMedicamentoController().handle);
+router.get("/medicamentos", isAuthenticated, hasPermission("medicamentos.ver"), new ListMedicamentosController().handle);
+router.get("/medicamento/:id", isAuthenticated, hasPermission("medicamentos.ver"), new GetMedicamentoController().handle);
+router.put("/medicamento/:id", isAuthenticated, hasPermission("medicamentos.editar"), new UpdateMedicamentoController().handle);
+router.delete("/medicamento/:id", isAuthenticated, hasPermission("medicamentos.excluir"), new DeleteMedicamentoController().handle);
 
 //Rotas de lotes
-router.post("/lote", isAuthenticated, new CreateLoteController().handle);
-router.get("/lotes", isAuthenticated, new ListLotesController().handle);
-router.get("/lote/:id", isAuthenticated, new GetLoteController().handle);
-router.put("/lote/:id", isAuthenticated, new UpdateLoteController().handle);
-router.delete("/lote/:id", isAuthenticated, new DeleteLoteController().handle);
+router.post("/lote", isAuthenticated, hasPermission("lotes.criar"), new CreateLoteController().handle);
+router.get("/lotes", isAuthenticated, hasPermission("lotes.ver"), new ListLotesController().handle);
+router.get("/lote/:id", isAuthenticated, hasPermission("lotes.ver"), new GetLoteController().handle);
+router.put("/lote/:id", isAuthenticated, hasPermission("lotes.editar"), new UpdateLoteController().handle);
+router.delete("/lote/:id", isAuthenticated, hasPermission("lotes.excluir"), new DeleteLoteController().handle);
 
 //Rotas de pacientes
-router.post("/paciente", isAuthenticated, new CreatePacienteController().handle);
-router.get("/pacientes", isAuthenticated, new ListPacientesController().handle);
-router.get("/paciente/:id", isAuthenticated, new GetPacienteController().handle);
-router.put("/paciente/:id", isAuthenticated, new UpdatePacienteController().handle);
-router.delete("/paciente/:id", isAuthenticated, new DeletePacienteController().handle);
+router.post("/paciente", isAuthenticated, hasPermission("pacientes.criar"), new CreatePacienteController().handle);
+router.get("/pacientes", isAuthenticated, hasPermission("pacientes.ver"), new ListPacientesController().handle);
+router.get("/paciente/:id", isAuthenticated, hasPermission("pacientes.ver"), new GetPacienteController().handle);
+router.put("/paciente/:id", isAuthenticated, hasPermission("pacientes.editar"), new UpdatePacienteController().handle);
+router.delete("/paciente/:id", isAuthenticated, hasPermission("pacientes.excluir"), new DeletePacienteController().handle);
 
 //Rotas de retiradas
-router.post("/retirada", isAuthenticated, new CreateRetiradaController().handle);
-router.get("/retiradas", isAuthenticated, new ListRetiradasController().handle);
-router.get("/retirada/:id", isAuthenticated, new GetRetiradaController().handle);
-router.put("/retirada/:id", isAuthenticated, new UpdateRetiradaController().handle);
-router.delete("/retirada/:id", isAuthenticated, new DeleteRetiradaController().handle);
+router.post("/retirada", isAuthenticated, hasPermission("retiradas.criar"), new CreateRetiradaController().handle);
+router.get("/retiradas", isAuthenticated, hasPermission("retiradas.ver"), new ListRetiradasController().handle);
+router.get("/retirada/:id", isAuthenticated, hasPermission("retiradas.ver"), new GetRetiradaController().handle);
+router.put("/retirada/:id", isAuthenticated, hasPermission("retiradas.editar"), new UpdateRetiradaController().handle);
+router.delete("/retirada/:id", isAuthenticated, hasPermission("retiradas.excluir"), new DeleteRetiradaController().handle);
 
 //Rotas de permissões
 router.post("/permissao", isAuthenticated, new CreatePermissaoController().handle);

@@ -7,14 +7,24 @@ import { toast } from 'react-toastify';
 import { getCookieClient } from '@/lib/cookieClient';
 import Header from '../../home/components/header';
 import Menu from '../../components/menu';
+import WithPermission from '@/components/withPermission';
+import { usePermissions } from '@/hooks/usePermissions';
 import styles from './page.module.css';
 import Link from 'next/link';
+
+interface Grupo {
+    id: number;
+    nome: string;
+    descricao?: string;
+}
 
 interface User {
     id: number;
     username: string;
     email: string;
     role: string | null;
+    is_admin?: boolean;
+    grupos?: Grupo[];
     created: string;
     modified: string;
 }
@@ -22,6 +32,7 @@ interface User {
 export default function UserViewPage() {
     const router = useRouter();
     const params = useParams();
+    const { isAdmin } = usePermissions();
     const [user, setUser] = useState<User | null>(null);
     const [loading, setLoading] = useState(true);
     const [mounted, setMounted] = useState(false);
@@ -83,7 +94,7 @@ export default function UserViewPage() {
     }
 
     return (
-        <>
+        <WithPermission requiredPermission="admin">
             <Header />
             <Menu />
             <main className={styles.main}>
@@ -93,7 +104,7 @@ export default function UserViewPage() {
                             <Link href="/users/list" className={styles.btnBack}>
                                 ← Voltar
                             </Link>
-                            {user && (
+                            {user && isAdmin && (
                                 <Link 
                                     href={`/users/${user.id}/editar`}
                                     className={styles.btnEdit}
@@ -138,6 +149,14 @@ export default function UserViewPage() {
                                                 <span className={styles.label}>Email</span>
                                                 <span className={styles.value}>{user.email}</span>
                                             </div>
+                                            {user.is_admin && (
+                                                <div className={styles.infoItem}>
+                                                    <span className={styles.label}>Tipo</span>
+                                                    <span className={styles.value}>
+                                                        <span className={styles.badgeAdmin}>Administrador</span>
+                                                    </span>
+                                                </div>
+                                            )}
                                             {user.role && (
                                                 <div className={styles.infoItem}>
                                                     <span className={styles.label}>Função</span>
@@ -146,6 +165,23 @@ export default function UserViewPage() {
                                             )}
                                         </div>
                                     </div>
+
+                                    {user.grupos && user.grupos.length > 0 && (
+                                        <div className={styles.section}>
+                                            <h3>Grupos</h3>
+                                            <div className={styles.gruposList}>
+                                                {user.grupos.map((grupo) => (
+                                                    <Link 
+                                                        key={grupo.id} 
+                                                        href={`/permissoes/grupos/${grupo.id}`}
+                                                        className={styles.grupoBadge}
+                                                    >
+                                                        {grupo.nome}
+                                                    </Link>
+                                                ))}
+                                            </div>
+                                        </div>
+                                    )}
 
                                     <div className={styles.section}>
                                         <h3>Informações do Sistema</h3>
@@ -166,7 +202,7 @@ export default function UserViewPage() {
                     </div>
                 </div>
             </main>
-        </>
+        </WithPermission>
     );
 }
 

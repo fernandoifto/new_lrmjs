@@ -7,6 +7,8 @@ import { toast } from 'react-toastify';
 import { getCookieClient } from '@/lib/cookieClient';
 import Header from '../../home/components/header';
 import Menu from '../../components/menu';
+import WithPermission from '@/components/withPermission';
+import { usePermissions } from '@/hooks/usePermissions';
 import styles from './page.module.css';
 import Link from 'next/link';
 
@@ -36,6 +38,7 @@ interface Lote {
 export default function LoteViewPage() {
     const router = useRouter();
     const params = useParams();
+    const { hasPermission } = usePermissions();
     const [lote, setLote] = useState<Lote | null>(null);
     const [loading, setLoading] = useState(true);
     const [mounted, setMounted] = useState(false);
@@ -102,7 +105,7 @@ export default function LoteViewPage() {
     }
 
     return (
-        <>
+        <WithPermission requiredPermission="lotes.ver">
             <Header />
             <Menu />
             <main className={styles.main}>
@@ -112,7 +115,7 @@ export default function LoteViewPage() {
                             <Link href="/lotes" className={styles.btnBack}>
                                 ← Voltar
                             </Link>
-                            {lote && (
+                            {lote && hasPermission('lotes.editar') && (
                                 <Link 
                                     href={`/lotes/${lote.id}/editar`}
                                     className={styles.btnEdit}
@@ -211,7 +214,7 @@ export default function LoteViewPage() {
                     </div>
                 </div>
             </main>
-        </>
+        </WithPermission>
     );
 }
 

@@ -9,6 +9,7 @@ import { useRouter } from 'next/navigation';
 import { getCookieClient } from '@/lib/cookieClient';
 import Header from '../home/components/header';
 import Menu from '../components/menu';
+import WithPermission from '@/components/withPermission';
 
 export default function CadastroUsuarios() {
   const router = useRouter();
@@ -204,7 +205,7 @@ export default function CadastroUsuarios() {
         </div>
       </div>
       </main>
-    </>
+    </WithPermission>
   );
 }
 

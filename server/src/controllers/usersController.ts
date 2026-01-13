@@ -18,9 +18,9 @@ export class AuthUserController {
 export class CreateUserController {
     async handle(request: Request, response: Response) {
         try {
-            const { username, email, password, role } = request.body;
+            const { username, email, password, grupos_ids } = request.body;
             const createUser = new CreateUserModel();
-            const user = await createUser.execute({ username, email, password, role });
+            const user = await createUser.execute({ username, email, password, grupos_ids });
             return response.status(201).json(user);
         } catch (error: any) {
             return response.status(400).json({ error: error.message });
@@ -45,7 +45,6 @@ export class DetailUserController {
                     id: true,
                     username: true,
                     email: true,
-                    role: true,
                     is_admin: true
                 }
             });
@@ -116,14 +115,13 @@ export class UpdateUserController {
     async handle(request: Request, response: Response) {
         try {
             const { id } = request.params;
-            const { username, email, password, role } = request.body;
+            const { username, email, password } = request.body;
             const updateUser = new UpdateUserModel();
             
             const user = await updateUser.execute(parseInt(id), {
                 username,
                 email,
-                password,
-                role
+                password
             });
             
             return response.json(user);
