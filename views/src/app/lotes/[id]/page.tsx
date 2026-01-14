@@ -9,6 +9,7 @@ import Header from '../../home/components/header';
 import Menu from '../../components/menu';
 import WithPermission from '@/components/withPermission';
 import { usePermissions } from '@/hooks/usePermissions';
+import { FaEdit, FaTrash } from 'react-icons/fa';
 import styles from './page.module.css';
 import Link from 'next/link';
 
@@ -100,6 +101,38 @@ export default function LoteViewPage() {
         return date < new Date();
     };
 
+    const handleDelete = async (id: number) => {
+        if (!confirm('Tem certeza que deseja excluir este lote? Esta ação não pode ser desfeita.')) {
+            return;
+        }
+
+        try {
+            const token = getCookieClient();
+            if (!token) {
+                toast.error('Você precisa estar logado');
+                router.push('/login');
+                return;
+            }
+
+            await api.delete(`/lote/${id}`, {
+                headers: {
+                    Authorization: `Bearer ${token}`
+                }
+            });
+
+            toast.success('Lote excluído com sucesso!');
+            router.push('/lotes');
+        } catch (error: any) {
+            console.error('Erro ao excluir lote:', error);
+            if (error.response?.status === 401) {
+                toast.error('Sessão expirada. Faça login novamente.');
+                router.push('/login');
+            } else {
+                toast.error(error.response?.data?.error || 'Erro ao excluir lote');
+            }
+        }
+    };
+
     if (!mounted) {
         return null;
     }
@@ -115,14 +148,27 @@ export default function LoteViewPage() {
                             <Link href="/lotes" className={styles.btnBack}>
                                 ← Voltar
                             </Link>
-                            {lote && hasPermission('lotes.editar') && (
-                                <Link 
-                                    href={`/lotes/${lote.id}/editar`}
-                                    className={styles.btnEdit}
-                                >
-                                    Editar
-                                </Link>
-                            )}
+                            <div className={styles.headerActions}>
+                                {lote && hasPermission('lotes.editar') && (
+                                    <Link 
+                                        href={`/lotes/${lote.id}/editar`}
+                                        className={styles.btnEdit}
+                                    >
+                                        <FaEdit size={16} />
+                                        Editar
+                                    </Link>
+                                )}
+                                {lote && hasPermission('lotes.excluir') && (
+                                    <button
+                                        onClick={() => handleDelete(lote.id)}
+                                        className={styles.btnDelete}
+                                        title="Excluir lote"
+                                    >
+                                        <FaTrash size={16} />
+                                        Excluir
+                                    </button>
+                                )}
+                            </div>
                         </div>
 
                         {loading ? (

@@ -46,8 +46,15 @@
   min-height: 50px;
 }
 
+.headerActions {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+}
+
 .btnBack,
-.btnEdit {
+.btnEdit,
+.btnDelete {
   padding: 0.75rem 1.5rem;
   border-radius: 8px;
   text-decoration: none;
@@ -56,6 +63,9 @@
   display: inline-flex;
   align-items: center;
   gap: 0.5rem;
+  border: none;
+  cursor: pointer;
+  font-size: 0.95rem;
 }
 
 .btnBack {
@@ -74,6 +84,15 @@
 
 .btnEdit:hover {
   background-color: #2c6aa8;
+}
+
+.btnDelete {
+  background-color: #dc3545;
+  color: white;
+}
+
+.btnDelete:hover {
+  background-color: #c82333;
 }
 
 .loadingContainer,
@@ -194,7 +213,8 @@
   }
 
   .btnBack,
-  .btnEdit {
+  .btnEdit,
+  .btnDelete {
     width: 100%;
     justify-content: center;
   }

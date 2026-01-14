@@ -325,6 +325,38 @@ export default function AgendamentosListPage() {
         }
     };
 
+    const handleDelete = async (id: number) => {
+        if (!confirm('Tem certeza que deseja excluir este agendamento? Esta ação não pode ser desfeita.')) {
+            return;
+        }
+
+        try {
+            const token = getCookieClient();
+            if (!token) {
+                toast.error('Você precisa estar logado');
+                router.push('/login');
+                return;
+            }
+
+            await api.delete(`/agendamento/${id}`, {
+                headers: {
+                    Authorization: `Bearer ${token}`
+                }
+            });
+
+            toast.success('Agendamento excluído com sucesso!');
+            loadAgendamentos();
+        } catch (error: any) {
+            console.error('Erro ao excluir agendamento:', error);
+            if (error.response?.status === 401) {
+                toast.error('Sessão expirada. Faça login novamente.');
+                router.push('/login');
+            } else {
+                toast.error(error.response?.data?.error || 'Erro ao excluir agendamento');
+            }
+        }
+    };
+
     if (!mounted) {
         return null;
     }
@@ -584,13 +616,15 @@ export default function AgendamentosListPage() {
                                         )}
                                     </div>
                                     <div className={styles.cardFooter}>
-                                        <Link 
-                                            href={`/agendamentos/${agendamento.id}`}
-                                            className={styles.btnView}
-                                            title="Ver detalhes"
-                                        >
-                                            <FaEye size={16} />
-                                        </Link>
+                                        {hasPermission('agendamentos.ver') && (
+                                            <Link 
+                                                href={`/agendamentos/${agendamento.id}`}
+                                                className={styles.btnView}
+                                                title="Ver detalhes"
+                                            >
+                                                <FaEye size={16} />
+                                            </Link>
+                                        )}
                                         {hasPermission('agendamentos.editar') && (
                                             <Link 
                                                 href={`/agendamentos/${agendamento.id}/editar`}
@@ -600,7 +634,16 @@ export default function AgendamentosListPage() {
                                                 <FaEdit size={16} />
                                             </Link>
                                         )}
-                                        {!agendamento.user && (
+                                        {hasPermission('agendamentos.excluir') && (
+                                            <button
+                                                onClick={() => handleDelete(agendamento.id)}
+                                                className={styles.btnDelete}
+                                                title="Excluir"
+                                            >
+                                                <FaTrash size={16} />
+                                            </button>
+                                        )}
+                                        {!agendamento.user && hasPermission('agendamentos.visitar') && (
                                             <button
                                                 onClick={() => handleVisitar(agendamento.id)}
                                                 className={styles.btnVisitar}

@@ -9,6 +9,7 @@ import Header from '../../../home/components/header';
 import Menu from '../../../components/menu';
 import WithPermission from '@/components/withPermission';
 import { usePermissions } from '@/hooks/usePermissions';
+import { FaEdit, FaTrash } from 'react-icons/fa';
 import styles from './page.module.css';
 import Link from 'next/link';
 
@@ -82,6 +83,38 @@ export default function PermissaoViewPage() {
         });
     };
 
+    const handleDelete = async (id: number) => {
+        if (!confirm('Tem certeza que deseja excluir esta permissão? Esta ação não pode ser desfeita.')) {
+            return;
+        }
+
+        try {
+            const token = getCookieClient();
+            if (!token) {
+                toast.error('Você precisa estar logado');
+                router.push('/login');
+                return;
+            }
+
+            await api.delete(`/permissao/${id}`, {
+                headers: {
+                    Authorization: `Bearer ${token}`
+                }
+            });
+
+            toast.success('Permissão excluída com sucesso!');
+            router.push('/permissoes/permissoes/list');
+        } catch (error: any) {
+            console.error('Erro ao excluir permissão:', error);
+            if (error.response?.status === 401) {
+                toast.error('Sessão expirada. Faça login novamente.');
+                router.push('/login');
+            } else {
+                toast.error(error.response?.data?.error || 'Erro ao excluir permissão');
+            }
+        }
+    };
+
     if (!mounted) {
         return null;
     }
@@ -97,14 +130,27 @@ export default function PermissaoViewPage() {
                             <Link href="/permissoes/permissoes/list" className={styles.btnBack}>
                                 ← Voltar
                             </Link>
-                            {permissao && isAdmin && (
-                                <Link
-                                    href={`/permissoes/permissoes/${permissao.id}/editar`}
-                                    className={styles.btnEdit}
-                                >
-                                    Editar
-                                </Link>
-                            )}
+                            <div className={styles.headerActions}>
+                                {permissao && isAdmin && (
+                                    <Link
+                                        href={`/permissoes/permissoes/${permissao.id}/editar`}
+                                        className={styles.btnEdit}
+                                    >
+                                        <FaEdit size={16} />
+                                        Editar
+                                    </Link>
+                                )}
+                                {permissao && isAdmin && (
+                                    <button
+                                        onClick={() => handleDelete(permissao.id)}
+                                        className={styles.btnDelete}
+                                        title="Excluir permissão"
+                                    >
+                                        <FaTrash size={18} />
+                                        Excluir
+                                    </button>
+                                )}
+                            </div>
                         </div>
 
                         {loading ? (

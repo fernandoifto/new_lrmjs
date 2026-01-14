@@ -8,7 +8,7 @@ import { api } from '@/api/api';
 import { deleteCookie } from 'cookies-next';
 import { toast } from 'react-toastify';
 import { usePermissions } from '@/hooks/usePermissions';
-import { FaUsersCog, FaCalendarAlt, FaPills, FaUserCircle, FaSignOutAlt } from 'react-icons/fa';
+import { FaUsersCog, FaCalendarAlt, FaPills, FaUserCircle, FaSignOutAlt, FaHandHoldingHeart } from 'react-icons/fa';
 import styles from './styles.module.css';
 
 interface User {
@@ -72,7 +72,10 @@ export default function Menu() {
             return pathname === '/agendamentos' || pathname.startsWith('/agendamentos/');
         }
         if (path === '/medicamentos') {
-            return pathname === '/medicamentos' || pathname.startsWith('/tipos-medicamentos') || pathname.startsWith('/formas-farmaceuticas') || pathname.startsWith('/lotes') || pathname.startsWith('/pacientes') || pathname.startsWith('/medicamentos/');
+            return pathname === '/medicamentos' || pathname.startsWith('/tipos-medicamentos') || pathname.startsWith('/formas-farmaceuticas') || pathname.startsWith('/lotes') || pathname.startsWith('/medicamentos/');
+        }
+        if (path === '/pacientes-doacoes') {
+            return pathname === '/pacientes-doacoes' || pathname.startsWith('/pacientes') || pathname.startsWith('/retiradas');
         }
         if (path === '/permissoes') {
             return pathname === '/permissoes' || pathname.startsWith('/permissoes/') || pathname.startsWith('/users');
@@ -96,13 +99,23 @@ export default function Menu() {
                             </Link>
                         )}
 
-                        {(isAdmin || hasAnyPermission(['medicamentos.ver', 'lotes.ver', 'pacientes.ver', 'tipos_medicamentos.ver', 'formas_farmaceuticas.ver'])) && (
+                        {(isAdmin || hasAnyPermission(['medicamentos.ver', 'lotes.ver', 'tipos_medicamentos.ver', 'formas_farmaceuticas.ver'])) && (
                             <Link 
                                 href="/medicamentos" 
                                 className={`${styles.menuItem} ${isActive('/medicamentos') ? styles.active : ''}`}
                             >
                                 <FaPills size={20} />
                                 <span>Medicamentos</span>
+                            </Link>
+                        )}
+
+                        {(isAdmin || hasAnyPermission(['pacientes.ver', 'retiradas.ver'])) && (
+                            <Link 
+                                href="/pacientes-doacoes" 
+                                className={`${styles.menuItem} ${isActive('/pacientes-doacoes') ? styles.active : ''}`}
+                            >
+                                <FaHandHoldingHeart size={20} />
+                                <span>Pacientes e Doações</span>
                             </Link>
                         )}
 

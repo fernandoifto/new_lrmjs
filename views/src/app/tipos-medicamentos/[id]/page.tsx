@@ -8,6 +8,8 @@ import { getCookieClient } from '@/lib/cookieClient';
 import Header from '../../home/components/header';
 import Menu from '../../components/menu';
 import WithPermission from '@/components/withPermission';
+import { usePermissions } from '@/hooks/usePermissions';
+import { FaEdit, FaTrash } from 'react-icons/fa';
 import styles from './page.module.css';
 import Link from 'next/link';
 
@@ -21,6 +23,7 @@ interface TipoMedicamento {
 export default function TipoMedicamentoViewPage() {
     const router = useRouter();
     const params = useParams();
+    const { hasPermission } = usePermissions();
     const [tipoMedicamento, setTipoMedicamento] = useState<TipoMedicamento | null>(null);
     const [loading, setLoading] = useState(true);
     const [mounted, setMounted] = useState(false);
@@ -77,6 +80,38 @@ export default function TipoMedicamentoViewPage() {
         });
     };
 
+    const handleDelete = async (id: number) => {
+        if (!confirm('Tem certeza que deseja excluir este tipo de medicamento? Esta ação não pode ser desfeita.')) {
+            return;
+        }
+
+        try {
+            const token = getCookieClient();
+            if (!token) {
+                toast.error('Você precisa estar logado');
+                router.push('/login');
+                return;
+            }
+
+            await api.delete(`/tipo-medicamento/${id}`, {
+                headers: {
+                    Authorization: `Bearer ${token}`
+                }
+            });
+
+            toast.success('Tipo de medicamento excluído com sucesso!');
+            router.push('/tipos-medicamentos');
+        } catch (error: any) {
+            console.error('Erro ao excluir tipo de medicamento:', error);
+            if (error.response?.status === 401) {
+                toast.error('Sessão expirada. Faça login novamente.');
+                router.push('/login');
+            } else {
+                toast.error(error.response?.data?.error || 'Erro ao excluir tipo de medicamento');
+            }
+        }
+    };
+
     if (!mounted) {
         return null;
     }
@@ -92,14 +127,27 @@ export default function TipoMedicamentoViewPage() {
                             <Link href="/tipos-medicamentos" className={styles.btnBack}>
                                 ← Voltar
                             </Link>
-                            {tipoMedicamento && (
-                                <Link 
-                                    href={`/tipos-medicamentos/${tipoMedicamento.id}/editar`}
-                                    className={styles.btnEdit}
-                                >
-                                    Editar
-                                </Link>
-                            )}
+                            <div className={styles.headerActions}>
+                                {tipoMedicamento && hasPermission('tipos_medicamentos.editar') && (
+                                    <Link 
+                                        href={`/tipos-medicamentos/${tipoMedicamento.id}/editar`}
+                                        className={styles.btnEdit}
+                                    >
+                                        <FaEdit size={16} />
+                                        Editar
+                                    </Link>
+                                )}
+                                {tipoMedicamento && hasPermission('tipos_medicamentos.excluir') && (
+                                    <button
+                                        onClick={() => handleDelete(tipoMedicamento.id)}
+                                        className={styles.btnDelete}
+                                        title="Excluir tipo de medicamento"
+                                    >
+                                        <FaTrash size={18} />
+                                        Excluir
+                                    </button>
+                                )}
+                            </div>
                         </div>
 
                         {loading ? (

@@ -193,8 +193,8 @@ export default function AgendamentoViewPage() {
                             <Link href="/agendamentos/list" className={styles.btnBack}>
                                 <FaArrowLeft size={16} /> Voltar
                             </Link>
-                            <div style={{ display: 'flex', gap: '0.75rem', alignItems: 'center' }}>
-                                {agendamento && !agendamento.user && (
+                            <div className={styles.headerActions}>
+                                {agendamento && !agendamento.user && hasPermission('agendamentos.visitar') && (
                                     <button
                                         onClick={() => handleVisitar(agendamento.id)}
                                         className={styles.btnVisitar}
@@ -221,7 +221,7 @@ export default function AgendamentoViewPage() {
                                         Editar
                                     </Link>
                                 )}
-                                {agendamento && hasPermission('agendamentos.editar') && (
+                                {agendamento && hasPermission('agendamentos.excluir') && (
                                     <button
                                         onClick={() => handleDelete(agendamento.id)}
                                         className={styles.btnDelete}

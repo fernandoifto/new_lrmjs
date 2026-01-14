@@ -345,22 +345,27 @@ export default function PacientesPage() {
                                             </div>
                                         </div>
                                         <div className={styles.cardFooter}>
-                                            <Link href={`/pacientes/${paciente.id}`} className={styles.btnView} title="Ver detalhes">
-                                                <FaEye size={16} />
-                                            </Link>
-                                            {hasPermission('pacientes.criar') && (
+                                            {hasPermission('pacientes.ver') && (
+                                                <Link href={`/pacientes/${paciente.id}`} className={styles.btnView} title="Ver detalhes">
+                                                    <FaEye size={16} />
+                                                </Link>
+                                            )}
+                                            {hasPermission('pacientes.editar') && (
                                                 <Link href={`/pacientes/${paciente.id}/editar`} className={styles.btnEdit} title="Editar">
                                                     <FaEdit size={16} />
                                                 </Link>
                                             )}
-                                            <Link 
-                                                href={`/retiradas/novo?paciente=${paciente.id}`}
-                                                className={styles.btnDoar}
-                                            >
-                                                <FaHandHoldingHeart size={16} />
-                                                Doar
-                                            </Link>
-                                            {hasPermission('pacientes.criar') && (
+                                            {hasPermission('retiradas.criar') && (
+                                                <Link 
+                                                    href={`/retiradas/novo?paciente=${paciente.id}`}
+                                                    className={styles.btnDoar}
+                                                    title="Doar medicamento"
+                                                >
+                                                    <FaHandHoldingHeart size={16} />
+                                                    Doar
+                                                </Link>
+                                            )}
+                                            {hasPermission('pacientes.excluir') && (
                                                 <button
                                                     onClick={() => handleDelete(paciente.id, paciente.nome)}
                                                     className={styles.btnDelete}

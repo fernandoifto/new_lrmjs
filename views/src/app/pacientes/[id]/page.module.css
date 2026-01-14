@@ -40,8 +40,10 @@
   justify-content: space-between;
   align-items: center;
   margin-bottom: 2rem;
-  width: 100%;
   gap: 1rem;
+  width: 100%;
+  box-sizing: border-box;
+  min-height: 50px;
 }
 
 .headerActions {
@@ -112,10 +114,12 @@
   box-shadow: var(--sombra-card);
   overflow: hidden;
   width: 100%;
+  box-sizing: border-box;
+  min-height: 300px;
 }
 
 .cardHeader {
-  padding: 2rem;
+  padding: 1.5rem 2rem;
   background-color: rgba(63, 129, 208, 0.05);
   border-bottom: 1px solid var(--cor-borda);
   display: flex;
@@ -136,7 +140,8 @@
 
 .cardHeader h1 {
   margin: 0;
-  font-size: 2rem;
+  font-size: 1.8rem;
+  font-weight: 600;
   color: var(--cor-texto);
 }
 
@@ -155,9 +160,10 @@
 .section h3 {
   margin: 0 0 1.5rem 0;
   font-size: 1.3rem;
-  color: var(--cor-texto);
+  font-weight: 600;
+  color: var(--cor-primaria);
+  padding-bottom: 0.75rem;
   border-bottom: 2px solid var(--cor-borda);
-  padding-bottom: 0.5rem;
 }
 
 .infoGrid {
@@ -176,11 +182,105 @@
   font-weight: 600;
   color: var(--cor-texto);
   font-size: 0.9rem;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
 }
 
 .value {
   color: var(--cor-texto-claro);
+  font-size: 1.1rem;
+}
+
+.retiradasList {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+}
+
+.retiradaCard {
+  background-color: var(--cor-fundo);
+  border: 1px solid var(--cor-borda);
+  border-radius: 8px;
+  padding: 1rem;
+  transition: var(--transicao);
+}
+
+.retiradaCard:hover {
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+}
+
+.retiradaHeader {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 1rem;
+  margin-bottom: 0.75rem;
+}
+
+.retiradaFooter {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 1rem;
+  padding-top: 0.75rem;
+  border-top: 1px solid var(--cor-borda);
+}
+
+.retiradaInfo {
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+}
+
+.retiradaLabel {
+  font-size: 0.85rem;
+  color: var(--cor-texto-claro);
+  font-weight: 500;
+}
+
+.retiradaValue {
   font-size: 1rem;
+  color: var(--cor-texto);
+  font-weight: 600;
+}
+
+.btnViewRetirada {
+  padding: 0.5rem 1rem;
+  background-color: var(--cor-primaria);
+  color: white;
+  text-decoration: none;
+  border-radius: 6px;
+  font-size: 0.9rem;
+  transition: var(--transicao);
+}
+
+.btnViewRetirada:hover {
+  background-color: #2c6aa8;
+}
+
+.cardFooter {
+  padding: 1.5rem 2rem;
+  background-color: rgba(63, 129, 208, 0.05);
+  border-top: 1px solid var(--cor-borda);
+  display: flex;
+  justify-content: center;
+}
+
+.btnDoar {
+  padding: 0.75rem 1.5rem;
+  background-color: #28a745;
+  color: white;
+  text-decoration: none;
+  border-radius: 8px;
+  font-weight: 500;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  transition: var(--transicao);
+}
+
+.btnDoar:hover {
+  background-color: #218838;
 }
 
 /* Responsividade */
@@ -191,10 +291,6 @@
 }
 
 @media (max-width: 768px) {
-  .main {
-    padding: 1rem 0;
-  }
-
   .container {
     padding: 0 1rem;
   }
@@ -215,11 +311,29 @@
     justify-content: center;
   }
 
+  .cardHeader {
+    padding: 1rem 1.5rem;
+  }
+
   .cardHeader h1 {
-    font-size: 1.5rem;
+    font-size: 1.4rem;
+  }
+
+  .cardBody {
+    padding: 1.5rem;
   }
 
   .infoGrid {
     grid-template-columns: 1fr;
+  }
+
+  .retiradaFooter {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .btnViewRetirada {
+    width: 100%;
+    text-align: center;
   }
 }

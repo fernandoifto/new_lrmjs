@@ -36,9 +36,14 @@ export const routePermissions: Record<string, string> = {
     '/lotes/[id]': 'lotes.ver',
     '/lotes/[id]/editar': 'lotes.editar',
     
+    // Pacientes e Doações (permite acesso com qualquer uma das permissões)
+    '/pacientes-doacoes': 'pacientes.ver', // Verifica ambas as permissões no componente
+    
     // Pacientes
     '/pacientes': 'pacientes.ver',
     '/pacientes/novo': 'pacientes.criar',
+    '/pacientes/[id]': 'pacientes.ver',
+    '/pacientes/[id]/editar': 'pacientes.editar',
     
     // Retiradas
     '/retiradas': 'retiradas.ver',

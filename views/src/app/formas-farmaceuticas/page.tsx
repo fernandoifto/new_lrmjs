@@ -169,15 +169,17 @@ export default function FormasFarmaceuticasPage() {
                                             </div>
                                         </div>
                                         <div className={styles.cardFooter}>
-                                            <Link href={`/formas-farmaceuticas/${forma.id}`} className={styles.btnView} title="Ver detalhes">
-                                                <FaEye size={16} />
-                                            </Link>
+                                            {hasPermission('formas_farmaceuticas.ver') && (
+                                                <Link href={`/formas-farmaceuticas/${forma.id}`} className={styles.btnView} title="Ver detalhes">
+                                                    <FaEye size={16} />
+                                                </Link>
+                                            )}
                                             {hasPermission('formas_farmaceuticas.editar') && (
                                                 <Link href={`/formas-farmaceuticas/${forma.id}/editar`} className={styles.btnEdit} title="Editar">
                                                     <FaEdit size={16} />
                                                 </Link>
                                             )}
-                                            {hasPermission('formas_farmaceuticas.editar') && (
+                                            {hasPermission('formas_farmaceuticas.excluir') && (
                                                 <button
                                                     onClick={() => handleDelete(forma.id, forma.descricao)}
                                                     className={styles.btnDelete}

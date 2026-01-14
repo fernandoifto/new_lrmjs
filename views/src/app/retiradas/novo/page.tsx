@@ -8,6 +8,7 @@ import { getCookieClient } from '@/lib/cookieClient';
 import Header from '../../home/components/header';
 import Menu from '../../components/menu';
 import WithPermission from '@/components/withPermission';
+import { usePermissions } from '@/hooks/usePermissions';
 import styles from './page.module.css';
 import formStyles from '@/app/agendar/forms/style/styles.module.css';
 import Link from 'next/link';
@@ -37,6 +38,7 @@ interface Lote {
 export default function NovaRetiradaPage() {
     const router = useRouter();
     const searchParams = useSearchParams();
+    const { hasPermission } = usePermissions();
     const [pacientes, setPacientes] = useState<Paciente[]>([]);
     const [lotes, setLotes] = useState<Lote[]>([]);
     const [loading, setLoading] = useState(true);
@@ -50,6 +52,8 @@ export default function NovaRetiradaPage() {
     });
     const [loteSelecionado, setLoteSelecionado] = useState<Lote | null>(null);
     const [pacienteSelecionado, setPacienteSelecionado] = useState<Paciente | null>(null);
+    const [podeVerLotes, setPodeVerLotes] = useState(true);
+    const [podeVerPacientes, setPodeVerPacientes] = useState(true);
 
     useEffect(() => {
         const token = getCookieClient();
@@ -88,30 +92,130 @@ export default function NovaRetiradaPage() {
                 return;
             }
 
-            const [pacientesRes, lotesRes] = await Promise.all([
-                api.get('/pacientes', {
-                    headers: { Authorization: `Bearer ${token}` }
-                }),
-                api.get('/lotes', {
-                    headers: { Authorization: `Bearer ${token}` }
-                })
-            ]);
+            const pacienteIdParam = searchParams.get('paciente');
+            const loteIdParam = searchParams.get('lote');
 
-            setPacientes(pacientesRes.data);
+            // Se houver um paciente na query string, buscar apenas esse paciente específico
+            // Caso contrário, tentar buscar a lista completa
+            let pacientesData: Paciente[] = [];
+            if (pacienteIdParam) {
+                try {
+                    const pacienteId = parseInt(pacienteIdParam);
+                    const pacienteRes = await api.get(`/paciente/${pacienteId}`, {
+                        headers: { Authorization: `Bearer ${token}` }
+                    });
+                    pacientesData = [pacienteRes.data];
+                } catch (error: any) {
+                    if (error.response?.status === 403) {
+                        toast.error('Você não tem permissão para acessar os dados deste paciente. É necessária a permissão "pacientes.ver"');
+                        router.push('/retiradas');
+                        return;
+                    } else if (error.response?.status === 404) {
+                        toast.error('Paciente não encontrado');
+                        router.push('/retiradas');
+                        return;
+                    } else {
+                        throw error;
+                    }
+                }
+            } else {
+                try {
+                    const pacientesRes = await api.get('/pacientes', {
+                        headers: { Authorization: `Bearer ${token}` }
+                    });
+                    pacientesData = pacientesRes.data;
+                } catch (error: any) {
+                    if (error.response?.status === 403) {
+                        // Se não tiver permissão para ver lista, continuar sem ela
+                        console.warn('Sem permissão para listar pacientes');
+                        setPodeVerPacientes(false);
+                    } else {
+                        throw error;
+                    }
+                }
+            }
+
+            setPacientes(pacientesData);
+
+            // Buscar lotes - se houver um lote na query string, buscar apenas esse lote específico
+            // Caso contrário, tentar buscar a lista completa
+            let lotesData: Lote[] = [];
+            if (loteIdParam) {
+                try {
+                    const loteId = parseInt(loteIdParam);
+                    const loteRes = await api.get(`/lote/${loteId}`, {
+                        headers: { Authorization: `Bearer ${token}` }
+                    });
+                    lotesData = [loteRes.data];
+                } catch (error: any) {
+                    if (error.response?.status === 403) {
+                        // Se não tiver permissão para ver o lote, permitir entrada manual do ID
+                        console.warn('Sem permissão para ver lote específico');
+                        setPodeVerLotes(false);
+                        // Pré-preencher o ID do lote na query string
+                        setFormData(prev => ({
+                            ...prev,
+                            id_lotes: loteIdParam,
+                            lote_search: `Lote ID: ${loteIdParam}`
+                        }));
+                        toast.warning('Você não tem permissão para ver os dados deste lote. O ID foi pré-preenchido, mas você precisará confirmar manualmente.');
+                    } else if (error.response?.status === 404) {
+                        toast.error('Lote não encontrado');
+                        setPodeVerLotes(false);
+                        // Ainda permitir entrada manual do ID
+                        setFormData(prev => ({
+                            ...prev,
+                            id_lotes: loteIdParam,
+                            lote_search: `Lote ID: ${loteIdParam}`
+                        }));
+                    } else {
+                        throw error;
+                    }
+                }
+            } else {
+                try {
+                    const lotesRes = await api.get('/lotes', {
+                        headers: { Authorization: `Bearer ${token}` }
+                    });
+                    lotesData = lotesRes.data;
+                } catch (error: any) {
+                    if (error.response?.status === 403) {
+                        // Se não tiver permissão para ver lista, continuar sem ela
+                        console.warn('Sem permissão para listar lotes');
+                        setPodeVerLotes(false);
+                        toast.warning('Você não tem permissão para ver a lista de lotes. Digite o ID do lote manualmente.');
+                    } else {
+                        throw error;
+                    }
+                }
+            }
+
             // Filtrar apenas lotes com quantidade disponível e não vencidos
             const hoje = new Date();
             hoje.setHours(0, 0, 0, 0);
-            const lotesDisponiveis = lotesRes.data.filter((lote: Lote) => {
+            let lotesDisponiveis = lotesData.filter((lote: Lote) => {
                 if (lote.qtde <= 0) return false;
                 const dataVencimento = new Date(lote.datavencimento);
                 dataVencimento.setHours(0, 0, 0, 0);
                 return dataVencimento >= hoje;
             });
+            
+            // Se houver um lote específico na query string, incluir mesmo que não esteja disponível
+            if (loteIdParam && lotesData.length > 0) {
+                const loteId = parseInt(loteIdParam);
+                const loteEspecifico = lotesData.find((lote: Lote) => lote.id === loteId);
+                if (loteEspecifico) {
+                    const jaExiste = lotesDisponiveis.find((l: Lote) => l.id === loteId);
+                    if (!jaExiste) {
+                        lotesDisponiveis.push(loteEspecifico);
+                    }
+                }
+            }
+            
             setLotes(lotesDisponiveis);
 
             // Verificar se há um lote pré-selecionado via query parameter
-            const loteIdParam = searchParams.get('lote');
-            if (loteIdParam) {
+            if (loteIdParam && lotesDisponiveis.length > 0) {
                 const loteId = parseInt(loteIdParam);
                 const lotePreSelecionado = lotesDisponiveis.find((lote: Lote) => lote.id === loteId);
                 
@@ -121,26 +225,24 @@ export default function NovaRetiradaPage() {
                         id_lotes: lotePreSelecionado.id.toString(),
                         lote_search: `${lotePreSelecionado.numero} - ${lotePreSelecionado.medicamento.descricao} (Disponível: ${lotePreSelecionado.qtde})`
                     }));
-                } else {
-                    // Se o lote não estiver na lista filtrada, buscar todos os lotes para encontrar
-                    const loteEncontrado = lotesRes.data.find((lote: Lote) => lote.id === loteId);
-                    if (loteEncontrado) {
-                        // Adicionar o lote mesmo que não esteja na lista filtrada (pode estar vencido ou sem estoque)
-                        setLotes([...lotesDisponiveis, loteEncontrado]);
-                        setFormData(prev => ({
-                            ...prev,
-                            id_lotes: loteEncontrado.id.toString(),
-                            lote_search: `${loteEncontrado.numero} - ${loteEncontrado.medicamento.descricao} (Disponível: ${loteEncontrado.qtde})`
-                        }));
-                    }
+                }
+            } else if (loteIdParam && lotesData.length > 0) {
+                // Se o lote foi buscado especificamente mas não está disponível, ainda pré-selecionar
+                const loteId = parseInt(loteIdParam);
+                const loteEspecifico = lotesData.find((lote: Lote) => lote.id === loteId);
+                if (loteEspecifico) {
+                    setFormData(prev => ({
+                        ...prev,
+                        id_lotes: loteEspecifico.id.toString(),
+                        lote_search: `${loteEspecifico.numero} - ${loteEspecifico.medicamento.descricao} (Disponível: ${loteEspecifico.qtde})`
+                    }));
                 }
             }
 
             // Verificar se há um paciente pré-selecionado via query parameter
-            const pacienteIdParam = searchParams.get('paciente');
-            if (pacienteIdParam) {
+            if (pacienteIdParam && pacientesData.length > 0) {
                 const pacienteId = parseInt(pacienteIdParam);
-                const pacientePreSelecionado = pacientesRes.data.find((paciente: Paciente) => paciente.id === pacienteId);
+                const pacientePreSelecionado = pacientesData.find((paciente: Paciente) => paciente.id === pacienteId);
                 
                 if (pacientePreSelecionado) {
                     setFormData(prev => ({
@@ -155,6 +257,8 @@ export default function NovaRetiradaPage() {
             if (error.response?.status === 401) {
                 toast.error('Sessão expirada. Faça login novamente.');
                 router.push('/login');
+            } else if (error.response?.status === 403) {
+                toast.error('Você não tem permissão para acessar este recurso');
             } else {
                 toast.error('Erro ao carregar dados');
             }
@@ -330,44 +434,86 @@ export default function NovaRetiradaPage() {
                                         <div className={formStyles.inputGroup}>
                                             <label htmlFor="paciente_search">
                                                 <span>Paciente *</span>
-                                                <input
-                                                    type="text"
-                                                    id="paciente_search"
-                                                    name="paciente_search"
-                                                    list="pacientes_list"
-                                                    required
-                                                    placeholder="Digite para buscar o paciente..."
-                                                    value={formData.paciente_search}
-                                                    onChange={handlePacienteSelect}
-                                                    autoComplete="off"
-                                                />
-                                                <datalist id="pacientes_list">
-                                                    {pacientes.map((paciente) => (
-                                                        <option key={paciente.id} value={`${paciente.nome} - CPF: ${paciente.cpf}`} data-id={paciente.id} />
-                                                    ))}
-                                                </datalist>
+                                                {podeVerPacientes ? (
+                                                    <>
+                                                        <input
+                                                            type="text"
+                                                            id="paciente_search"
+                                                            name="paciente_search"
+                                                            list="pacientes_list"
+                                                            required
+                                                            placeholder="Digite para buscar o paciente..."
+                                                            value={formData.paciente_search}
+                                                            onChange={handlePacienteSelect}
+                                                            autoComplete="off"
+                                                        />
+                                                        <datalist id="pacientes_list">
+                                                            {pacientes.map((paciente) => (
+                                                                <option key={paciente.id} value={`${paciente.nome} - CPF: ${paciente.cpf}`} data-id={paciente.id} />
+                                                            ))}
+                                                        </datalist>
+                                                    </>
+                                                ) : (
+                                                    <input
+                                                        type="number"
+                                                        id="id_pacientes"
+                                                        name="id_pacientes"
+                                                        required
+                                                        placeholder="Digite o ID do paciente..."
+                                                        value={formData.id_pacientes}
+                                                        onChange={(e) => {
+                                                            setFormData(prev => ({
+                                                                ...prev,
+                                                                id_pacientes: e.target.value,
+                                                                paciente_search: e.target.value ? `Paciente ID: ${e.target.value}` : ''
+                                                            }));
+                                                        }}
+                                                        min="1"
+                                                    />
+                                                )}
                                                 <input type="hidden" name="id_pacientes" value={formData.id_pacientes} />
                                             </label>
                                         </div>
                                         <div className={formStyles.inputGroup}>
                                             <label htmlFor="lote_search">
                                                 <span>Lote *</span>
-                                                <input
-                                                    type="text"
-                                                    id="lote_search"
-                                                    name="lote_search"
-                                                    list="lotes_list"
-                                                    required
-                                                    placeholder="Digite para buscar o lote..."
-                                                    value={formData.lote_search}
-                                                    onChange={handleLoteSelect}
-                                                    autoComplete="off"
-                                                />
-                                                <datalist id="lotes_list">
-                                                    {lotes.map((lote) => (
-                                                        <option key={lote.id} value={`${lote.numero} - ${lote.medicamento.descricao} (Disponível: ${lote.qtde})`} data-id={lote.id} />
-                                                    ))}
-                                                </datalist>
+                                                {podeVerLotes ? (
+                                                    <>
+                                                        <input
+                                                            type="text"
+                                                            id="lote_search"
+                                                            name="lote_search"
+                                                            list="lotes_list"
+                                                            required
+                                                            placeholder="Digite para buscar o lote..."
+                                                            value={formData.lote_search}
+                                                            onChange={handleLoteSelect}
+                                                            autoComplete="off"
+                                                        />
+                                                        <datalist id="lotes_list">
+                                                            {lotes.map((lote) => (
+                                                                <option key={lote.id} value={`${lote.numero} - ${lote.medicamento.descricao} (Disponível: ${lote.qtde})`} data-id={lote.id} />
+                                                            ))}
+                                                        </datalist>
+                                                    </>
+                                                ) : (
+                                                    <input
+                                                        type="number"
+                                                        id="id_lotes"
+                                                        name="id_lotes"
+                                                        required
+                                                        placeholder="Digite o ID do lote..."
+                                                        value={formData.id_lotes}
+                                                        onChange={(e) => {
+                                                            setFormData(prev => ({
+                                                                ...prev,
+                                                                id_lotes: e.target.value,
+                                                                lote_search: e.target.value ? `Lote ID: ${e.target.value}` : ''
+                                                            }));
+                                                        }}
+                                                        min="1"
+                                                    />
+                                                )}
                                                 <input type="hidden" name="id_lotes" value={formData.id_lotes} />
                                             </label>
                                         </div>

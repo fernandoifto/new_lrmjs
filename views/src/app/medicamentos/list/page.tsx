@@ -292,15 +292,17 @@ export default function MedicamentosListPage() {
                                             </div>
                                         </div>
                                         <div className={styles.cardFooter}>
-                                            <Link href={`/medicamentos/${medicamento.id}`} className={styles.btnView} title="Ver detalhes">
-                                                <FaEye size={16} />
-                                            </Link>
+                                            {hasPermission('medicamentos.ver') && (
+                                                <Link href={`/medicamentos/${medicamento.id}`} className={styles.btnView} title="Ver detalhes">
+                                                    <FaEye size={16} />
+                                                </Link>
+                                            )}
                                             {hasPermission('medicamentos.editar') && (
                                                 <Link href={`/medicamentos/${medicamento.id}/editar`} className={styles.btnEdit} title="Editar">
                                                     <FaEdit size={16} />
                                                 </Link>
                                             )}
-                                            {hasPermission('medicamentos.editar') && (
+                                            {hasPermission('medicamentos.excluir') && (
                                                 <button
                                                     onClick={() => handleDelete(medicamento.id, medicamento.descricao)}
                                                     className={styles.btnDelete}

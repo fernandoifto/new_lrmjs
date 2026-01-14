@@ -456,7 +456,7 @@ export default function RetiradasPage() {
                                         ? 'Nenhuma retirada encontrada com os critérios de busca' 
                                         : 'Nenhuma retirada registrada'}
                                 </p>
-                                {!activeSearchTerm && (
+                                {!activeSearchTerm && hasPermission('retiradas.criar') && (
                                     <Link href="/retiradas/novo" className={styles.btnNew}>
                                         Registrar Primeira Retirada
                                     </Link>
@@ -507,15 +507,17 @@ export default function RetiradasPage() {
                                             </div>
                                         </div>
                                         <div className={styles.cardFooter}>
-                                            <Link href={`/retiradas/${retirada.id}`} className={styles.btnView} title="Ver detalhes">
-                                                <FaEye size={16} />
-                                            </Link>
+                                            {hasPermission('retiradas.ver') && (
+                                                <Link href={`/retiradas/${retirada.id}`} className={styles.btnView} title="Ver detalhes">
+                                                    <FaEye size={16} />
+                                                </Link>
+                                            )}
                                             {hasPermission('retiradas.editar') && (
                                                 <Link href={`/retiradas/${retirada.id}/editar`} className={styles.btnEdit} title="Editar">
                                                     <FaEdit size={16} />
                                                 </Link>
                                             )}
-                                            {hasPermission('retiradas.editar') && (
+                                            {hasPermission('retiradas.excluir') && (
                                                 <button
                                                     onClick={() => handleDelete(retirada.id)}
                                                     className={styles.btnDelete}

@@ -9,6 +9,7 @@ import Header from '../../../home/components/header';
 import Menu from '../../../components/menu';
 import WithPermission from '@/components/withPermission';
 import { usePermissions } from '@/hooks/usePermissions';
+import { FaEdit, FaTrash } from 'react-icons/fa';
 import styles from './page.module.css';
 import Link from 'next/link';
 
@@ -162,11 +163,12 @@ export default function GrupoPermissoesPage() {
                                 ← Voltar
                             </Link>
                             {grupo && isAdmin && (
-                                <>
+                                <div className={styles.headerActions}>
                                     <Link 
                                         href={`/permissoes/grupos/${grupo.id}/editar`}
                                         className={styles.btnEdit}
                                     >
+                                        <FaEdit size={16} />
                                         Editar Grupo
                                     </Link>
                                     <button
@@ -176,7 +178,7 @@ export default function GrupoPermissoesPage() {
                                     >
                                         {saving ? 'Salvando...' : 'Salvar Permissões'}
                                     </button>
-                                </>
+                                </div>
                             )}
                         </div>
 

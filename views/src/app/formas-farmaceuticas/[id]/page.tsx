@@ -8,6 +8,8 @@ import { getCookieClient } from '@/lib/cookieClient';
 import Header from '../../home/components/header';
 import Menu from '../../components/menu';
 import WithPermission from '@/components/withPermission';
+import { usePermissions } from '@/hooks/usePermissions';
+import { FaEdit, FaTrash } from 'react-icons/fa';
 import styles from './page.module.css';
 import Link from 'next/link';
 
@@ -21,6 +23,7 @@ interface FormaFarmaceutica {
 export default function FormaFarmaceuticaViewPage() {
     const router = useRouter();
     const params = useParams();
+    const { hasPermission } = usePermissions();
     const [formaFarmaceutica, setFormaFarmaceutica] = useState<FormaFarmaceutica | null>(null);
     const [loading, setLoading] = useState(true);
     const [mounted, setMounted] = useState(false);
@@ -77,6 +80,38 @@ export default function FormaFarmaceuticaViewPage() {
         });
     };
 
+    const handleDelete = async (id: number) => {
+        if (!confirm('Tem certeza que deseja excluir esta forma farmacêutica? Esta ação não pode ser desfeita.')) {
+            return;
+        }
+
+        try {
+            const token = getCookieClient();
+            if (!token) {
+                toast.error('Você precisa estar logado');
+                router.push('/login');
+                return;
+            }
+
+            await api.delete(`/forma-farmaceutica/${id}`, {
+                headers: {
+                    Authorization: `Bearer ${token}`
+                }
+            });
+
+            toast.success('Forma farmacêutica excluída com sucesso!');
+            router.push('/formas-farmaceuticas');
+        } catch (error: any) {
+            console.error('Erro ao excluir forma farmacêutica:', error);
+            if (error.response?.status === 401) {
+                toast.error('Sessão expirada. Faça login novamente.');
+                router.push('/login');
+            } else {
+                toast.error(error.response?.data?.error || 'Erro ao excluir forma farmacêutica');
+            }
+        }
+    };
+
     if (!mounted) {
         return null;
     }
@@ -92,14 +127,27 @@ export default function FormaFarmaceuticaViewPage() {
                             <Link href="/formas-farmaceuticas" className={styles.btnBack}>
                                 ← Voltar
                             </Link>
-                            {formaFarmaceutica && (
-                                <Link 
-                                    href={`/formas-farmaceuticas/${formaFarmaceutica.id}/editar`}
-                                    className={styles.btnEdit}
-                                >
-                                    Editar
-                                </Link>
-                            )}
+                            <div className={styles.headerActions}>
+                                {formaFarmaceutica && hasPermission('formas_farmaceuticas.editar') && (
+                                    <Link 
+                                        href={`/formas-farmaceuticas/${formaFarmaceutica.id}/editar`}
+                                        className={styles.btnEdit}
+                                    >
+                                        <FaEdit size={16} />
+                                        Editar
+                                    </Link>
+                                )}
+                                {formaFarmaceutica && hasPermission('formas_farmaceuticas.excluir') && (
+                                    <button
+                                        onClick={() => handleDelete(formaFarmaceutica.id)}
+                                        className={styles.btnDelete}
+                                        title="Excluir forma farmacêutica"
+                                    >
+                                        <FaTrash size={18} />
+                                        Excluir
+                                    </button>
+                                )}
+                            </div>
                         </div>
 
                         {loading ? (

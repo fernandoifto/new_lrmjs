@@ -559,33 +559,40 @@ export default function LotesPage() {
                                                 </div>
                                             </div>
                                             <div className={styles.cardFooter}>
-                                                <Link href={`/lotes/${lote.id}`} className={styles.btnView} title="Ver detalhes">
-                                                    <FaEye size={16} />
-                                                </Link>
+                                                {hasPermission('lotes.ver') && (
+                                                    <Link href={`/lotes/${lote.id}`} className={styles.btnView} title="Ver detalhes">
+                                                        <FaEye size={16} />
+                                                    </Link>
+                                                )}
                                                 {hasPermission('lotes.editar') && (
                                                     <Link href={`/lotes/${lote.id}/editar`} className={styles.btnEdit} title="Editar">
                                                         <FaEdit size={16} />
                                                     </Link>
                                                 )}
                                                 {vencimentoStatus.status === 'vencido' ? (
-                                                    <button
-                                                        className={`${styles.btnDoar} ${styles.btnDisabled}`}
-                                                        disabled
-                                                        title="Não é possível doar medicamento vencido"
-                                                    >
-                                                        <FaHandHoldingHeart size={16} />
-                                                        Doar
-                                                    </button>
+                                                    hasPermission('retiradas.criar') && (
+                                                        <button
+                                                            className={`${styles.btnDoar} ${styles.btnDisabled}`}
+                                                            disabled
+                                                            title="Não é possível doar medicamento vencido"
+                                                        >
+                                                            <FaHandHoldingHeart size={16} />
+                                                            Doar
+                                                        </button>
+                                                    )
                                                 ) : (
-                                                    <Link 
-                                                        href={`/retiradas/novo?lote=${lote.id}`}
-                                                        className={styles.btnDoar}
-                                                    >
-                                                        <FaHandHoldingHeart size={16} />
-                                                        Doar
-                                                    </Link>
+                                                    hasPermission('retiradas.criar') && (
+                                                        <Link 
+                                                            href={`/retiradas/novo?lote=${lote.id}`}
+                                                            className={styles.btnDoar}
+                                                            title="Doar medicamento"
+                                                        >
+                                                            <FaHandHoldingHeart size={16} />
+                                                            Doar
+                                                        </Link>
+                                                    )
                                                 )}
-                                                {hasPermission('lotes.editar') && (
+                                                {hasPermission('lotes.excluir') && (
                                                     <button
                                                         onClick={() => handleDelete(lote.id, lote.numero)}
                                                         className={styles.btnDelete}

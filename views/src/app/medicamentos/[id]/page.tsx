@@ -9,6 +9,7 @@ import Header from '../../home/components/header';
 import Menu from '../../components/menu';
 import WithPermission from '@/components/withPermission';
 import { usePermissions } from '@/hooks/usePermissions';
+import { FaEdit, FaTrash } from 'react-icons/fa';
 import styles from './page.module.css';
 import Link from 'next/link';
 
@@ -162,6 +163,38 @@ export default function MedicamentoViewPage() {
         }
     };
 
+    const handleDelete = async (id: number) => {
+        if (!confirm('Tem certeza que deseja excluir este medicamento? Esta ação não pode ser desfeita.')) {
+            return;
+        }
+
+        try {
+            const token = getCookieClient();
+            if (!token) {
+                toast.error('Você precisa estar logado');
+                router.push('/login');
+                return;
+            }
+
+            await api.delete(`/medicamento/${id}`, {
+                headers: {
+                    Authorization: `Bearer ${token}`
+                }
+            });
+
+            toast.success('Medicamento excluído com sucesso!');
+            router.push('/medicamentos/list');
+        } catch (error: any) {
+            console.error('Erro ao excluir medicamento:', error);
+            if (error.response?.status === 401) {
+                toast.error('Sessão expirada. Faça login novamente.');
+                router.push('/login');
+            } else {
+                toast.error(error.response?.data?.error || 'Erro ao excluir medicamento');
+            }
+        }
+    };
+
     if (!mounted) {
         return null;
     }
@@ -177,14 +210,27 @@ export default function MedicamentoViewPage() {
                             <Link href="/medicamentos/list" className={styles.btnBack}>
                                 ← Voltar
                             </Link>
-                            {medicamento && hasPermission('medicamentos.editar') && (
-                                <Link
-                                    href={`/medicamentos/${medicamento.id}/editar`}
-                                    className={styles.btnEdit}
-                                >
-                                    Editar
-                                </Link>
-                            )}
+                            <div className={styles.headerActions}>
+                                {medicamento && hasPermission('medicamentos.editar') && (
+                                    <Link
+                                        href={`/medicamentos/${medicamento.id}/editar`}
+                                        className={styles.btnEdit}
+                                    >
+                                        <FaEdit size={16} />
+                                        Editar
+                                    </Link>
+                                )}
+                                {medicamento && hasPermission('medicamentos.excluir') && (
+                                    <button
+                                        onClick={() => handleDelete(medicamento.id)}
+                                        className={styles.btnDelete}
+                                        title="Excluir medicamento"
+                                    >
+                                        <FaTrash size={18} />
+                                        Excluir
+                                    </button>
+                                )}
+                            </div>
                         </div>
 
                         {loading ? (
@@ -285,9 +331,11 @@ export default function MedicamentoViewPage() {
                                                                 </div>
                                                             </div>
                                                             <div className={styles.loteFooter}>
-                                                                <Link href={`/lotes/${lote.id}`} className={styles.btnViewLote}>
-                                                                    Ver Detalhes
-                                                                </Link>
+                                                                {hasPermission('lotes.ver') && (
+                                                                    <Link href={`/lotes/${lote.id}`} className={styles.btnViewLote}>
+                                                                        Ver Detalhes
+                                                                    </Link>
+                                                                )}
                                                             </div>
                                                         </div>
                                                     );

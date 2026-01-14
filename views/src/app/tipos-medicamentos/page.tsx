@@ -169,15 +169,17 @@ export default function TiposMedicamentosPage() {
                                             </div>
                                         </div>
                                         <div className={styles.cardFooter}>
-                                            <Link href={`/tipos-medicamentos/${tipo.id}`} className={styles.btnView} title="Ver detalhes">
-                                                <FaEye size={16} />
-                                            </Link>
+                                            {hasPermission('tipos_medicamentos.ver') && (
+                                                <Link href={`/tipos-medicamentos/${tipo.id}`} className={styles.btnView} title="Ver detalhes">
+                                                    <FaEye size={16} />
+                                                </Link>
+                                            )}
                                             {hasPermission('tipos_medicamentos.editar') && (
                                                 <Link href={`/tipos-medicamentos/${tipo.id}/editar`} className={styles.btnEdit} title="Editar">
                                                     <FaEdit size={16} />
                                                 </Link>
                                             )}
-                                            {hasPermission('tipos_medicamentos.editar') && (
+                                            {hasPermission('tipos_medicamentos.excluir') && (
                                                 <button
                                                     onClick={() => handleDelete(tipo.id, tipo.descricao)}
                                                     className={styles.btnDelete}

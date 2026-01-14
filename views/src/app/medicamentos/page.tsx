@@ -7,7 +7,7 @@ import { getCookieClient } from '@/lib/cookieClient';
 import Header from '../home/components/header';
 import Menu from '../components/menu';
 import WithPermission from '@/components/withPermission';
-import { FaPills, FaBoxes, FaHandHoldingHeart, FaUserFriends, FaTags, FaFlask } from 'react-icons/fa';
+import { FaPills, FaBoxes, FaTags, FaFlask } from 'react-icons/fa';
 import styles from './page.module.css';
 import Link from 'next/link';
 
@@ -41,29 +41,12 @@ export default function MedicamentosPage() {
                         </div>
 
                         <div className={styles.buttonsGrid}>
-                            
                             <Link href="/lotes" className={styles.buttonCard}>
                                 <div className={styles.buttonIcon}>
                                     <FaBoxes size={32} />
                                 </div>
                                 <h3>Lotes</h3>
                                 <p>Gerencie os lotes de medicamentos do sistema</p>
-                            </Link>
-
-                            <Link href="/retiradas" className={styles.buttonCard}>
-                                <div className={styles.buttonIcon}>
-                                    <FaHandHoldingHeart size={32} />
-                                </div>
-                                <h3>Doações</h3>
-                                <p>Gerencie as doações e retiradas de medicamentos</p>
-                            </Link>
-
-                            <Link href="/pacientes" className={styles.buttonCard}>
-                                <div className={styles.buttonIcon}>
-                                    <FaUserFriends size={32} />
-                                </div>
-                                <h3>Pacientes</h3>
-                                <p>Gerencie os pacientes do sistema</p>
                             </Link>
 
                             <Link href="/medicamentos/list" className={styles.buttonCard}>

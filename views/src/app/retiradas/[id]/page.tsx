@@ -9,6 +9,7 @@ import Header from '../../home/components/header';
 import Menu from '../../components/menu';
 import WithPermission from '@/components/withPermission';
 import { usePermissions } from '@/hooks/usePermissions';
+import { FaEdit, FaTrash } from 'react-icons/fa';
 import styles from './page.module.css';
 import Link from 'next/link';
 
@@ -114,6 +115,38 @@ export default function RetiradaViewPage() {
         return cpf.replace(/(\d{3})(\d{3})(\d{3})(\d{2})/, '$1.$2.$3-$4');
     };
 
+    const handleDelete = async (id: number) => {
+        if (!confirm('Tem certeza que deseja excluir esta retirada? Esta ação não pode ser desfeita.')) {
+            return;
+        }
+
+        try {
+            const token = getCookieClient();
+            if (!token) {
+                toast.error('Você precisa estar logado');
+                router.push('/login');
+                return;
+            }
+
+            await api.delete(`/retirada/${id}`, {
+                headers: {
+                    Authorization: `Bearer ${token}`
+                }
+            });
+
+            toast.success('Retirada excluída com sucesso!');
+            router.push('/retiradas');
+        } catch (error: any) {
+            console.error('Erro ao excluir retirada:', error);
+            if (error.response?.status === 401) {
+                toast.error('Sessão expirada. Faça login novamente.');
+                router.push('/login');
+            } else {
+                toast.error(error.response?.data?.error || 'Erro ao excluir retirada');
+            }
+        }
+    };
+
     if (!mounted) {
         return null;
     }
@@ -132,15 +165,24 @@ export default function RetiradaViewPage() {
                             <div className={styles.headerContent}>
                                 <h1>Detalhes da Retirada</h1>
                             </div>
-                            {retirada && hasPermission('retiradas.editar') && (
-                                <Link href={`/retiradas/${retirada.id}/editar`} className={styles.btnEdit}>
-                                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                                        <path d="M11 4H4a2 2 0 00-2 2v14a2 2 0 002 2h14a2 2 0 002-2v-7" />
-                                        <path d="M18.5 2.5a2.121 2.121 0 013 3L12 15l-4 1 1-4 9.5-9.5z" />
-                                    </svg>
-                                    Editar
-                                </Link>
-                            )}
+                            <div className={styles.headerActions}>
+                                {retirada && hasPermission('retiradas.editar') && (
+                                    <Link href={`/retiradas/${retirada.id}/editar`} className={styles.btnEdit}>
+                                        <FaEdit size={16} />
+                                        Editar
+                                    </Link>
+                                )}
+                                {retirada && hasPermission('retiradas.excluir') && (
+                                    <button
+                                        onClick={() => handleDelete(retirada.id)}
+                                        className={styles.btnDelete}
+                                        title="Excluir retirada"
+                                    >
+                                        <FaTrash size={18} />
+                                        Excluir
+                                    </button>
+                                )}
+                            </div>
                         </div>
 
                         {loading ? (

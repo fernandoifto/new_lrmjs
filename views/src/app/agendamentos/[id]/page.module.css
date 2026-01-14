@@ -46,6 +46,12 @@
   min-height: 50px;
 }
 
+.headerActions {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+}
+
 .btnBack,
 .btnEdit,
 .btnVisitar,
