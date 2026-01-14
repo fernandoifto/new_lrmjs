@@ -39,6 +39,14 @@ INSERT INTO permissoes (nome, descricao, pagina, acao, created, modified) VALUES
 ('retiradas.editar', 'Editar retiradas/doações', 'Retiradas', 'editar', NOW(), NOW()),
 ('retiradas.excluir', 'Excluir retiradas/doações', 'Retiradas', 'excluir', NOW(), NOW());
 
+-- Permissões para Solicitações
+INSERT INTO permissoes (nome, descricao, pagina, acao, created, modified) VALUES
+('solicitacoes.ver', 'Ver solicitações', 'Solicitações', 'ver', NOW(), NOW()),
+('solicitacoes.criar', 'Criar solicitações', 'Solicitações', 'criar', NOW(), NOW()),
+('solicitacoes.confirmar', 'Confirmar solicitações', 'Solicitações', 'confirmar', NOW(), NOW()),
+('solicitacoes.recusar', 'Recusar solicitações', 'Solicitações', 'recusar', NOW(), NOW()),
+('solicitacoes.excluir', 'Excluir solicitações', 'Solicitações', 'excluir', NOW(), NOW());
+
 -- Permissões para Tipos de Medicamentos
 INSERT INTO permissoes (nome, descricao, pagina, acao, created, modified) VALUES
 ('tipos_medicamentos.ver', 'Ver tipos de medicamentos', 'Tipos de Medicamentos', 'ver', NOW(), NOW()),

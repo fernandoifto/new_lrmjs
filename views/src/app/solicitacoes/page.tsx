@@ -9,9 +9,10 @@ import Header from '../home/components/header';
 import Menu from '../components/menu';
 import WithPermission from '@/components/withPermission';
 import { usePermissions } from '@/hooks/usePermissions';
-import { FaHandHoldingHeart, FaCheckCircle, FaTimesCircle, FaClock, FaEye } from 'react-icons/fa';
+import { FaHandHoldingHeart, FaCheckCircle, FaTimesCircle, FaClock, FaEye, FaSearch, FaTimes, FaFilePdf } from 'react-icons/fa';
 import styles from './page.module.css';
 import Link from 'next/link';
+import jsPDF from 'jspdf';
 
 interface Solicitacao {
     id: number;
@@ -50,14 +51,23 @@ export default function SolicitacoesPage() {
     const router = useRouter();
     const { hasPermission, isAdmin } = usePermissions();
     const [solicitacoes, setSolicitacoes] = useState<Solicitacao[]>([]);
+    const [filteredSolicitacoes, setFilteredSolicitacoes] = useState<Solicitacao[]>([]);
     const [loading, setLoading] = useState(true);
     const [mounted, setMounted] = useState(false);
     const [filter, setFilter] = useState<'todas' | 'pendentes' | 'confirmadas' | 'recusadas'>('pendentes');
+    const [searchTerm, setSearchTerm] = useState('');
+    const [searchOption, setSearchOption] = useState('paciente');
+    const [activeSearchTerm, setActiveSearchTerm] = useState('');
+    const [activeSearchOption, setActiveSearchOption] = useState('paciente');
 
     useEffect(() => {
         setMounted(true);
         loadSolicitacoes();
     }, [filter]);
+
+    useEffect(() => {
+        filterSolicitacoes();
+    }, [solicitacoes, activeSearchTerm, activeSearchOption]);
 
     const loadSolicitacoes = async () => {
         try {
@@ -80,6 +90,7 @@ export default function SolicitacoesPage() {
             });
 
             setSolicitacoes(response.data);
+            setFilteredSolicitacoes(response.data);
         } catch (error: any) {
             console.error('Erro ao carregar solicitações:', error);
             if (error.response?.status === 401) {
@@ -180,6 +191,179 @@ export default function SolicitacoesPage() {
         return date.toLocaleDateString('pt-BR');
     };
 
+    const filterSolicitacoes = () => {
+        let filtered = [...solicitacoes];
+        
+        if (activeSearchTerm.trim() !== '') {
+            const searchLower = activeSearchTerm.toLowerCase().trim();
+            filtered = filtered.filter(solicitacao => {
+                switch (activeSearchOption) {
+                    case 'paciente':
+                        return solicitacao.paciente.nome.toLowerCase().includes(searchLower);
+                    case 'cpf':
+                        return solicitacao.paciente.cpf.replace(/\D/g, '').includes(searchLower.replace(/\D/g, ''));
+                    case 'medicamento':
+                        return solicitacao.lotes.medicamento.descricao.toLowerCase().includes(searchLower);
+                    case 'lote':
+                        return solicitacao.lotes.numero.toLowerCase().includes(searchLower);
+                    case 'status':
+                        return getStatusLabel(solicitacao.status).toLowerCase().includes(searchLower);
+                    case 'data':
+                        return formatDate(solicitacao.created).toLowerCase().includes(searchLower);
+                    default:
+                        return true;
+                }
+            });
+        }
+        
+        setFilteredSolicitacoes(filtered);
+    };
+
+    const handleSearch = () => {
+        setActiveSearchTerm(searchTerm);
+        setActiveSearchOption(searchOption);
+    };
+
+    const handleClearSearch = () => {
+        setSearchTerm('');
+        setActiveSearchTerm('');
+        setActiveSearchOption('paciente');
+        setSearchOption('paciente');
+    };
+
+    const handleGeneratePDF = () => {
+        try {
+            const doc = new jsPDF('landscape', 'mm', 'a4');
+            const pageWidth = doc.internal.pageSize.getWidth();
+            const pageHeight = doc.internal.pageSize.getHeight();
+            const margin = 10;
+            const startY = 20;
+            let y = startY;
+
+            doc.setFontSize(18);
+            doc.setFont('helvetica', 'bold');
+            doc.text('Lista de Solicitações', pageWidth / 2, y, { align: 'center' });
+            y += 10;
+
+            doc.setFontSize(10);
+            doc.setFont('helvetica', 'normal');
+            const dataGeracao = new Date().toLocaleDateString('pt-BR', {
+                day: '2-digit',
+                month: '2-digit',
+                year: 'numeric',
+                hour: '2-digit',
+                minute: '2-digit'
+            });
+            doc.text(`Gerado em: ${dataGeracao}`, pageWidth / 2, y, { align: 'center' });
+            y += 5;
+
+            if (filter !== 'todas') {
+                doc.setFontSize(10);
+                const filterLabel = {
+                    'pendentes': 'Pendentes',
+                    'confirmadas': 'Confirmadas',
+                    'recusadas': 'Recusadas'
+                }[filter] || filter;
+                doc.text(`Filtro: ${filterLabel}`, margin, y);
+                y += 5;
+            }
+
+            if (activeSearchTerm) {
+                doc.setFontSize(10);
+                const campoBusca = {
+                    'paciente': 'Paciente',
+                    'cpf': 'CPF',
+                    'medicamento': 'Medicamento',
+                    'lote': 'Número do Lote',
+                    'status': 'Status',
+                    'data': 'Data'
+                }[activeSearchOption] || 'Campo';
+                doc.text(`Busca: ${campoBusca} - "${activeSearchTerm}"`, margin, y);
+                y += 5;
+            }
+            y += 5;
+
+            doc.setFontSize(9);
+            doc.setFont('helvetica', 'bold');
+            const colWidths = [30, 40, 35, 30, 25, 30, 25, 25];
+            const headers = ['Paciente', 'CPF', 'Medicamento', 'Lote', 'Qtde', 'Status', 'Data', 'Estoque'];
+            let x = margin;
+
+            headers.forEach((header, index) => {
+                doc.text(header, x, y);
+                x += colWidths[index];
+            });
+            y += 7;
+
+            doc.setLineWidth(0.5);
+            doc.line(margin, y - 2, pageWidth - margin, y - 2);
+            y += 2;
+
+            doc.setFontSize(7);
+            doc.setFont('helvetica', 'normal');
+            
+            filteredSolicitacoes.forEach((solicitacao) => {
+                if (y > pageHeight - 20) {
+                    doc.addPage();
+                    y = startY;
+                    
+                    doc.setFontSize(9);
+                    doc.setFont('helvetica', 'bold');
+                    x = margin;
+                    headers.forEach((header, idx) => {
+                        doc.text(header, x, y);
+                        x += colWidths[idx];
+                    });
+                    y += 7;
+                    doc.line(margin, y - 2, pageWidth - margin, y - 2);
+                    y += 2;
+                    doc.setFontSize(7);
+                    doc.setFont('helvetica', 'normal');
+                }
+
+                x = margin;
+                const rowData = [
+                    solicitacao.paciente.nome || '',
+                    solicitacao.paciente.cpf || '',
+                    solicitacao.lotes.medicamento.descricao || '',
+                    solicitacao.lotes.numero || '',
+                    solicitacao.qtde.toString() || '',
+                    getStatusLabel(solicitacao.status) || '',
+                    formatDateOnly(solicitacao.created) || '',
+                    solicitacao.lotes.qtde.toString() || ''
+                ];
+
+                rowData.forEach((data, idx) => {
+                    const text = doc.splitTextToSize(data || '', colWidths[idx] - 2);
+                    doc.text(text, x + 1, y);
+                    x += colWidths[idx];
+                });
+                y += 8;
+            });
+
+            const totalPages = doc.getNumberOfPages();
+            for (let i = 1; i <= totalPages; i++) {
+                doc.setPage(i);
+                doc.setFontSize(8);
+                doc.setFont('helvetica', 'normal');
+                doc.text(
+                    `Página ${i} de ${totalPages} - Total de solicitações: ${filteredSolicitacoes.length}`,
+                    pageWidth / 2,
+                    pageHeight - 5,
+                    { align: 'center' }
+                );
+            }
+
+            const fileName = `solicitacoes_${new Date().toISOString().split('T')[0]}.pdf`;
+            doc.save(fileName);
+            
+            toast.success('PDF gerado com sucesso!');
+        } catch (error) {
+            console.error('Erro ao gerar PDF:', error);
+            toast.error('Erro ao gerar PDF');
+        }
+    };
+
     const getStatusIcon = (status: string) => {
         switch (status) {
             case 'pendente':
@@ -230,46 +414,171 @@ export default function SolicitacoesPage() {
                                     <p>Gerencie as solicitações de medicamentos dos pacientes</p>
                                 </div>
                             </div>
+                            <div className={styles.headerActions}>
+                                <div className={styles.filterButtons}>
+                                    <button
+                                        className={`${styles.filterBtn} ${filter === 'todas' ? styles.filterBtnActive : ''}`}
+                                        onClick={() => setFilter('todas')}
+                                    >
+                                        Todas
+                                    </button>
+                                    <button
+                                        className={`${styles.filterBtn} ${filter === 'pendentes' ? styles.filterBtnActive : ''}`}
+                                        onClick={() => setFilter('pendentes')}
+                                    >
+                                        Pendentes
+                                    </button>
+                                    <button
+                                        className={`${styles.filterBtn} ${filter === 'confirmadas' ? styles.filterBtnActive : ''}`}
+                                        onClick={() => setFilter('confirmadas')}
+                                    >
+                                        Confirmadas
+                                    </button>
+                                    <button
+                                        className={`${styles.filterBtn} ${filter === 'recusadas' ? styles.filterBtnActive : ''}`}
+                                        onClick={() => setFilter('recusadas')}
+                                    >
+                                        Recusadas
+                                    </button>
+                                </div>
+                                {filteredSolicitacoes.length > 0 && (
+                                    <button
+                                        onClick={handleGeneratePDF}
+                                        className={styles.btnPDF}
+                                        title="Gerar PDF das solicitações listadas"
+                                    >
+                                        <FaFilePdf size={20} />
+                                        Gerar PDF
+                                    </button>
+                                )}
+                            </div>
                         </div>
 
-                        <div className={styles.filters}>
-                            <button
-                                className={`${styles.filterBtn} ${filter === 'todas' ? styles.active : ''}`}
-                                onClick={() => setFilter('todas')}
-                            >
-                                Todas
-                            </button>
-                            <button
-                                className={`${styles.filterBtn} ${filter === 'pendentes' ? styles.active : ''}`}
-                                onClick={() => setFilter('pendentes')}
-                            >
-                                Pendentes
-                            </button>
-                            <button
-                                className={`${styles.filterBtn} ${filter === 'confirmadas' ? styles.active : ''}`}
-                                onClick={() => setFilter('confirmadas')}
-                            >
-                                Confirmadas
-                            </button>
-                            <button
-                                className={`${styles.filterBtn} ${filter === 'recusadas' ? styles.active : ''}`}
-                                onClick={() => setFilter('recusadas')}
-                            >
-                                Recusadas
-                            </button>
+                        {/* Campo de Busca */}
+                        <div className={styles.searchContainer}>
+                            <div className={styles.searchPanel}>
+                                <div className={styles.searchHeader}>
+                                    <b>Buscar por:</b>
+                                    <div className={styles.searchOptions}>
+                                        <label className={styles.radioOption}>
+                                            <input
+                                                type="radio"
+                                                name="searchOption"
+                                                value="paciente"
+                                                checked={searchOption === 'paciente'}
+                                                onChange={(e) => setSearchOption(e.target.value)}
+                                            />
+                                            <span>Paciente</span>
+                                        </label>
+                                        <label className={styles.radioOption}>
+                                            <input
+                                                type="radio"
+                                                name="searchOption"
+                                                value="cpf"
+                                                checked={searchOption === 'cpf'}
+                                                onChange={(e) => setSearchOption(e.target.value)}
+                                            />
+                                            <span>CPF</span>
+                                        </label>
+                                        <label className={styles.radioOption}>
+                                            <input
+                                                type="radio"
+                                                name="searchOption"
+                                                value="medicamento"
+                                                checked={searchOption === 'medicamento'}
+                                                onChange={(e) => setSearchOption(e.target.value)}
+                                            />
+                                            <span>Medicamento</span>
+                                        </label>
+                                        <label className={styles.radioOption}>
+                                            <input
+                                                type="radio"
+                                                name="searchOption"
+                                                value="lote"
+                                                checked={searchOption === 'lote'}
+                                                onChange={(e) => setSearchOption(e.target.value)}
+                                            />
+                                            <span>Número do Lote</span>
+                                        </label>
+                                        <label className={styles.radioOption}>
+                                            <input
+                                                type="radio"
+                                                name="searchOption"
+                                                value="status"
+                                                checked={searchOption === 'status'}
+                                                onChange={(e) => setSearchOption(e.target.value)}
+                                            />
+                                            <span>Status</span>
+                                        </label>
+                                        <label className={styles.radioOption}>
+                                            <input
+                                                type="radio"
+                                                name="searchOption"
+                                                value="data"
+                                                checked={searchOption === 'data'}
+                                                onChange={(e) => setSearchOption(e.target.value)}
+                                            />
+                                            <span>Data</span>
+                                        </label>
+                                    </div>
+                                </div>
+                                <div className={styles.searchBody}>
+                                    <div className={styles.searchBox}>
+                                        <FaSearch size={20} className={styles.searchIcon} />
+                                        <input
+                                            type="text"
+                                            placeholder="Digite aqui sua pesquisa"
+                                            value={searchTerm}
+                                            onChange={(e) => setSearchTerm(e.target.value)}
+                                            onKeyPress={(e) => {
+                                                if (e.key === 'Enter') {
+                                                    handleSearch();
+                                                }
+                                            }}
+                                            className={styles.searchInput}
+                                        />
+                                        {searchTerm && (
+                                            <button
+                                                onClick={handleClearSearch}
+                                                className={styles.clearButton}
+                                                title="Limpar busca"
+                                            >
+                                                <FaTimes size={18} />
+                                            </button>
+                                        )}
+                                    </div>
+                                    <button
+                                        onClick={handleSearch}
+                                        className={styles.searchButton}
+                                        title="Buscar"
+                                    >
+                                        <FaSearch size={20} />
+                                        Buscar
+                                    </button>
+                                    {activeSearchTerm && (
+                                        <div className={styles.searchResults}>
+                                            {filteredSolicitacoes.length > 0 ? (
+                                                <span>{filteredSolicitacoes.length} resultado(s) encontrado(s)</span>
+                                            ) : (
+                                                <span>Nenhum resultado encontrado</span>
+                                            )}
+                                        </div>
+                                    )}
+                                </div>
+                            </div>
                         </div>
 
                         {loading ? (
                             <div className={styles.loadingContainer}>
                                 <p>Carregando solicitações...</p>
                             </div>
-                        ) : solicitacoes.length === 0 ? (
+                        ) : filteredSolicitacoes.length === 0 ? (
                             <div className={styles.emptyContainer}>
                                 <p>Nenhuma solicitação encontrada.</p>
                             </div>
                         ) : (
                             <div className={styles.solicitacoesList}>
-                                {solicitacoes.map((solicitacao) => (
+                                {filteredSolicitacoes.map((solicitacao) => (
                                     <div key={solicitacao.id} className={styles.solicitacaoCard}>
                                         <div className={styles.solicitacaoHeader}>
                                             <div className={styles.solicitacaoStatus}>
