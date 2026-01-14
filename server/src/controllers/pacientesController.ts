@@ -1,5 +1,5 @@
 import { Request, Response } from "express";
-import { CreatePacienteModel, ListPacientesModel, GetPacienteModel, UpdatePacienteModel, DeletePacienteModel } from "../models/pacientesModels";
+import { CreatePacienteModel, ListPacientesModel, GetPacienteModel, GetPacienteByCPFModel, UpdatePacienteModel, DeletePacienteModel } from "../models/pacientesModels";
 
 class CreatePacienteController {
     async handle(req: Request, res: Response) {
@@ -50,6 +50,21 @@ class GetPacienteController {
     }
 }
 
+class GetPacienteByCPFController {
+    async handle(req: Request, res: Response) {
+        try {
+            const { cpf } = req.params;
+
+            const getPacienteByCPFModel = new GetPacienteByCPFModel();
+            const paciente = await getPacienteByCPFModel.execute(cpf);
+
+            return res.status(200).json(paciente);
+        } catch (error: any) {
+            return res.status(404).json({ error: error.message });
+        }
+    }
+}
+
 class UpdatePacienteController {
     async handle(req: Request, res: Response) {
         try {
@@ -81,5 +96,5 @@ class DeletePacienteController {
     }
 }
 
-export { CreatePacienteController, ListPacientesController, GetPacienteController, UpdatePacienteController, DeletePacienteController }
+export { CreatePacienteController, ListPacientesController, GetPacienteController, GetPacienteByCPFController, UpdatePacienteController, DeletePacienteController }
 

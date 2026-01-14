@@ -129,6 +129,34 @@ class ListLotesModel {
     }
 }
 
+//Modelo de listar lotes disponíveis (público - apenas não vencidos e com estoque)
+class ListLotesDisponiveisModel {
+    async execute() {
+        const hoje = new Date();
+        hoje.setHours(0, 0, 0, 0);
+
+        const lotes = await prismaClient.lotes.findMany({
+            where: {
+                qtde: {
+                    gt: 0
+                },
+                datavencimento: {
+                    gte: hoje
+                }
+            },
+            include: {
+                medicamento: true,
+                formaFarmaceutica: true,
+                tipoMedicamento: true
+            },
+            orderBy: {
+                datavencimento: 'asc' // Ordenar por data de vencimento (mais próximo primeiro)
+            }
+        });
+        return lotes;
+    }
+}
+
 //Modelo de visualizar lote
 class GetLoteModel {
     async execute(id: number) {
@@ -280,7 +308,8 @@ class DeleteLoteModel {
 
 export { 
     CreateLoteModel, 
-    ListLotesModel, 
+    ListLotesModel,
+    ListLotesDisponiveisModel,
     GetLoteModel, 
     UpdateLoteModel, 
     DeleteLoteModel 

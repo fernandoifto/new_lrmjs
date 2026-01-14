@@ -6,6 +6,7 @@ import { useRouter } from 'next/navigation';
 import { toast } from 'react-toastify';
 import { getCookieClient } from '@/lib/cookieClient';
 import Header from '../../home/components/header';
+import HeaderRight from '../../home/components/headerRight';
 import Menu from '../../components/menu';
 import WithPermission from '@/components/withPermission';
 import styles from './page.module.css';
@@ -19,6 +20,8 @@ export default function NovoPacientePage() {
     const [saving, setSaving] = useState(false);
     const [phoneValue, setPhoneValue] = useState('');
     const [cpfValue, setCpfValue] = useState('');
+    const [isPublicRegistration, setIsPublicRegistration] = useState(false);
+    const [mounted, setMounted] = useState(false);
     const [formData, setFormData] = useState({
         nome: '',
         datanascimento: '',
@@ -26,10 +29,21 @@ export default function NovoPacientePage() {
     });
 
     useEffect(() => {
-        const token = getCookieClient();
-        if (!token) {
-            toast.error('Você precisa estar logado para acessar esta página');
-            router.push('/login');
+        setMounted(true);
+        // Verificar se há CPF na URL (para cadastro público)
+        const urlParams = new URLSearchParams(window.location.search);
+        const cpfParam = urlParams.get('cpf');
+        if (cpfParam) {
+            const masked = maskCPF(cpfParam);
+            setCpfValue(masked);
+            setIsPublicRegistration(true);
+        } else {
+            // Verificar autenticação apenas se não vier de solicitação pública
+            const token = getCookieClient();
+            if (!token) {
+                toast.error('Você precisa estar logado para acessar esta página');
+                router.push('/login');
+            }
         }
     }, [router]);
 
@@ -80,31 +94,58 @@ export default function NovoPacientePage() {
         }
 
         setSaving(true);
+        const urlParams = new URLSearchParams(window.location.search);
+        const cpfParam = urlParams.get('cpf');
+        const isPublicRegistration = !!cpfParam;
         const token = getCookieClient();
 
-        if (!token) {
+        // Se for cadastro público, não precisa de token
+        if (!isPublicRegistration && !token) {
             toast.error('Você precisa estar logado');
             router.push('/login');
+            setSaving(false);
             return;
         }
 
+        const headers: any = {};
+        if (token) {
+            headers.Authorization = `Bearer ${token}`;
+        }
+
         try {
-            await api.post('/paciente', {
+            const endpoint = isPublicRegistration ? '/paciente/public' : '/paciente';
+            await api.post(endpoint, {
                 nome: formData.nome.trim(),
                 cpf: cpfValue.replace(/\D/g, ''),
                 datanascimento: formData.datanascimento,
                 telefone: phoneValue.replace(/\D/g, ''),
                 cartaosus: formData.cartaosus.trim()
             }, {
-                headers: {
-                    Authorization: `Bearer ${token}`
-                }
+                headers
             });
 
             toast.success('Paciente criado com sucesso!');
-            setTimeout(() => {
-                router.push('/pacientes');
-            }, 1500);
+            
+            // Se veio de solicitação pública, redirecionar para lotes disponíveis
+            const urlParams = new URLSearchParams(window.location.search);
+            const cpfParam = urlParams.get('cpf');
+            if (cpfParam) {
+                // Buscar o paciente recém-criado para obter o ID
+                try {
+                    const pacienteResponse = await api.get(`/paciente/cpf/${cpfValue.replace(/\D/g, '')}`);
+                    setTimeout(() => {
+                        router.push(`/lotes-disponiveis?paciente=${pacienteResponse.data.id}`);
+                    }, 1500);
+                } catch (error) {
+                    setTimeout(() => {
+                        router.push('/pacientes');
+                    }, 1500);
+                }
+            } else {
+                setTimeout(() => {
+                    router.push('/pacientes');
+                }, 1500);
+            }
         } catch (error: any) {
             console.error('Erro ao criar paciente:', error);
             if (error.response?.status === 401) {
@@ -118,10 +159,22 @@ export default function NovoPacientePage() {
         }
     };
 
-    return (
-        <WithPermission requiredPermission="pacientes.criar">
-            <Header />
-            <Menu />
+    if (!mounted) {
+        return null;
+    }
+
+    const content = (
+        <>
+            {isPublicRegistration ? (
+                <Header>
+                    <HeaderRight />
+                </Header>
+            ) : (
+                <>
+                    <Header />
+                    <Menu />
+                </>
+            )}
             <main className={styles.main}>
                 <div className={styles.container}>
                     <div className={styles.contentWrapper}>
@@ -238,6 +291,18 @@ export default function NovoPacientePage() {
                     </div>
                 </div>
             </main>
+        </>
+    );
+
+    // Se for cadastro público, retornar sem WithPermission
+    if (isPublicRegistration) {
+        return content;
+    }
+
+    // Se for cadastro privado, usar WithPermission
+    return (
+        <WithPermission requiredPermission="pacientes.criar">
+            {content}
         </WithPermission>
     );
 }

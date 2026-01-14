@@ -36,6 +36,89 @@
   box-sizing: border-box;
 }
 
+/* Card de Informação */
+.infoCard {
+  background-color: var(--cor-fundo-card);
+  border-radius: 12px;
+  box-shadow: var(--sombra-card);
+  overflow: hidden;
+  margin-bottom: 1.5rem;
+}
+
+.infoCardHeader {
+  padding: 10px 10px;
+  background-color: rgba(63, 129, 208, 0.05);
+  border-bottom: 1px solid var(--cor-borda);
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+}
+
+.infoCardBody {
+  padding: 1.8rem;
+}
+
+.infoContent {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+}
+
+.infoTitle {
+  margin: 0;
+  font-size: 1.5rem;
+  font-weight: 600;
+  color: var(--cor-primaria);
+}
+
+.infoText {
+  margin: 0;
+  font-size: 1rem;
+  color: var(--cor-texto);
+  line-height: 1.6;
+}
+
+.infoText p {
+  margin: 0 0 0.75rem 0;
+}
+
+.infoText p:last-of-type {
+  margin-bottom: 0;
+}
+
+.infoList {
+  margin: 0.5rem 0 1rem 1.5rem;
+  padding: 0;
+  list-style: none;
+}
+
+.infoList li {
+  margin-bottom: 0.5rem;
+  padding-left: 1.5rem;
+  position: relative;
+  color: var(--cor-texto);
+  line-height: 1.6;
+}
+
+.infoList li:before {
+  content: "•";
+  position: absolute;
+  left: 0;
+  color: var(--cor-primaria);
+  font-weight: bold;
+  font-size: 1.2rem;
+}
+
+.infoList li:last-child {
+  margin-bottom: 0;
+}
+
+.infoConclusion {
+  margin-top: 1rem !important;
+  font-weight: 500;
+  color: var(--cor-texto) !important;
+}
+
 /* Formulário */
 .form {
   padding: 2rem;
@@ -337,6 +420,27 @@
 
   .main {
     padding: 1rem 0;
+  }
+
+  .infoCardBody {
+    padding: 1.25rem;
+  }
+
+  .infoTitle {
+    font-size: 1.1rem;
+  }
+
+  .infoText {
+    font-size: 0.95rem;
+  }
+
+  .infoList {
+    margin-left: 1rem;
+  }
+
+  .infoList li {
+    padding-left: 1.25rem;
+    font-size: 0.9rem;
   }
 
   .form {

@@ -15,12 +15,12 @@ export default function Header({ children }: HeaderProps) {
       <div className={styles.headerWrapper}>
         <div className={styles.headerContent}>
           <div>
-            <Link href="/">
+            <Link href="/" className={styles.logoLink}>
               <Image
                 src="/remed_logo.png"
                 alt="Remed - Logística Reversa de Medicamentos"
-                width={150}
-                height={60}
+                width={200}
+                height={80}
                 priority
                 className={styles.logoImage}
               />

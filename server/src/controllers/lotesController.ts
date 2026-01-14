@@ -1,7 +1,8 @@
 import { Request, Response } from "express";
 import { 
     CreateLoteModel, 
-    ListLotesModel, 
+    ListLotesModel,
+    ListLotesDisponiveisModel,
     GetLoteModel, 
     UpdateLoteModel, 
     DeleteLoteModel 
@@ -34,6 +35,18 @@ export class ListLotesController {
         try {
             const listLotes = new ListLotesModel();
             const lotes = await listLotes.execute();
+            return response.json(lotes);
+        } catch (error: any) {
+            return response.status(400).json({ error: error.message });
+        }
+    }
+}
+
+export class ListLotesDisponiveisController {
+    async handle(request: Request, response: Response) {
+        try {
+            const listLotesDisponiveis = new ListLotesDisponiveisModel();
+            const lotes = await listLotesDisponiveis.execute();
             return response.json(lotes);
         } catch (error: any) {
             return response.status(400).json({ error: error.message });

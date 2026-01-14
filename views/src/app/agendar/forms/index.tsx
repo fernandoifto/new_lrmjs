@@ -3,6 +3,7 @@ import { useRef, useState } from 'react';
 import styles from './style/styles.module.css';
 import { ITurno, hooksAgendamentoForm } from '@/app/agendar/hooks/hooksAgendamentoForm';
 import { maskPhone, maskCEP } from '@/app/agendar/utils/masks';
+import { FaCalendarAlt } from 'react-icons/fa';
 
 export function AgendarForm({ turnos }: { turnos: ITurno[] }) {
     const formRef = useRef<HTMLFormElement>(null);
@@ -44,6 +45,28 @@ export function AgendarForm({ turnos }: { turnos: ITurno[] }) {
                             await handleCreateAgendamento(formData, resetForm);
                         }}
                     >
+                        {/* Card de Informação */}
+                        <div className={styles.infoCard}>
+                            <div className={styles.infoCardHeader}>
+                                <div className={styles.cardIcon}>
+                                    <FaCalendarAlt size={20} />
+                                </div>
+                                <h2 className={styles.infoTitle}>Agende a Coleta de Medicamentos</h2>
+                            </div>
+                            <div className={styles.infoCardBody}>
+                                <div className={styles.infoText}>
+                                    <p>Aqui você pode agendar a visita de um agente de saúde para:</p>
+                                    <ul className={styles.infoList}>
+                                        <li>Coletar medicamentos vencidos, destiná-los ao descarte correto;</li>
+                                        <li>Encaminhar medicamentos que você não irá mais utilizar, para possível doação.</li>
+                                    </ul>
+                                    <p className={styles.infoConclusion}>
+                                        Dessa forma, você contribui para a segurança, o cuidado com o meio ambiente e a solidariedade.
+                                    </p>
+                                </div>
+                            </div>
+                        </div>
+
             {/* Cartão de Dados Pessoais */}
             <div className={styles.card}>
                 <div className={styles.cardHeader}>

@@ -218,6 +218,7 @@ export default function AgendamentoViewPage() {
                                         href={`/agendamentos/${agendamento.id}/editar`}
                                         className={styles.btnEdit}
                                     >
+                                        <FaEdit size={16} />
                                         Editar
                                     </Link>
                                 )}

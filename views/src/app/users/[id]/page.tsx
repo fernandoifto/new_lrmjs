@@ -9,6 +9,7 @@ import Header from '../../home/components/header';
 import Menu from '../../components/menu';
 import WithPermission from '@/components/withPermission';
 import { usePermissions } from '@/hooks/usePermissions';
+import { FaEdit } from 'react-icons/fa';
 import styles from './page.module.css';
 import Link from 'next/link';
 
@@ -109,6 +110,7 @@ export default function UserViewPage() {
                                     href={`/users/${user.id}/editar`}
                                     className={styles.btnEdit}
                                 >
+                                    <FaEdit size={16} />
                                     Editar
                                 </Link>
                             )}

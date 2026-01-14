@@ -125,6 +125,7 @@ model Lotes {
   tipoMedicamento        TiposMedicamentos @relation(fields: [id_tipo_medicamento], references: [id])
 
   retiradas Retiradas[]
+  solicitacoes Solicitacoes[]
   @@map("lotes")
 }
 
@@ -187,5 +188,20 @@ model Pacientes {
   modified      DateTime   @updatedAt
 
   retiradas     Retiradas[]
+  solicitacoes  Solicitacoes[]
   @@map("pacientes")
+}
+
+model Solicitacoes {
+  id            Int       @id @default(autoincrement())
+  qtde          Int
+  id_lotes      Int
+  id_pacientes  Int
+  status        String    @default("pendente") @db.VarChar(20)
+  created       DateTime  @default(now())
+  modified      DateTime  @updatedAt
+
+  lotes         Lotes     @relation(fields: [id_lotes], references: [id])
+  paciente      Pacientes @relation(fields: [id_pacientes], references: [id])
+  @@map("solicitacoes")
 }

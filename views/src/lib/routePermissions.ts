@@ -51,6 +51,9 @@ export const routePermissions: Record<string, string> = {
     '/retiradas/[id]': 'retiradas.ver',
     '/retiradas/[id]/editar': 'retiradas.editar',
     
+    // Solicitações (pré-retiradas)
+    '/solicitacoes': 'retiradas.ver',
+    
     // Usuários e Grupos (apenas admin)
     '/users': 'admin', // Requer isAdmin
     '/users/list': 'admin',

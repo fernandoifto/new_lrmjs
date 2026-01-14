@@ -58,6 +58,25 @@ class CreatePacienteModel {
     }
 }
 
+//Modelo de buscar paciente por CPF
+class GetPacienteByCPFModel {
+    async execute(cpf: string) {
+        if (!cpf || cpf.trim() === "") {
+            throw new Error("CPF é obrigatório");
+        }
+
+        const paciente = await prismaClient.pacientes.findFirst({
+            where: { cpf: cpf.trim() }
+        });
+
+        if (!paciente) {
+            throw new Error("Paciente não encontrado");
+        }
+
+        return paciente;
+    }
+}
+
 //Modelo de listar pacientes
 class ListPacientesModel {
     async execute() {
@@ -213,5 +232,5 @@ class DeletePacienteModel {
     }
 }
 
-export { CreatePacienteModel, ListPacientesModel, GetPacienteModel, UpdatePacienteModel, DeletePacienteModel }
+export { CreatePacienteModel, ListPacientesModel, GetPacienteModel, GetPacienteByCPFModel, UpdatePacienteModel, DeletePacienteModel }
 

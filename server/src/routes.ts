@@ -5,9 +5,10 @@ import { AuthUserController, CreateUserController, DetailUserController, ForgotP
 import { CreateTipoMedicamentoController, ListTiposMedicamentosController, GetTipoMedicamentoController, UpdateTipoMedicamentoController, DeleteTipoMedicamentoController } from "./controllers/tiposMedicamentosController";
 import { CreateFormaFarmaceuticaController, ListFormasFarmaceuticasController, GetFormaFarmaceuticaController, UpdateFormaFarmaceuticaController, DeleteFormaFarmaceuticaController } from "./controllers/formasFarmaceuticasController";
 import { CreateMedicamentoController, ListMedicamentosController, GetMedicamentoController, UpdateMedicamentoController, DeleteMedicamentoController } from "./controllers/medicamentosController";
-import { CreateLoteController, ListLotesController, GetLoteController, UpdateLoteController, DeleteLoteController } from "./controllers/lotesController";
-import { CreatePacienteController, ListPacientesController, GetPacienteController, UpdatePacienteController, DeletePacienteController } from "./controllers/pacientesController";
+import { CreateLoteController, ListLotesController, ListLotesDisponiveisController, GetLoteController, UpdateLoteController, DeleteLoteController } from "./controllers/lotesController";
+import { CreatePacienteController, ListPacientesController, GetPacienteController, GetPacienteByCPFController, UpdatePacienteController, DeletePacienteController } from "./controllers/pacientesController";
 import { CreateRetiradaController, ListRetiradasController, GetRetiradaController, UpdateRetiradaController, DeleteRetiradaController } from "./controllers/retiradasController";
+import { CreateSolicitacaoController, ListSolicitacoesController, GetSolicitacaoController, ConfirmarSolicitacaoController, RecusarSolicitacaoController, DeleteSolicitacaoController, ListSolicitacoesByPacienteController } from "./controllers/solicitacoesController";
 import { CreatePermissaoController, ListPermissoesController, GetPermissaoController, UpdatePermissaoController, DeletePermissaoController } from "./controllers/permissoesController";
 import { CreateRoleController, ListRolesController, GetRoleController, UpdateRoleController, DeleteRoleController, UpdateRolePermissoesController, GetUserPermissoesController } from "./controllers/rolesController";
 import { UpdateUserGruposController } from "./controllers/userGruposController";
@@ -63,14 +64,18 @@ router.delete("/medicamento/:id", isAuthenticated, hasPermission("medicamentos.e
 //Rotas de lotes
 router.post("/lote", isAuthenticated, hasPermission("lotes.criar"), new CreateLoteController().handle);
 router.get("/lotes", isAuthenticated, hasPermission("lotes.ver"), new ListLotesController().handle);
+router.get("/lotes-disponiveis", new ListLotesDisponiveisController().handle); // Rota pública para lotes disponíveis
 router.get("/lote/:id", isAuthenticated, hasPermission("lotes.ver"), new GetLoteController().handle);
 router.put("/lote/:id", isAuthenticated, hasPermission("lotes.editar"), new UpdateLoteController().handle);
 router.delete("/lote/:id", isAuthenticated, hasPermission("lotes.excluir"), new DeleteLoteController().handle);
 
 //Rotas de pacientes
+// Rota pública para cadastro de pacientes (usado em solicitações)
+router.post("/paciente/public", new CreatePacienteController().handle);
 router.post("/paciente", isAuthenticated, hasPermission("pacientes.criar"), new CreatePacienteController().handle);
 router.get("/pacientes", isAuthenticated, hasPermission("pacientes.ver"), new ListPacientesController().handle);
 router.get("/paciente/:id", isAuthenticated, hasPermission("pacientes.ver"), new GetPacienteController().handle);
+router.get("/paciente/cpf/:cpf", new GetPacienteByCPFController().handle); // Rota pública para buscar por CPF
 router.put("/paciente/:id", isAuthenticated, hasPermission("pacientes.editar"), new UpdatePacienteController().handle);
 router.delete("/paciente/:id", isAuthenticated, hasPermission("pacientes.excluir"), new DeletePacienteController().handle);
 
@@ -80,6 +85,15 @@ router.get("/retiradas", isAuthenticated, hasPermission("retiradas.ver"), new Li
 router.get("/retirada/:id", isAuthenticated, hasPermission("retiradas.ver"), new GetRetiradaController().handle);
 router.put("/retirada/:id", isAuthenticated, hasPermission("retiradas.editar"), new UpdateRetiradaController().handle);
 router.delete("/retirada/:id", isAuthenticated, hasPermission("retiradas.excluir"), new DeleteRetiradaController().handle);
+
+//Rotas de solicitações (pré-retiradas)
+router.post("/solicitacao", new CreateSolicitacaoController().handle); // Rota pública
+router.get("/solicitacoes/paciente", new ListSolicitacoesByPacienteController().handle); // Rota pública para buscar por paciente
+router.get("/solicitacoes", isAuthenticated, hasPermission("retiradas.ver"), new ListSolicitacoesController().handle);
+router.get("/solicitacao/:id", isAuthenticated, hasPermission("retiradas.ver"), new GetSolicitacaoController().handle);
+router.post("/solicitacao/:id/confirmar", isAuthenticated, hasPermission("retiradas.criar"), new ConfirmarSolicitacaoController().handle);
+router.post("/solicitacao/:id/recusar", isAuthenticated, hasPermission("retiradas.editar"), new RecusarSolicitacaoController().handle);
+router.delete("/solicitacao/:id", isAuthenticated, hasPermission("retiradas.excluir"), new DeleteSolicitacaoController().handle);
 
 //Rotas de permissões
 router.post("/permissao", isAuthenticated, new CreatePermissaoController().handle);
