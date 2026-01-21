@@ -13,7 +13,10 @@ export async function middleware(request: NextRequest) {
         "/login",
         "/esqueci-senha",
         "/resetar-senha",
-        "/sem-permissao"
+        "/sem-permissao",
+        "/solicitar-doacao",
+        "/lotes-disponiveis",
+        "/pacientes/novo"
     ];
 
     // Verificar se é uma rota pública
