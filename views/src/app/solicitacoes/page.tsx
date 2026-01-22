@@ -9,7 +9,7 @@ import Header from '../home/components/header';
 import Menu from '../components/menu';
 import WithPermission from '@/components/withPermission';
 import { usePermissions } from '@/hooks/usePermissions';
-import { FaHandHoldingHeart, FaCheckCircle, FaTimesCircle, FaClock, FaEye, FaSearch, FaTimes, FaFilePdf } from 'react-icons/fa';
+import { FaHandHoldingHeart, FaCheckCircle, FaTimesCircle, FaClock, FaEye, FaSearch, FaTimes, FaFilePdf, FaFileMedical } from 'react-icons/fa';
 import styles from './page.module.css';
 import Link from 'next/link';
 import jsPDF from 'jspdf';
@@ -20,6 +20,7 @@ interface Solicitacao {
     status: string;
     created: string;
     modified: string;
+    foto_receita?: string;
     lotes: {
         id: number;
         numero: string;
@@ -54,11 +55,13 @@ export default function SolicitacoesPage() {
     const [filteredSolicitacoes, setFilteredSolicitacoes] = useState<Solicitacao[]>([]);
     const [loading, setLoading] = useState(true);
     const [mounted, setMounted] = useState(false);
-    const [filter, setFilter] = useState<'todas' | 'pendentes' | 'confirmadas' | 'recusadas'>('pendentes');
+    const [filter, setFilter] = useState<'todas' | 'pendentes' | 'aprovadas' | 'concluidas' | 'recusadas'>('pendentes');
     const [searchTerm, setSearchTerm] = useState('');
     const [searchOption, setSearchOption] = useState('paciente');
     const [activeSearchTerm, setActiveSearchTerm] = useState('');
     const [activeSearchOption, setActiveSearchOption] = useState('paciente');
+    const [modalFotoAberta, setModalFotoAberta] = useState(false);
+    const [fotoSelecionada, setFotoSelecionada] = useState<string | null>(null);
 
     useEffect(() => {
         setMounted(true);
@@ -80,7 +83,11 @@ export default function SolicitacoesPage() {
                 return;
             }
 
-            const statusParam = filter === 'todas' ? undefined : filter === 'pendentes' ? 'pendente' : filter === 'confirmadas' ? 'confirmada' : 'recusada';
+            const statusParam = filter === 'todas' ? undefined : 
+                filter === 'pendentes' ? 'pendente_de_aprovacao' : 
+                filter === 'aprovadas' ? 'aprovado_para_retirada' : 
+                filter === 'concluidas' ? 'retirada_concluida' : 
+                'recusada';
             const url = statusParam ? `/solicitacoes?status=${statusParam}` : '/solicitacoes';
 
             const response = await api.get(url, {
@@ -105,7 +112,7 @@ export default function SolicitacoesPage() {
     };
 
     const handleConfirmar = async (id: number) => {
-        if (!confirm('Tem certeza que deseja confirmar esta solicitação? A retirada será registrada e o estoque será atualizado.')) {
+        if (!confirm('Tem certeza que deseja aprovar esta solicitação para retirada? A retirada será registrada e o estoque será atualizado.')) {
             return;
         }
 
@@ -130,7 +137,7 @@ export default function SolicitacoesPage() {
                 }
             });
 
-            toast.success('Solicitação confirmada com sucesso!');
+            toast.success('Solicitação aprovada para retirada com sucesso!');
             loadSolicitacoes();
         } catch (error: any) {
             console.error('Erro ao confirmar solicitação:', error);
@@ -260,8 +267,9 @@ export default function SolicitacoesPage() {
             if (filter !== 'todas') {
                 doc.setFontSize(10);
                 const filterLabel = {
-                    'pendentes': 'Pendentes',
-                    'confirmadas': 'Confirmadas',
+                    'pendentes': 'Pendentes de Aprovação',
+                    'aprovadas': 'Aprovadas para Retirada',
+                    'concluidas': 'Retiradas Concluídas',
                     'recusadas': 'Recusadas'
                 }[filter] || filter;
                 doc.text(`Filtro: ${filterLabel}`, margin, y);
@@ -366,10 +374,12 @@ export default function SolicitacoesPage() {
 
     const getStatusIcon = (status: string) => {
         switch (status) {
-            case 'pendente':
+            case 'pendente_de_aprovacao':
                 return <FaClock className={styles.statusIconPendente} size={20} />;
-            case 'confirmada':
+            case 'aprovado_para_retirada':
                 return <FaCheckCircle className={styles.statusIconConfirmada} size={20} />;
+            case 'retirada_concluida':
+                return <FaCheckCircle className={styles.statusIconConcluida} size={20} />;
             case 'recusada':
                 return <FaTimesCircle className={styles.statusIconRecusada} size={20} />;
             default:
@@ -379,15 +389,22 @@ export default function SolicitacoesPage() {
 
     const getStatusLabel = (status: string) => {
         switch (status) {
-            case 'pendente':
-                return 'Pendente';
-            case 'confirmada':
-                return 'Confirmada';
+            case 'pendente_de_aprovacao':
+                return 'Pendente de Aprovação';
+            case 'aprovado_para_retirada':
+                return 'Aprovado para Retirada';
+            case 'retirada_concluida':
+                return 'Retirada Concluída';
             case 'recusada':
                 return 'Recusada';
             default:
                 return status;
         }
+    };
+
+    const getImageUrl = (path: string): string => {
+        if (path.startsWith('http')) return path;
+        return `http://localhost:3333${path}`;
     };
 
     if (!mounted) {
@@ -429,10 +446,16 @@ export default function SolicitacoesPage() {
                                         Pendentes
                                     </button>
                                     <button
-                                        className={`${styles.filterBtn} ${filter === 'confirmadas' ? styles.filterBtnActive : ''}`}
-                                        onClick={() => setFilter('confirmadas')}
+                                        className={`${styles.filterBtn} ${filter === 'aprovadas' ? styles.filterBtnActive : ''}`}
+                                        onClick={() => setFilter('aprovadas')}
                                     >
-                                        Confirmadas
+                                        Aprovadas
+                                    </button>
+                                    <button
+                                        className={`${styles.filterBtn} ${filter === 'concluidas' ? styles.filterBtnActive : ''}`}
+                                        onClick={() => setFilter('concluidas')}
+                                    >
+                                        Concluídas
                                     </button>
                                     <button
                                         className={`${styles.filterBtn} ${filter === 'recusadas' ? styles.filterBtnActive : ''}`}
@@ -648,9 +671,28 @@ export default function SolicitacoesPage() {
                                                     </div>
                                                 </div>
                                             </div>
+
+                                            {solicitacao.foto_receita && (
+                                                <div className={styles.section}>
+                                                    <h3>Foto da Receita Médica</h3>
+                                                    <button
+                                                        onClick={() => {
+                                                            if (solicitacao.foto_receita) {
+                                                                setFotoSelecionada(getImageUrl(solicitacao.foto_receita));
+                                                                setModalFotoAberta(true);
+                                                            }
+                                                        }}
+                                                        className={styles.btnVerFoto}
+                                                        title="Visualizar foto da receita"
+                                                    >
+                                                        <FaFileMedical size={16} />
+                                                        Ver Foto da Receita
+                                                    </button>
+                                                </div>
+                                            )}
                                         </div>
 
-                                        {solicitacao.status === 'pendente' && (
+                                        {solicitacao.status === 'pendente_de_aprovacao' && (
                                             <div className={styles.solicitacaoFooter}>
                                                 {podeConfirmar && (
                                                     <button
@@ -658,7 +700,7 @@ export default function SolicitacoesPage() {
                                                         className={styles.btnConfirmar}
                                                     >
                                                         <FaCheckCircle size={16} />
-                                                        Confirmar
+                                                        Aprovar para Retirada
                                                     </button>
                                                 )}
                                                 {podeRecusar && (
@@ -679,6 +721,43 @@ export default function SolicitacoesPage() {
                     </div>
                 </div>
             </main>
+
+            {/* Modal de Visualização da Foto */}
+            {modalFotoAberta && fotoSelecionada && (
+                <div 
+                    className={styles.modalOverlay}
+                    onClick={() => {
+                        setModalFotoAberta(false);
+                        setFotoSelecionada(null);
+                    }}
+                >
+                    <div 
+                        className={styles.modalContent}
+                        onClick={(e) => e.stopPropagation()}
+                    >
+                        <div className={styles.modalHeader}>
+                            <h2>Foto da Receita Médica</h2>
+                            <button
+                                onClick={() => {
+                                    setModalFotoAberta(false);
+                                    setFotoSelecionada(null);
+                                }}
+                                className={styles.modalCloseButton}
+                                title="Fechar"
+                            >
+                                <FaTimes size={20} />
+                            </button>
+                        </div>
+                        <div className={styles.modalBody}>
+                            <img 
+                                src={fotoSelecionada} 
+                                alt="Foto da receita médica"
+                                className={styles.modalImage}
+                            />
+                        </div>
+                    </div>
+                </div>
+            )}
         </WithPermission>
     );
 }

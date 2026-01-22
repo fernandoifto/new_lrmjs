@@ -2,13 +2,18 @@ import "dotenv/config";
 import express, { Request, Response, NextFunction } from "express";
 import "express-async-errors";
 import cors from "cors";
+import path from "path";
 
 import router from "./routes";
 
 const app = express();
 
 app.use(cors());
+// Servir arquivos estáticos (fotos de agendamentos) - antes do express.json para evitar conflitos
+app.use('/uploads', express.static(path.join(__dirname, '../uploads')));
 app.use(express.json());
+app.use(express.urlencoded({ extended: true })); // Para processar form-data
+
 app.use(router);
 
 app.use((err: Error, req: Request, res: Response, next: NextFunction) => {

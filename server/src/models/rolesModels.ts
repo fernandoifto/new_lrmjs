@@ -201,13 +201,13 @@ class GetUserPermissoesModel {
         // Se for admin, retorna todas as permissões
         if (user.is_admin) {
             const allPermissoes = await prismaClient.permissoes.findMany();
-            return allPermissoes.map(p => p.nome);
+            return allPermissoes.map((p: { nome: string }) => p.nome);
         }
 
         // Coletar todas as permissões únicas dos roles do usuário
         const permissoesSet = new Set<string>();
-        user.userRoles.forEach(userRole => {
-            userRole.role.rolePermissoes.forEach(rp => {
+        user.userRoles.forEach((userRole: { role: { rolePermissoes: Array<{ permissao: { nome: string } }> } }) => {
+            userRole.role.rolePermissoes.forEach((rp: { permissao: { nome: string } }) => {
                 permissoesSet.add(rp.permissao.nome);
             });
         });

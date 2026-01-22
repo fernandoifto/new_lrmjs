@@ -1,4 +1,5 @@
 import prismaClient from "../tools/prisma";
+import type { PrismaClient } from "../tools/generated/prisma";
 
 interface IRetirada {
     qtde: number;
@@ -65,7 +66,7 @@ class CreateRetiradaModel {
         }
 
         // Transação: criar retirada e atualizar estoque
-        const result = await prismaClient.$transaction(async (tx) => {
+        const result = await prismaClient.$transaction(async (tx: Omit<PrismaClient, "$connect" | "$disconnect" | "$on" | "$transaction" | "$use" | "$extends">) => {
             // Criar retirada
             const retirada = await tx.retiradas.create({
                 data: {
@@ -203,7 +204,7 @@ class UpdateRetiradaModel {
         }
 
         // Transação: atualizar retirada e ajustar estoque
-        const result = await prismaClient.$transaction(async (tx) => {
+        const result = await prismaClient.$transaction(async (tx: Omit<PrismaClient, "$connect" | "$disconnect" | "$on" | "$transaction" | "$use" | "$extends">) => {
             // Se a quantidade ou lote mudou, precisamos ajustar o estoque
             const qtdeMudou = data.qtde !== undefined && data.qtde !== retiradaAtual.qtde;
             const loteMudou = data.id_lotes !== undefined && data.id_lotes !== retiradaAtual.id_lotes;
@@ -356,7 +357,7 @@ class DeleteRetiradaModel {
         }
 
         // Transação: deletar retirada e reverter estoque
-        await prismaClient.$transaction(async (tx) => {
+        await prismaClient.$transaction(async (tx: Omit<PrismaClient, "$connect" | "$disconnect" | "$on" | "$transaction" | "$use" | "$extends">) => {
             // Reverter quantidade do lote
             await tx.lotes.update({
                 where: { id: retirada.id_lotes },

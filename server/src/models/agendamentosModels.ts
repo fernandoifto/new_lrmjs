@@ -9,6 +9,8 @@ interface IAgendamento {
     cep: string;
     telefone: string;
     datavisita: string;
+    fotos?: string; // JSON array com URLs das fotos
+    google_maps_url?: string; // URL do Google Maps ou coordenadas
     id_turno: number;
     id_user?: number;
 }
@@ -21,13 +23,15 @@ interface IUpdateAgendamento {
     cep?: string;
     telefone?: string;
     datavisita?: string;
+    fotos?: string;
+    google_maps_url?: string; // URL do Google Maps ou coordenadas
     id_turno?: number;
     id_user?: number;
 }
 
 //Modelo de criar agendamento
 class CreateAgendamentosModel{
-    async execute({ nome, endereco, numero, setor, cep, telefone, datavisita, id_turno, id_user }: 
+    async execute({ nome, endereco, numero, setor, cep, telefone, datavisita, fotos, google_maps_url, id_turno, id_user }: 
         IAgendamento) {
         const agendamento = await prismaClient.agendamentos.create({
             data: {
@@ -38,6 +42,8 @@ class CreateAgendamentosModel{
                 cep: cep,
                 telefone: telefone,
                 datavisita: datavisita,
+                fotos: fotos || null,
+                google_maps_url: google_maps_url || null,
                 id_turno: id_turno,
                 id_user: id_user
             },
@@ -126,6 +132,8 @@ class UpdateAgendamentoModel {
         if (data.cep) updateData.cep = data.cep;
         if (data.telefone) updateData.telefone = data.telefone;
         if (data.datavisita !== undefined) updateData.datavisita = data.datavisita;
+        if (data.fotos !== undefined) updateData.fotos = data.fotos;
+        if (data.google_maps_url !== undefined) updateData.google_maps_url = data.google_maps_url;
         if (data.id_turno) updateData.id_turno = data.id_turno;
         if (data.id_user !== undefined) updateData.id_user = data.id_user;
         

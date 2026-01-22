@@ -11,6 +11,7 @@ generator client {
 
 datasource db {
   provider = "postgresql"
+  url      = env("DATABASE_URL")
 }
 
 model Agendamentos {
@@ -22,6 +23,8 @@ model Agendamentos {
   cep         String    @db.VarChar(9)
   telefone    String    @db.VarChar(50)
   datavisita  String?   @db.Text
+  fotos       String?   @db.Text  // JSON array com URLs das fotos
+  google_maps_url String? @db.Text  // URL do Google Maps ou coordenadas
   id_turno    Int
   id_user     Int?
   created     DateTime  @default(now())
@@ -197,7 +200,8 @@ model Solicitacoes {
   qtde          Int
   id_lotes      Int
   id_pacientes  Int
-  status        String    @default("pendente") @db.VarChar(20)
+  status        String    @default("pendente_de_aprovacao") @db.VarChar(30)
+  foto_receita  String?   @db.Text  // URL da foto da receita médica
   created       DateTime  @default(now())
   modified      DateTime  @updatedAt
 

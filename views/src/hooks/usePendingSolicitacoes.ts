@@ -26,7 +26,7 @@ export function usePendingSolicitacoes() {
                 return;
             }
 
-            const response = await api.get('/solicitacoes?status=pendente', {
+            const response = await api.get('/solicitacoes?status=pendente_de_aprovacao', {
                 headers: {
                     Authorization: `Bearer ${token}`
                 }

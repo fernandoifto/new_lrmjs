@@ -1,15 +1,17 @@
 import prismaClient from "../tools/prisma";
+import type { PrismaClient } from "../tools/generated/prisma";
 
 interface ISolicitacao {
     qtde: number;
     id_lotes: number;
     id_pacientes: number;
-    status?: string; // 'pendente', 'confirmada', 'recusada'
+    status?: string; // 'pendente_de_aprovacao', 'aprovado_para_retirada', 'retirada_concluida', 'recusada'
+    foto_receita?: string; // URL da foto da receita médica
 }
 
 //Modelo de criar solicitação (pré-retirada)
 class CreateSolicitacaoModel {
-    async execute({ qtde, id_lotes, id_pacientes, status = 'pendente' }: ISolicitacao) {
+    async execute({ qtde, id_lotes, id_pacientes, status = 'pendente_de_aprovacao', foto_receita }: ISolicitacao) {
         if (!qtde || qtde <= 0) {
             throw new Error("Quantidade deve ser maior que zero");
         }
@@ -18,6 +20,9 @@ class CreateSolicitacaoModel {
         }
         if (!id_pacientes) {
             throw new Error("ID do paciente é obrigatório");
+        }
+        if (!foto_receita) {
+            throw new Error("Foto da receita médica é obrigatória");
         }
 
         // Verificar se paciente existe
@@ -64,6 +69,7 @@ class CreateSolicitacaoModel {
                 id_lotes,
                 id_pacientes,
                 status: status,
+                foto_receita: foto_receita || null,
                 created: new Date(),
                 modified: new Date()
             },
@@ -163,7 +169,7 @@ class ConfirmarSolicitacaoModel {
             throw new Error("Solicitação não encontrada");
         }
 
-        if (solicitacao.status !== 'pendente') {
+        if (solicitacao.status !== 'pendente_de_aprovacao') {
             throw new Error(`Solicitação já foi ${solicitacao.status}`);
         }
 
@@ -180,8 +186,8 @@ class ConfirmarSolicitacaoModel {
             throw new Error(`Quantidade insuficiente. Disponível: ${lote.qtde}`);
         }
 
-        // Transação: criar retirada, atualizar estoque e marcar solicitação como confirmada
-        const result = await prismaClient.$transaction(async (tx) => {
+        // Transação: criar retirada, atualizar estoque e marcar solicitação como aprovado para retirada
+        const result = await prismaClient.$transaction(async (tx: Omit<PrismaClient, "$connect" | "$disconnect" | "$on" | "$transaction" | "$use" | "$extends">) => {
             // Criar retirada
             const retirada = await tx.retiradas.create({
                 data: {
@@ -221,11 +227,11 @@ class ConfirmarSolicitacaoModel {
                 }
             });
 
-            // Marcar solicitação como confirmada
+            // Marcar solicitação como aprovado para retirada
             await tx.solicitacoes.update({
                 where: { id },
                 data: {
-                    status: 'confirmada',
+                    status: 'aprovado_para_retirada',
                     modified: new Date()
                 }
             });
@@ -252,7 +258,7 @@ class RecusarSolicitacaoModel {
             throw new Error("Solicitação não encontrada");
         }
 
-        if (solicitacao.status !== 'pendente') {
+        if (solicitacao.status !== 'pendente_de_aprovacao') {
             throw new Error(`Solicitação já foi ${solicitacao.status}`);
         }
 
@@ -283,8 +289,8 @@ class DeleteSolicitacaoModel {
             throw new Error("Solicitação não encontrada");
         }
 
-        if (solicitacao.status === 'confirmada') {
-            throw new Error("Não é possível excluir uma solicitação confirmada");
+        if (solicitacao.status === 'aprovado_para_retirada' || solicitacao.status === 'retirada_concluida') {
+            throw new Error("Não é possível excluir uma solicitação aprovada ou com retirada concluída");
         }
 
         await prismaClient.solicitacoes.delete({

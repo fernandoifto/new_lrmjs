@@ -48,17 +48,32 @@ export const hooksAgendamentoForm = (turnos: ITurno[]) => {
         const cleanCEP = formValues.cep.replace(/\D/g, '');
 
         try {
-            const response = await api.post("/agendamento", {
-                ...formValues,
-                telefone: cleanPhone,
-                cep: cleanCEP,
-                id_turno: selectedTurno.id,
-                id_user: null
-            }, {
-                headers: {
-                    'Content-Type': 'application/json'
+            // Criar FormData para enviar arquivos
+            const formDataToSend = new FormData();
+            formDataToSend.append('nome', formValues.nome);
+            formDataToSend.append('endereco', formValues.endereco);
+            formDataToSend.append('numero', formValues.numero);
+            formDataToSend.append('setor', formValues.setor);
+            formDataToSend.append('cep', cleanCEP);
+            formDataToSend.append('telefone', cleanPhone);
+            formDataToSend.append('datavisita', formValues.datavisita);
+            const googleMapsUrl = formData.get('google_maps_url') as string;
+            if (googleMapsUrl) {
+                formDataToSend.append('google_maps_url', googleMapsUrl);
+            }
+            formDataToSend.append('id_turno', selectedTurno.id.toString());
+            formDataToSend.append('id_user', 'null');
+
+            // Adicionar fotos se houver
+            const fotos = formData.getAll('fotos');
+            fotos.forEach((foto) => {
+                if (foto instanceof File) {
+                    formDataToSend.append('fotos', foto);
                 }
             });
+
+            // Não definir Content-Type manualmente - axios define automaticamente para FormData
+            const response = await api.post("/agendamento", formDataToSend);
 
             if (response.status === 201) {
                 toast.success('Agendamento criado com sucesso!');

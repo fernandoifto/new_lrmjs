@@ -8,7 +8,7 @@ import Header from '../../home/components/header';
 import Menu from '../../components/menu';
 import WithPermission from '@/components/withPermission';
 import { usePermissions } from '@/hooks/usePermissions';
-import { FaCheckCircle, FaEdit, FaTrash, FaUserCircle, FaArrowLeft } from 'react-icons/fa';
+import { FaCheckCircle, FaEdit, FaTrash, FaUserCircle, FaArrowLeft, FaCamera, FaTimes, FaChevronLeft, FaChevronRight } from 'react-icons/fa';
 import styles from './page.module.css';
 import Link from 'next/link';
 
@@ -21,6 +21,8 @@ interface Agendamento {
     cep: string;
     telefone: string;
     datavisita: string | null;
+    fotos: string | null;
+    google_maps_url: string | null;
     created: string;
     modified: string;
     turno: {
@@ -41,6 +43,7 @@ export default function AgendamentoViewPage() {
     const [agendamento, setAgendamento] = useState<Agendamento | null>(null);
     const [loading, setLoading] = useState(true);
     const [mounted, setMounted] = useState(false);
+    const [selectedPhotoIndex, setSelectedPhotoIndex] = useState<number | null>(null);
 
     useEffect(() => {
         setMounted(true);
@@ -111,6 +114,62 @@ export default function AgendamentoViewPage() {
         }
         return cep;
     };
+
+    const parseFotos = (fotos: string | null): string[] => {
+        if (!fotos) return [];
+        try {
+            const parsed = JSON.parse(fotos);
+            return Array.isArray(parsed) ? parsed : [];
+        } catch {
+            return [];
+        }
+    };
+
+    const getImageUrl = (path: string): string => {
+        if (path.startsWith('http')) return path;
+        return `http://localhost:3333${path}`;
+    };
+
+    const openPhotoModal = (index: number) => {
+        setSelectedPhotoIndex(index);
+    };
+
+    const closePhotoModal = () => {
+        setSelectedPhotoIndex(null);
+    };
+
+    const navigatePhoto = (direction: 'prev' | 'next') => {
+        if (selectedPhotoIndex === null || !agendamento) return;
+        
+        const fotos = parseFotos(agendamento.fotos);
+        if (fotos.length === 0) return;
+
+        if (direction === 'prev') {
+            setSelectedPhotoIndex(selectedPhotoIndex > 0 ? selectedPhotoIndex - 1 : fotos.length - 1);
+        } else {
+            setSelectedPhotoIndex(selectedPhotoIndex < fotos.length - 1 ? selectedPhotoIndex + 1 : 0);
+        }
+    };
+
+    // Fechar modal com ESC
+    useEffect(() => {
+        const handleEscape = (e: KeyboardEvent) => {
+            if (e.key === 'Escape' && selectedPhotoIndex !== null) {
+                closePhotoModal();
+            }
+        };
+
+        if (selectedPhotoIndex !== null) {
+            document.addEventListener('keydown', handleEscape);
+            document.body.style.overflow = 'hidden'; // Prevenir scroll do body
+        }
+
+        return () => {
+            document.removeEventListener('keydown', handleEscape);
+            document.body.style.overflow = 'unset';
+        };
+    }, [selectedPhotoIndex]);
+
 
     const handleVisitar = async (id: number) => {
         try {
@@ -286,6 +345,18 @@ export default function AgendamentoViewPage() {
                                         <span className={styles.value}>{formatCEP(agendamento.cep)}</span>
                                     </div>
                                 </div>
+                                {agendamento.google_maps_url && (
+                                    <div className={styles.mapContainer}>
+                                        <a 
+                                            href={agendamento.google_maps_url} 
+                                            target="_blank" 
+                                            rel="noopener noreferrer"
+                                            className={styles.mapLink}
+                                        >
+                                            Abrir no Google Maps
+                                        </a>
+                                    </div>
+                                )}
                             </div>
 
                             <div className={styles.section}>
@@ -303,6 +374,30 @@ export default function AgendamentoViewPage() {
                                     )}
                                 </div>
                             </div>
+
+                            {agendamento.fotos && parseFotos(agendamento.fotos).length > 0 && (
+                                <div className={styles.section}>
+                                    <h3>
+                                        <FaCamera size={18} style={{ marginRight: '0.5rem', verticalAlign: 'middle' }} />
+                                        Fotos dos Medicamentos
+                                    </h3>
+                                    <div className={styles.photosGrid}>
+                                        {parseFotos(agendamento.fotos).map((foto, index) => (
+                                            <div 
+                                                key={index} 
+                                                className={styles.photoItem}
+                                                onClick={() => openPhotoModal(index)}
+                                            >
+                                                <img 
+                                                    src={getImageUrl(foto)} 
+                                                    alt={`Foto do medicamento ${index + 1}`}
+                                                    className={styles.photoImage}
+                                                />
+                                            </div>
+                                        ))}
+                                    </div>
+                                </div>
+                            )}
 
                             <div className={styles.section}>
                                 <h3>Informações do Sistema</h3>
@@ -329,6 +424,50 @@ export default function AgendamentoViewPage() {
                     </div>
                 </div>
             </main>
+
+            {/* Modal para visualizar foto em tamanho original */}
+            {selectedPhotoIndex !== null && agendamento && (
+                <div className={styles.photoModal} onClick={closePhotoModal}>
+                    <div className={styles.photoModalContent} onClick={(e) => e.stopPropagation()}>
+                        <button 
+                            className={styles.photoModalClose}
+                            onClick={closePhotoModal}
+                            aria-label="Fechar"
+                        >
+                            <FaTimes size={24} />
+                        </button>
+                        
+                        {parseFotos(agendamento.fotos).length > 1 && (
+                            <>
+                                <button 
+                                    className={styles.photoModalPrev}
+                                    onClick={() => navigatePhoto('prev')}
+                                    aria-label="Foto anterior"
+                                >
+                                    <FaChevronLeft size={24} />
+                                </button>
+                                <button 
+                                    className={styles.photoModalNext}
+                                    onClick={() => navigatePhoto('next')}
+                                    aria-label="Próxima foto"
+                                >
+                                    <FaChevronRight size={24} />
+                                </button>
+                            </>
+                        )}
+                        
+                        <img 
+                            src={getImageUrl(parseFotos(agendamento.fotos)[selectedPhotoIndex])}
+                            alt={`Foto do medicamento ${selectedPhotoIndex + 1}`}
+                            className={styles.photoModalImage}
+                        />
+                        
+                        <div className={styles.photoModalCounter}>
+                            {selectedPhotoIndex + 1} / {parseFotos(agendamento.fotos).length}
+                        </div>
+                    </div>
+                </div>
+            )}
         </WithPermission>
     );
 }

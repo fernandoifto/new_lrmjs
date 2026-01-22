@@ -1,20 +1,53 @@
 import { Request, Response } from "express";
 import { CreateSolicitacaoModel, ListSolicitacoesModel, GetSolicitacaoModel, ConfirmarSolicitacaoModel, RecusarSolicitacaoModel, DeleteSolicitacaoModel, ListSolicitacoesByPacienteModel } from "../models/solicitacoesModels";
+import { uploadSingleReceita } from "../middlewares/upload";
 
 class CreateSolicitacaoController {
     async handle(req: Request, res: Response) {
         try {
-            const { qtde, id_lotes, id_pacientes } = req.body;
+            // Processar upload de foto da receita primeiro
+            uploadSingleReceita(req, res, async (err) => {
+                if (err) {
+                    return res.status(400).json({ error: err.message });
+                }
 
-            const createSolicitacaoModel = new CreateSolicitacaoModel();
-            const solicitacao = await createSolicitacaoModel.execute({
-                qtde,
-                id_lotes,
-                id_pacientes,
-                status: 'pendente'
+                try {
+                    const { qtde, id_lotes, id_pacientes } = req.body;
+                    
+                    // Converter para números
+                    const idLotes = parseInt(id_lotes);
+                    const idPacientes = parseInt(id_pacientes);
+                    const quantidade = parseInt(qtde);
+                    
+                    if (isNaN(idLotes) || isNaN(idPacientes) || isNaN(quantidade)) {
+                        return res.status(400).json({ error: "IDs e quantidade devem ser números válidos" });
+                    }
+                    
+                    // Processar foto da receita enviada
+                    let fotoReceitaUrl: string | undefined = undefined;
+                    if (req.file) {
+                        // Retornar URL relativa para acesso
+                        fotoReceitaUrl = `/uploads/receitas/${req.file.filename}`;
+                    }
+
+                    if (!fotoReceitaUrl) {
+                        return res.status(400).json({ error: "Foto da receita médica é obrigatória" });
+                    }
+
+                    const createSolicitacaoModel = new CreateSolicitacaoModel();
+                    const solicitacao = await createSolicitacaoModel.execute({
+                        qtde: quantidade,
+                        id_lotes: idLotes,
+                        id_pacientes: idPacientes,
+                        status: 'pendente_de_aprovacao',
+                        foto_receita: fotoReceitaUrl
+                    });
+
+                    return res.status(201).json(solicitacao);
+                } catch (error: any) {
+                    return res.status(400).json({ error: error.message });
+                }
             });
-
-            return res.status(201).json(solicitacao);
         } catch (error: any) {
             return res.status(400).json({ error: error.message });
         }

@@ -50,8 +50,8 @@ export function hasPermission(permissionName: string) {
             }
 
             // Verificar se o usuário tem a permissão necessária
-            const hasPermission = user.userRoles.some(userRole => 
-                userRole.role.rolePermissoes.some(rp => 
+            const hasPermission = user.userRoles.some((userRole: { role: { rolePermissoes: Array<{ permissao: { nome: string } }> } }) => 
+                userRole.role.rolePermissoes.some((rp: { permissao: { nome: string } }) => 
                     rp.permissao.nome === permissionName
                 )
             );

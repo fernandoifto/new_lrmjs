@@ -266,7 +266,7 @@ class GetUserModel {
             is_admin: user.is_admin,
             created: user.created,
             modified: user.modified,
-            grupos: user.userRoles.map(ur => ur.role)
+            grupos: user.userRoles.map((ur: any) => ur.role)
         };
     }
 }

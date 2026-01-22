@@ -294,6 +294,96 @@
   cursor: not-allowed;
 }
 
+/* Estilos para upload de receita médica */
+.receitaUploadSection {
+  display: flex;
+  flex-direction: column;
+  gap: 1.5rem;
+}
+
+.fileInput {
+  display: none;
+}
+
+.fileInputLabel {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.75rem 1.5rem;
+  background-color: var(--cor-primaria);
+  color: white;
+  border: none;
+  border-radius: 8px;
+  font-size: 1rem;
+  font-weight: 500;
+  cursor: pointer;
+  transition: var(--transicao);
+  box-shadow: 0 2px 4px rgba(63, 129, 208, 0.3);
+  width: fit-content;
+}
+
+.fileInputLabel:hover {
+  background-color: #2c6aa8;
+  transform: translateY(-2px);
+  box-shadow: 0 4px 8px rgba(63, 129, 208, 0.4);
+}
+
+.fileInputLabel svg {
+  flex-shrink: 0;
+}
+
+.receitaPreview {
+  position: relative;
+  width: 100%;
+  max-width: 400px;
+  border-radius: 8px;
+  overflow: hidden;
+  border: 2px solid var(--cor-borda);
+  background-color: #f8f9fa;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+}
+
+.receitaPreviewImage {
+  width: 100%;
+  height: auto;
+  display: block;
+  max-height: 500px;
+  object-fit: contain;
+}
+
+.removeReceitaButton {
+  position: absolute;
+  top: 8px;
+  right: 8px;
+  background-color: rgba(220, 53, 69, 0.9);
+  color: white;
+  border: none;
+  border-radius: 50%;
+  width: 28px;
+  height: 28px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: var(--transicao);
+  z-index: 10;
+}
+
+.removeReceitaButton:hover {
+  background-color: #dc3545;
+  transform: scale(1.1);
+}
+
+.receitaInfo {
+  margin: 0;
+  padding: 1rem;
+  background-color: #fff3cd;
+  border: 1px solid #ffc107;
+  border-radius: 8px;
+  color: #856404;
+  font-size: 0.9rem;
+  line-height: 1.6;
+}
 
 .solicitacoesList {
   display: flex;
@@ -432,6 +522,15 @@
   }
 
   .statusBadge {
+    width: 100%;
+    justify-content: center;
+  }
+
+  .receitaPreview {
+    max-width: 100%;
+  }
+
+  .fileInputLabel {
     width: 100%;
     justify-content: center;
   }

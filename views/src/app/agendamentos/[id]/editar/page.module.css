@@ -225,6 +225,71 @@
   cursor: not-allowed;
 }
 
+/* Estilos para mapa do Google Maps */
+.mapContainer {
+  margin-top: 1.5rem;
+  display: flex;
+  justify-content: flex-start;
+}
+
+.mapLink {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.75rem 1.5rem;
+  background-color: var(--cor-primaria);
+  color: white;
+  text-decoration: none;
+  border-radius: 8px;
+  font-size: 1rem;
+  font-weight: 500;
+  transition: var(--transicao);
+  box-shadow: 0 2px 4px rgba(63, 129, 208, 0.3);
+}
+
+.mapLink:hover {
+  background-color: #2c6aa8;
+  transform: translateY(-2px);
+  box-shadow: 0 4px 8px rgba(63, 129, 208, 0.4);
+}
+
+/* Estilos para fotos */
+.photosGrid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+  gap: 1rem;
+}
+
+.photoItem {
+  position: relative;
+  width: 100%;
+  aspect-ratio: 1;
+  border-radius: 8px;
+  overflow: hidden;
+  border: 2px solid var(--cor-borda);
+  background-color: #f8f9fa;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+  transition: var(--transicao);
+}
+
+.photoItem:hover {
+  border-color: var(--cor-primaria);
+  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.15);
+  transform: translateY(-2px);
+}
+
+.photoImage {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
+  cursor: pointer;
+}
+
+.photoImage:hover {
+  opacity: 0.9;
+}
+
 /* Responsividade */
 @media (max-width: 1024px) {
   .inputGroup input,
@@ -284,6 +349,21 @@
 
   .btnSubmit {
     width: 100%;
+  }
+
+  .photosGrid {
+    grid-template-columns: repeat(2, 1fr);
+    gap: 0.75rem;
+  }
+
+  .mapContainer {
+    margin-top: 1rem;
+    justify-content: center;
+  }
+
+  .mapLink {
+    width: 100%;
+    justify-content: center;
   }
 }
 

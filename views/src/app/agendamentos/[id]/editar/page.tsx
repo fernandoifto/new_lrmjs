@@ -10,6 +10,7 @@ import WithPermission from '@/components/withPermission';
 import styles from './page.module.css';
 import Link from 'next/link';
 import { maskPhone, maskCEP } from '@/app/agendar/utils/masks';
+import { FaCamera } from 'react-icons/fa';
 
 interface Agendamento {
     id: number;
@@ -20,6 +21,8 @@ interface Agendamento {
     cep: string;
     telefone: string;
     datavisita: string | null;
+    fotos: string | null;
+    google_maps_url: string | null;
     id_turno: number;
     user: {
         id: number;
@@ -119,6 +122,21 @@ export default function EditarAgendamentoPage() {
         setCepValue(masked);
     };
 
+    const parseFotos = (fotos: string | null): string[] => {
+        if (!fotos) return [];
+        try {
+            const parsed = JSON.parse(fotos);
+            return Array.isArray(parsed) ? parsed : [];
+        } catch {
+            return [];
+        }
+    };
+
+    const getImageUrl = (path: string): string => {
+        if (path.startsWith('http')) return path;
+        return `http://localhost:3333${path}`;
+    };
+
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
         if (!agendamento) return;
@@ -156,6 +174,7 @@ export default function EditarAgendamentoPage() {
                     cep: cepValue.replace(/\D/g, ''),
                     telefone: phoneValue.replace(/\D/g, ''),
                     datavisita: formData.get('datavisita'),
+                    google_maps_url: formData.get('google_maps_url') as string || null,
                     id_turno: selectedTurno.id,
                     id_user: id_user
                 },
@@ -319,6 +338,33 @@ export default function EditarAgendamentoPage() {
                                         </label>
                                     </div>
                                 </div>
+                                <div className={styles.inputGroup}>
+                                    <label htmlFor="google_maps_url">
+                                        <span>Link do Google Maps (Opcional)</span>
+                                        <input 
+                                            type="url" 
+                                            id="google_maps_url" 
+                                            placeholder="Cole aqui o link do Google Maps do endereço" 
+                                            name="google_maps_url"
+                                            defaultValue={agendamento.google_maps_url || ''}
+                                        />
+                                        <small style={{ display: 'block', marginTop: '0.5rem', color: '#666', fontSize: '0.85rem' }}>
+                                            Para obter o link: abra o Google Maps, encontre o endereço, clique em "Compartilhar" e copie o link
+                                        </small>
+                                    </label>
+                                </div>
+                                {agendamento.google_maps_url && (
+                                    <div className={styles.mapContainer}>
+                                        <a 
+                                            href={agendamento.google_maps_url} 
+                                            target="_blank" 
+                                            rel="noopener noreferrer"
+                                            className={styles.mapLink}
+                                        >
+                                            Abrir no Google Maps
+                                        </a>
+                                    </div>
+                                )}
                             </div>
                         </div>
 
@@ -363,6 +409,30 @@ export default function EditarAgendamentoPage() {
                                 </div>
                             </div>
                         </div>
+
+                        {agendamento.fotos && parseFotos(agendamento.fotos).length > 0 && (
+                            <div className={styles.card}>
+                                <div className={styles.cardHeader}>
+                                    <div className={styles.cardIcon}>
+                                        <FaCamera size={20} />
+                                    </div>
+                                    <h3>Fotos dos Medicamentos</h3>
+                                </div>
+                                <div className={styles.cardBody}>
+                                    <div className={styles.photosGrid}>
+                                        {parseFotos(agendamento.fotos).map((foto, index) => (
+                                            <div key={index} className={styles.photoItem}>
+                                                <img 
+                                                    src={getImageUrl(foto)} 
+                                                    alt={`Foto do medicamento ${index + 1}`}
+                                                    className={styles.photoImage}
+                                                />
+                                            </div>
+                                        ))}
+                                    </div>
+                                </div>
+                            </div>
+                        )}
 
                         {/* Cartão de Visitação */}
                         <div className={styles.card}>
