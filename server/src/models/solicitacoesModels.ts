@@ -147,14 +147,11 @@ class GetSolicitacaoModel {
     }
 }
 
-//Modelo de confirmar solicitação (cria retirada e decrementa estoque)
+//Modelo de confirmar solicitação (apenas aprova para retirada, sem criar retirada nem atualizar estoque)
 class ConfirmarSolicitacaoModel {
-    async execute(id: number, id_users: number) {
+    async execute(id: number) {
         if (!id) {
             throw new Error("ID é obrigatório");
-        }
-        if (!id_users) {
-            throw new Error("ID do usuário é obrigatório");
         }
 
         const solicitacao = await prismaClient.solicitacoes.findUnique({
@@ -186,7 +183,69 @@ class ConfirmarSolicitacaoModel {
             throw new Error(`Quantidade insuficiente. Disponível: ${lote.qtde}`);
         }
 
-        // Transação: criar retirada, atualizar estoque e marcar solicitação como aprovado para retirada
+        // Apenas marcar solicitação como aprovado para retirada (sem criar retirada nem atualizar estoque)
+        const solicitacaoAtualizada = await prismaClient.solicitacoes.update({
+            where: { id },
+            data: {
+                status: 'aprovado_para_retirada',
+                modified: new Date()
+            },
+            include: {
+                lotes: {
+                    include: {
+                        medicamento: true,
+                        formaFarmaceutica: true,
+                        tipoMedicamento: true
+                    }
+                },
+                paciente: true
+            }
+        });
+
+        return solicitacaoAtualizada;
+    }
+}
+
+//Modelo de concluir doação (cria retirada, decrementa estoque e marca como concluída)
+class ConcluirDoacaoModel {
+    async execute(id: number, id_users: number) {
+        if (!id) {
+            throw new Error("ID é obrigatório");
+        }
+        if (!id_users) {
+            throw new Error("ID do usuário é obrigatório");
+        }
+
+        const solicitacao = await prismaClient.solicitacoes.findUnique({
+            where: { id },
+            include: {
+                lotes: true,
+                paciente: true
+            }
+        });
+
+        if (!solicitacao) {
+            throw new Error("Solicitação não encontrada");
+        }
+
+        if (solicitacao.status !== 'aprovado_para_retirada') {
+            throw new Error(`Solicitação deve estar aprovada para retirada. Status atual: ${solicitacao.status}`);
+        }
+
+        // Verificar se ainda há estoque disponível
+        const lote = await prismaClient.lotes.findUnique({
+            where: { id: solicitacao.id_lotes }
+        });
+
+        if (!lote) {
+            throw new Error("Lote não encontrado");
+        }
+
+        if (lote.qtde < solicitacao.qtde) {
+            throw new Error(`Quantidade insuficiente. Disponível: ${lote.qtde}`);
+        }
+
+        // Transação: criar retirada, atualizar estoque e marcar solicitação como retirada concluída
         const result = await prismaClient.$transaction(async (tx: Omit<PrismaClient, "$connect" | "$disconnect" | "$on" | "$transaction" | "$use" | "$extends">) => {
             // Criar retirada
             const retirada = await tx.retiradas.create({
@@ -227,11 +286,11 @@ class ConfirmarSolicitacaoModel {
                 }
             });
 
-            // Marcar solicitação como aprovado para retirada
+            // Marcar solicitação como retirada concluída
             await tx.solicitacoes.update({
                 where: { id },
                 data: {
-                    status: 'aprovado_para_retirada',
+                    status: 'retirada_concluida',
                     modified: new Date()
                 }
             });
@@ -331,4 +390,4 @@ class ListSolicitacoesByPacienteModel {
     }
 }
 
-export { CreateSolicitacaoModel, ListSolicitacoesModel, GetSolicitacaoModel, ConfirmarSolicitacaoModel, RecusarSolicitacaoModel, DeleteSolicitacaoModel, ListSolicitacoesByPacienteModel }
+export { CreateSolicitacaoModel, ListSolicitacoesModel, GetSolicitacaoModel, ConfirmarSolicitacaoModel, ConcluirDoacaoModel, RecusarSolicitacaoModel, DeleteSolicitacaoModel, ListSolicitacoesByPacienteModel }

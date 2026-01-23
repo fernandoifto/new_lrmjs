@@ -402,11 +402,14 @@
   border-top: 1px solid var(--cor-borda);
   display: flex;
   gap: 0.75rem;
-  justify-content: flex-end;
+  justify-content: space-between;
+  align-items: center;
+  flex-wrap: wrap;
 }
 
 .btnConfirmar,
-.btnRecusar {
+.btnRecusar,
+.btnConcluir {
   padding: 0.75rem 1.5rem;
   border-radius: 8px;
   font-weight: 500;
@@ -426,6 +429,19 @@
 
 .btnConfirmar:hover {
   background-color: #218838;
+  transform: translateY(-2px);
+  box-shadow: 0 4px 8px rgba(40, 167, 69, 0.3);
+}
+
+.btnConcluir {
+  background-color: #17a2b8;
+  color: white;
+}
+
+.btnConcluir:hover {
+  background-color: #138496;
+  transform: translateY(-2px);
+  box-shadow: 0 4px 8px rgba(23, 162, 184, 0.3);
 }
 
 .btnRecusar {
@@ -435,6 +451,20 @@
 
 .btnRecusar:hover {
   background-color: #c82333;
+  transform: translateY(-2px);
+  box-shadow: 0 4px 8px rgba(220, 53, 69, 0.3);
+}
+
+.infoMessage {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.75rem 1rem;
+  background-color: rgba(40, 167, 69, 0.1);
+  border-radius: 8px;
+  color: #28a745;
+  font-weight: 500;
+  font-size: 0.95rem;
 }
 
 /* Responsividade */
@@ -477,7 +507,13 @@
   }
 
   .btnConfirmar,
-  .btnRecusar {
+  .btnRecusar,
+  .btnConcluir {
+    width: 100%;
+    justify-content: center;
+  }
+
+  .infoMessage {
     width: 100%;
     justify-content: center;
   }

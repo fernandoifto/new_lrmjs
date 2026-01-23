@@ -1,5 +1,5 @@
 import { Request, Response } from "express";
-import { CreateSolicitacaoModel, ListSolicitacoesModel, GetSolicitacaoModel, ConfirmarSolicitacaoModel, RecusarSolicitacaoModel, DeleteSolicitacaoModel, ListSolicitacoesByPacienteModel } from "../models/solicitacoesModels";
+import { CreateSolicitacaoModel, ListSolicitacoesModel, GetSolicitacaoModel, ConfirmarSolicitacaoModel, ConcluirDoacaoModel, RecusarSolicitacaoModel, DeleteSolicitacaoModel, ListSolicitacoesByPacienteModel } from "../models/solicitacoesModels";
 import { uploadSingleReceita } from "../middlewares/upload";
 
 class CreateSolicitacaoController {
@@ -87,14 +87,29 @@ class ConfirmarSolicitacaoController {
     async handle(req: Request, res: Response) {
         try {
             const { id } = req.params;
+
+            const confirmarSolicitacaoModel = new ConfirmarSolicitacaoModel();
+            const solicitacao = await confirmarSolicitacaoModel.execute(parseInt(id));
+
+            return res.status(200).json(solicitacao);
+        } catch (error: any) {
+            return res.status(400).json({ error: error.message });
+        }
+    }
+}
+
+class ConcluirDoacaoController {
+    async handle(req: Request, res: Response) {
+        try {
+            const { id } = req.params;
             const id_users = parseInt(req.query.userId as string);
 
             if (!id_users) {
                 return res.status(401).json({ error: "Usuário não autenticado" });
             }
 
-            const confirmarSolicitacaoModel = new ConfirmarSolicitacaoModel();
-            const retirada = await confirmarSolicitacaoModel.execute(parseInt(id), id_users);
+            const concluirDoacaoModel = new ConcluirDoacaoModel();
+            const retirada = await concluirDoacaoModel.execute(parseInt(id), id_users);
 
             return res.status(200).json(retirada);
         } catch (error: any) {
@@ -152,4 +167,4 @@ class ListSolicitacoesByPacienteController {
     }
 }
 
-export { CreateSolicitacaoController, ListSolicitacoesController, GetSolicitacaoController, ConfirmarSolicitacaoController, RecusarSolicitacaoController, DeleteSolicitacaoController, ListSolicitacoesByPacienteController }
+export { CreateSolicitacaoController, ListSolicitacoesController, GetSolicitacaoController, ConfirmarSolicitacaoController, ConcluirDoacaoController, RecusarSolicitacaoController, DeleteSolicitacaoController, ListSolicitacoesByPacienteController }

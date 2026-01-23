@@ -8,7 +8,7 @@ import { CreateMedicamentoController, ListMedicamentosController, GetMedicamento
 import { CreateLoteController, ListLotesController, ListLotesDisponiveisController, GetLoteController, UpdateLoteController, DeleteLoteController } from "./controllers/lotesController";
 import { CreatePacienteController, ListPacientesController, GetPacienteController, GetPacienteByCPFController, UpdatePacienteController, DeletePacienteController } from "./controllers/pacientesController";
 import { CreateRetiradaController, ListRetiradasController, GetRetiradaController, UpdateRetiradaController, DeleteRetiradaController } from "./controllers/retiradasController";
-import { CreateSolicitacaoController, ListSolicitacoesController, GetSolicitacaoController, ConfirmarSolicitacaoController, RecusarSolicitacaoController, DeleteSolicitacaoController, ListSolicitacoesByPacienteController } from "./controllers/solicitacoesController";
+import { CreateSolicitacaoController, ListSolicitacoesController, GetSolicitacaoController, ConfirmarSolicitacaoController, ConcluirDoacaoController, RecusarSolicitacaoController, DeleteSolicitacaoController, ListSolicitacoesByPacienteController } from "./controllers/solicitacoesController";
 import { CreatePermissaoController, ListPermissoesController, GetPermissaoController, UpdatePermissaoController, DeletePermissaoController } from "./controllers/permissoesController";
 import { CreateRoleController, ListRolesController, GetRoleController, UpdateRoleController, DeleteRoleController, UpdateRolePermissoesController, GetUserPermissoesController } from "./controllers/rolesController";
 import { UpdateUserGruposController } from "./controllers/userGruposController";
@@ -92,6 +92,7 @@ router.get("/solicitacoes/paciente", new ListSolicitacoesByPacienteController().
 router.get("/solicitacoes", isAuthenticated, hasPermission("retiradas.ver"), new ListSolicitacoesController().handle);
 router.get("/solicitacao/:id", isAuthenticated, hasPermission("retiradas.ver"), new GetSolicitacaoController().handle);
 router.post("/solicitacao/:id/confirmar", isAuthenticated, hasPermission("retiradas.criar"), new ConfirmarSolicitacaoController().handle);
+router.post("/solicitacao/:id/concluir", isAuthenticated, hasPermission("retiradas.criar"), new ConcluirDoacaoController().handle);
 router.post("/solicitacao/:id/recusar", isAuthenticated, hasPermission("retiradas.editar"), new RecusarSolicitacaoController().handle);
 router.delete("/solicitacao/:id", isAuthenticated, hasPermission("retiradas.excluir"), new DeleteSolicitacaoController().handle);
 

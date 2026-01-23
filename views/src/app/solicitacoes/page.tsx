@@ -9,7 +9,7 @@ import Header from '../home/components/header';
 import Menu from '../components/menu';
 import WithPermission from '@/components/withPermission';
 import { usePermissions } from '@/hooks/usePermissions';
-import { FaHandHoldingHeart, FaCheckCircle, FaTimesCircle, FaClock, FaEye, FaSearch, FaTimes, FaFilePdf, FaFileMedical } from 'react-icons/fa';
+import { FaHandHoldingHeart, FaCheckCircle, FaTimesCircle, FaClock, FaEye, FaSearch, FaTimes, FaFilePdf, FaFileMedical, FaCheck } from 'react-icons/fa';
 import styles from './page.module.css';
 import Link from 'next/link';
 import jsPDF from 'jspdf';
@@ -112,7 +112,39 @@ export default function SolicitacoesPage() {
     };
 
     const handleConfirmar = async (id: number) => {
-        if (!confirm('Tem certeza que deseja aprovar esta solicitação para retirada? A retirada será registrada e o estoque será atualizado.')) {
+        if (!confirm('Tem certeza que deseja aprovar esta solicitação para retirada? O solicitante será informado que pode retirar o medicamento.')) {
+            return;
+        }
+
+        try {
+            const token = getCookieClient();
+            if (!token) {
+                toast.error('Você precisa estar logado');
+                router.push('/login');
+                return;
+            }
+
+            await api.post(`/solicitacao/${id}/confirmar`, {}, {
+                headers: {
+                    Authorization: `Bearer ${token}`
+                }
+            });
+
+            toast.success('Solicitação aprovada para retirada! O solicitante pode retirar o medicamento.');
+            loadSolicitacoes();
+        } catch (error: any) {
+            console.error('Erro ao confirmar solicitação:', error);
+            if (error.response?.status === 401) {
+                toast.error('Sessão expirada. Faça login novamente.');
+                router.push('/login');
+            } else {
+                toast.error(error.response?.data?.error || 'Erro ao confirmar solicitação');
+            }
+        }
+    };
+
+    const handleConcluirDoacao = async (id: number) => {
+        if (!confirm('Tem certeza que deseja concluir a doação? A retirada será registrada e o estoque será atualizado.')) {
             return;
         }
 
@@ -131,21 +163,21 @@ export default function SolicitacoesPage() {
                 }
             });
 
-            await api.post(`/solicitacao/${id}/confirmar?userId=${userResponse.data.id}`, {}, {
+            await api.post(`/solicitacao/${id}/concluir?userId=${userResponse.data.id}`, {}, {
                 headers: {
                     Authorization: `Bearer ${token}`
                 }
             });
 
-            toast.success('Solicitação aprovada para retirada com sucesso!');
+            toast.success('Doação concluída com sucesso! Retirada registrada e estoque atualizado.');
             loadSolicitacoes();
         } catch (error: any) {
-            console.error('Erro ao confirmar solicitação:', error);
+            console.error('Erro ao concluir doação:', error);
             if (error.response?.status === 401) {
                 toast.error('Sessão expirada. Faça login novamente.');
                 router.push('/login');
             } else {
-                toast.error(error.response?.data?.error || 'Erro ao confirmar solicitação');
+                toast.error(error.response?.data?.error || 'Erro ao concluir doação');
             }
         }
     };
@@ -710,6 +742,24 @@ export default function SolicitacoesPage() {
                                                     >
                                                         <FaTimesCircle size={16} />
                                                         Recusar
+                                                    </button>
+                                                )}
+                                            </div>
+                                        )}
+
+                                        {solicitacao.status === 'aprovado_para_retirada' && (
+                                            <div className={styles.solicitacaoFooter}>
+                                                <div className={styles.infoMessage}>
+                                                    <FaCheckCircle size={16} style={{ color: '#28a745' }} />
+                                                    <span>O solicitante pode retirar o medicamento</span>
+                                                </div>
+                                                {podeConfirmar && (
+                                                    <button
+                                                        onClick={() => handleConcluirDoacao(solicitacao.id)}
+                                                        className={styles.btnConcluir}
+                                                    >
+                                                        <FaCheck size={16} />
+                                                        Concluir Doação
                                                     </button>
                                                 )}
                                             </div>
