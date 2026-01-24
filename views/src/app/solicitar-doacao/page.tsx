@@ -6,7 +6,6 @@ import { toast } from 'react-toastify';
 import { api } from '@/api/api';
 import Header from '../home/components/header';
 import HeaderRight from '../home/components/headerRight';
-import Footer from '../home/components/footer';
 import { maskCPF } from '../agendar/utils/masks';
 import styles from './page.module.css';
 import { FaHandHoldingHeart } from 'react-icons/fa';
@@ -104,7 +103,6 @@ export default function SolicitarDoacaoPage() {
                     </div>
                 </div>
             </main>
-            <Footer />
         </>
     );
 }

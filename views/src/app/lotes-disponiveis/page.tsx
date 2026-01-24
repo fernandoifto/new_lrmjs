@@ -6,7 +6,6 @@ import { toast } from 'react-toastify';
 import { api } from '@/api/api';
 import Header from '../home/components/header';
 import HeaderRight from '../home/components/headerRight';
-import Footer from '../home/components/footer';
 import styles from './page.module.css';
 import { FaBoxes, FaHandHoldingHeart, FaCheckCircle, FaClock, FaTimesCircle, FaArrowLeft, FaFileMedical, FaUpload, FaTimes, FaExclamationTriangle } from 'react-icons/fa';
 import Link from 'next/link';
@@ -544,7 +543,6 @@ export default function LotesDisponiveisPage() {
                     </div>
                 </div>
             </main>
-            <Footer />
         </>
     );
 }
