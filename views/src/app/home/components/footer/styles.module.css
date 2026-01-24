@@ -15,6 +15,13 @@
   box-sizing: border-box;
 }
 
+.footerContent {
+  width: 100%;
+  max-width: 72%;
+  margin: 0 auto;
+  box-sizing: border-box;
+}
+
 .footerBottom {
   border-top: 1px solid #eaeaea;
   padding: 1.5rem 2rem;
@@ -110,9 +117,19 @@
   }
 }
 
+@media (max-width: 1024px) {
+  .footerContent {
+    max-width: 90%;
+  }
+}
+
 @media (max-width: 768px) {
   .footerWrapper {
     padding: 0 1rem;
+  }
+
+  .footerContent {
+    max-width: 100%;
   }
 
   .footerBottom {

@@ -6,6 +6,7 @@ export default function Footer() {
             {/* Rodapé redesenhado */}
             <footer className={styles.footer} id="contato">
                 <div className={styles.footerWrapper}>
+                    <div className={styles.footerContent}>
                     <div className='row'>
                         <div className='col-sm-12 col-md-4 col-lg-4' >
                             <h3 className="h5 mb-3 mt-4">Contatos</h3>
@@ -64,6 +65,7 @@ export default function Footer() {
                                 </a>
                             </div>
                         </div>
+                    </div>
                     </div>
                 </div>
                 <div className={styles.footerBottom}>

@@ -21,8 +21,9 @@
   align-items: center;
   justify-content: space-between;
   width: 100%;
-  max-width: 100%;
-  margin: 0;
+  max-width: 72%;
+  margin: 0 auto;
+  box-sizing: border-box;
 }
 
 .logoLink {
@@ -43,12 +44,19 @@
 }
 
 /* Ajustes responsivos para o cabeçalho */
+@media (max-width: 1024px) {
+  .headerContent {
+    max-width: 90%;
+  }
+}
+
 @media (max-width: 768px) {
   .headerWrapper {
     padding: 15px 1rem;
   }
 
   .headerContent {
+    max-width: 100%;
     flex-direction: column;
     align-items: center;
     text-align: center;
