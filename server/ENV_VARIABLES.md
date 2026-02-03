@@ -41,6 +41,27 @@ SMTP_FROM=seu_email@seu_provedor.com
 FRONTEND_URL=http://localhost:3000
 ```
 
+### Configuração de WhatsApp (Opcional)
+
+Para integração com WhatsApp, configure as seguintes variáveis:
+
+#### Para WhatsApp Web.js (Desenvolvimento/Teste - Padrão):
+```env
+# Não definir ou definir como false
+USE_WHATSAPP_BUSINESS_API=false
+```
+
+#### Para WhatsApp Business API (Produção):
+```env
+USE_WHATSAPP_BUSINESS_API=true
+WHATSAPP_ACCESS_TOKEN=seu_access_token_do_meta
+WHATSAPP_PHONE_NUMBER_ID=seu_phone_number_id
+WHATSAPP_WEBHOOK_VERIFY_TOKEN=seu_token_secreto_para_webhook
+WHATSAPP_API_URL=https://graph.facebook.com/v18.0
+```
+
+**Nota:** Para mais detalhes sobre configuração do WhatsApp, consulte [WHATSAPP_CONFIG.md](./WHATSAPP_CONFIG.md)
+
 ## Configuração do Gmail
 
 Se estiver usando Gmail, você precisará:
@@ -62,6 +83,9 @@ SMTP_USER=seu_email@gmail.com
 SMTP_PASS=sua_senha_de_app
 SMTP_FROM=seu_email@gmail.com
 FRONTEND_URL=http://localhost:3000
+
+# WhatsApp (opcional - para desenvolvimento, não definir ou definir como false)
+USE_WHATSAPP_BUSINESS_API=false
 ```
 
 ## Notas Importantes

@@ -12,6 +12,7 @@ import { CreateSolicitacaoController, ListSolicitacoesController, GetSolicitacao
 import { CreatePermissaoController, ListPermissoesController, GetPermissaoController, UpdatePermissaoController, DeletePermissaoController } from "./controllers/permissoesController";
 import { CreateRoleController, ListRolesController, GetRoleController, UpdateRoleController, DeleteRoleController, UpdateRolePermissoesController, GetUserPermissoesController } from "./controllers/rolesController";
 import { UpdateUserGruposController } from "./controllers/userGruposController";
+import { WhatsAppController } from "./controllers/whatsappController";
 import { isAuthenticated } from "./middlewares/isAutenticated";
 import { hasPermission } from "./middlewares/hasPermission";
 
@@ -113,5 +114,14 @@ router.put("/role/:id/permissoes", isAuthenticated, new UpdateRolePermissoesCont
 
 //Rotas de permissões do usuário
 router.get("/user-permissoes", isAuthenticated, new GetUserPermissoesController().handle);
+
+//Rotas de WhatsApp
+const whatsappController = new WhatsAppController();
+router.get("/whatsapp/status", isAuthenticated, whatsappController.getStatus.bind(whatsappController));
+router.post("/whatsapp/send", isAuthenticated, whatsappController.sendMessage.bind(whatsappController));
+router.post("/whatsapp/initialize", isAuthenticated, whatsappController.initialize.bind(whatsappController));
+// Webhook do WhatsApp Business API (rotas públicas, validação feita internamente)
+router.get("/whatsapp/webhook", whatsappController.verifyWebhook.bind(whatsappController));
+router.post("/whatsapp/webhook", whatsappController.receiveWebhook.bind(whatsappController));
 
 export default router;
