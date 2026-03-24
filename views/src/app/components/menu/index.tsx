@@ -3,9 +3,7 @@
 import { useEffect, useState } from 'react';
 import Link from 'next/link';
 import { useRouter, usePathname, useSearchParams } from 'next/navigation';
-import { getCookieClient } from '@/lib/cookieClient';
 import { api } from '@/api/api';
-import { deleteCookie } from 'cookies-next';
 import { toast } from 'react-toastify';
 import { usePermissions } from '@/hooks/usePermissions';
 import { usePendingSolicitacoes } from '@/hooks/usePendingSolicitacoes';
@@ -35,23 +33,14 @@ export default function Menu() {
 
     const loadUser = async () => {
         try {
-            const token = getCookieClient();
-            if (!token) {
-                router.push('/login');
-                return;
-            }
 
-            const response = await api.get('/detail', {
-                headers: {
-                    Authorization: `Bearer ${token}`
-                }
-            });
+            const response = await api.get('/detail', {});
 
             setUser(response.data);
         } catch (error: any) {
             console.error('Erro ao carregar usuário:', error);
             if (error.response?.status === 401) {
-                deleteCookie('session');
+                await fetch('/api/auth/session', { method: 'DELETE', credentials: 'include' });
                 router.push('/login');
             }
         } finally {
@@ -59,8 +48,8 @@ export default function Menu() {
         }
     };
 
-    const handleLogout = () => {
-        deleteCookie('session');
+    const handleLogout = async () => {
+        await fetch('/api/auth/session', { method: 'DELETE', credentials: 'include' });
         toast.success('Logout realizado com sucesso!');
         router.push('/login');
     };

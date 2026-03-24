@@ -9,6 +9,16 @@ import { Client } from '@modelcontextprotocol/sdk/client/index.js';
 import { StdioClientTransport } from '@modelcontextprotocol/sdk/client/stdio.js';
 import { CallToolRequestSchema, ListToolsRequestSchema, Tool } from '@modelcontextprotocol/sdk/types.js';
 
+/** Resposta de tools/list (SDK retorna isso; tipos do request não incluem response) */
+interface ListToolsResponse {
+    tools: Tool[];
+}
+/** Resposta de tools/call (SDK retorna content e isError) */
+interface CallToolResponse {
+    content: Array<{ type: string; text?: string }>;
+    isError?: boolean;
+}
+
 export interface WhatsAppMcpResult {
     success: boolean;
     data?: any;
@@ -75,12 +85,12 @@ export class WhatsAppMcpClient {
     async listTools(): Promise<Tool[]> {
         await this.ensureConnected();
 
-        const response = await this.client.request(
+        const response = (await this.client.request(
             {
                 method: 'tools/list',
             },
             ListToolsRequestSchema
-        );
+        )) as unknown as ListToolsResponse;
 
         return response.tools;
     }
@@ -92,7 +102,7 @@ export class WhatsAppMcpClient {
         await this.ensureConnected();
 
         try {
-            const response = await this.client.request(
+            const response = (await this.client.request(
                 {
                     method: 'tools/call',
                     params: {
@@ -104,25 +114,23 @@ export class WhatsAppMcpClient {
                     },
                 },
                 CallToolRequestSchema
-            );
+            )) as unknown as CallToolResponse;
 
-            const content = response.content[0];
-            if (content.type === 'text') {
-                const result = JSON.parse(content.text);
-                
+            const content = response.content?.[0];
+            if (content?.type === 'text') {
+                const raw: string = content.text ?? '{}';
+                const result = JSON.parse(raw);
                 if (response.isError) {
                     return {
                         success: false,
                         error: result.error || 'Erro desconhecido',
                     };
                 }
-
                 return {
                     success: result.success || true,
                     data: result,
                 };
             }
-
             return {
                 success: false,
                 error: 'Resposta inválida do servidor MCP',
@@ -142,7 +150,7 @@ export class WhatsAppMcpClient {
         await this.ensureConnected();
 
         try {
-            const response = await this.client.request(
+            const response = (await this.client.request(
                 {
                     method: 'tools/call',
                     params: {
@@ -151,17 +159,17 @@ export class WhatsAppMcpClient {
                     },
                 },
                 CallToolRequestSchema
-            );
+            )) as unknown as CallToolResponse;
 
-            const content = response.content[0];
-            if (content.type === 'text') {
-                const result = JSON.parse(content.text);
+            const content = response.content?.[0];
+            if (content?.type === 'text') {
+                const raw: string = content.text ?? '{}';
+                const result = JSON.parse(raw);
                 return {
                     success: true,
                     data: result,
                 };
             }
-
             return {
                 success: false,
                 error: 'Resposta inválida do servidor MCP',
@@ -181,7 +189,7 @@ export class WhatsAppMcpClient {
         await this.ensureConnected();
 
         try {
-            const response = await this.client.request(
+            const response = (await this.client.request(
                 {
                     method: 'tools/call',
                     params: {
@@ -190,25 +198,23 @@ export class WhatsAppMcpClient {
                     },
                 },
                 CallToolRequestSchema
-            );
+            )) as unknown as CallToolResponse;
 
-            const content = response.content[0];
-            if (content.type === 'text') {
-                const result = JSON.parse(content.text);
-                
+            const content = response.content?.[0];
+            if (content?.type === 'text') {
+                const raw: string = content.text ?? '{}';
+                const result = JSON.parse(raw);
                 if (response.isError) {
                     return {
                         success: false,
                         error: result.error || 'Erro desconhecido',
                     };
                 }
-
                 return {
                     success: result.success || true,
                     data: result,
                 };
             }
-
             return {
                 success: false,
                 error: 'Resposta inválida do servidor MCP',
@@ -228,7 +234,7 @@ export class WhatsAppMcpClient {
         await this.ensureConnected();
 
         try {
-            const response = await this.client.request(
+            const response = (await this.client.request(
                 {
                     method: 'tools/call',
                     params: {
@@ -237,25 +243,23 @@ export class WhatsAppMcpClient {
                     },
                 },
                 CallToolRequestSchema
-            );
+            )) as unknown as CallToolResponse;
 
-            const content = response.content[0];
-            if (content.type === 'text') {
-                const result = JSON.parse(content.text);
-                
+            const content = response.content?.[0];
+            if (content?.type === 'text') {
+                const raw: string = content.text ?? '{}';
+                const result = JSON.parse(raw);
                 if (response.isError) {
                     return {
                         success: false,
                         error: result.error || 'Erro desconhecido',
                     };
                 }
-
                 return {
                     success: true,
                     data: result,
                 };
             }
-
             return {
                 success: false,
                 error: 'Resposta inválida do servidor MCP',

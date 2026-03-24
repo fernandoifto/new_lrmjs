@@ -4,7 +4,6 @@ import { useEffect, useState, useRef } from 'react';
 import { api } from '@/api/api';
 import { useRouter, useParams } from 'next/navigation';
 import { toast } from 'react-toastify';
-import { getCookieClient } from '@/lib/cookieClient';
 import Header from '../../../../home/components/header';
 import Menu from '../../../../components/menu';
 import WithPermission from '@/components/withPermission';
@@ -45,19 +44,8 @@ export default function EditarPermissaoPage() {
     const loadPermissao = async (id: number) => {
         try {
             setLoading(true);
-            const token = getCookieClient();
 
-            if (!token) {
-                toast.error('Você precisa estar logado');
-                router.push('/login');
-                return;
-            }
-
-            const response = await api.get(`/permissao/${id}`, {
-                headers: {
-                    Authorization: `Bearer ${token}`
-                }
-            });
+            const response = await api.get(`/permissao/${id}`, {});
 
             setPermissao(response.data);
             setFormData({
@@ -100,13 +88,6 @@ export default function EditarPermissaoPage() {
         }
 
         setSaving(true);
-        const token = getCookieClient();
-
-        if (!token) {
-            toast.error('Você precisa estar logado');
-            router.push('/login');
-            return;
-        }
 
         try {
             await api.put(`/permissao/${permissao.id}`, {
@@ -114,11 +95,7 @@ export default function EditarPermissaoPage() {
                 descricao: formData.descricao.trim() || null,
                 pagina: formData.pagina.trim() || null,
                 acao: formData.acao.trim() || null
-            }, {
-                headers: {
-                    Authorization: `Bearer ${token}`
-                }
-            });
+            }, {});
 
             toast.success('Permissão atualizada com sucesso!');
             setTimeout(() => {

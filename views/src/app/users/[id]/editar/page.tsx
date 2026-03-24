@@ -4,7 +4,6 @@ import { useEffect, useState, useRef } from 'react';
 import { api } from '@/api/api';
 import { useRouter, useParams } from 'next/navigation';
 import { toast } from 'react-toastify';
-import { getCookieClient } from '@/lib/cookieClient';
 import Header from '../../../home/components/header';
 import Menu from '../../../components/menu';
 import WithPermission from '@/components/withPermission';
@@ -53,25 +52,10 @@ export default function EditarUserPage() {
     const loadUser = async (id: number) => {
         try {
             setLoading(true);
-            const token = getCookieClient();
-
-            if (!token) {
-                toast.error('Você precisa estar logado');
-                router.push('/login');
-                return;
-            }
 
             const [userRes, gruposRes] = await Promise.all([
-                api.get(`/user/${id}`, {
-                    headers: {
-                        Authorization: `Bearer ${token}`
-                    }
-                }),
-                api.get('/roles', {
-                    headers: {
-                        Authorization: `Bearer ${token}`
-                    }
-                })
+                api.get(`/user/${id}`, {}),
+                api.get('/roles', {})
             ]);
 
             setUser(userRes.data);
@@ -152,13 +136,6 @@ export default function EditarUserPage() {
         }
 
         setSaving(true);
-        const token = getCookieClient();
-
-        if (!token) {
-            toast.error('Você precisa estar logado');
-            router.push('/login');
-            return;
-        }
 
         try {
             // Atualizar dados do usuário
@@ -172,18 +149,10 @@ export default function EditarUserPage() {
             }
 
             await Promise.all([
-                api.put(`/user/${user.id}`, updateData, {
-                    headers: {
-                        Authorization: `Bearer ${token}`
-                    }
-                }),
+                api.put(`/user/${user.id}`, updateData, {}),
                 api.put(`/user/${user.id}/grupos`, {
                     grupos_ids: selectedGrupos
-                }, {
-                    headers: {
-                        Authorization: `Bearer ${token}`
-                    }
-                })
+                }, {})
             ]);
 
             toast.success('Usuário atualizado com sucesso!');

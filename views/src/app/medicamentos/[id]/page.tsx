@@ -4,7 +4,6 @@ import { useEffect, useState } from 'react';
 import { api } from '@/api/api';
 import { useRouter, useParams } from 'next/navigation';
 import { toast } from 'react-toastify';
-import { getCookieClient } from '@/lib/cookieClient';
 import Header from '../../home/components/header';
 import Menu from '../../components/menu';
 import WithPermission from '@/components/withPermission';
@@ -61,19 +60,8 @@ export default function MedicamentoViewPage() {
     const loadMedicamento = async (id: number) => {
         try {
             setLoading(true);
-            const token = getCookieClient();
 
-            if (!token) {
-                toast.error('Você precisa estar logado para acessar esta página');
-                router.push('/login');
-                return;
-            }
-
-            const response = await api.get(`/medicamento/${id}`, {
-                headers: {
-                    Authorization: `Bearer ${token}`
-                }
-            });
+            const response = await api.get(`/medicamento/${id}`, {});
 
             setMedicamento(response.data);
         } catch (error: any) {
@@ -95,17 +83,7 @@ export default function MedicamentoViewPage() {
     const loadLotes = async (medicamentoId: number) => {
         try {
             setLoadingLotes(true);
-            const token = getCookieClient();
-
-            if (!token) {
-                return;
-            }
-
-            const response = await api.get('/lotes', {
-                headers: {
-                    Authorization: `Bearer ${token}`
-                }
-            });
+            const response = await api.get('/lotes', {});
 
             // Filtrar lotes que pertencem a este medicamento
             const lotesDoMedicamento = response.data.filter((lote: any) => 
@@ -169,18 +147,8 @@ export default function MedicamentoViewPage() {
         }
 
         try {
-            const token = getCookieClient();
-            if (!token) {
-                toast.error('Você precisa estar logado');
-                router.push('/login');
-                return;
-            }
 
-            await api.delete(`/medicamento/${id}`, {
-                headers: {
-                    Authorization: `Bearer ${token}`
-                }
-            });
+            await api.delete(`/medicamento/${id}`, {});
 
             toast.success('Medicamento excluído com sucesso!');
             router.push('/medicamentos/list');

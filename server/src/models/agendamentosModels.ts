@@ -1,4 +1,5 @@
 import prismaClient from "../tools/prisma";
+import { parseAndValidateGoogleMapsUrl } from "../utils/safeGoogleMapsUrl";
 
 //Interface do agendamento
 interface IAgendamento {
@@ -133,7 +134,9 @@ class UpdateAgendamentoModel {
         if (data.telefone) updateData.telefone = data.telefone;
         if (data.datavisita !== undefined) updateData.datavisita = data.datavisita;
         if (data.fotos !== undefined) updateData.fotos = data.fotos;
-        if (data.google_maps_url !== undefined) updateData.google_maps_url = data.google_maps_url;
+        if (data.google_maps_url !== undefined) {
+            updateData.google_maps_url = parseAndValidateGoogleMapsUrl(data.google_maps_url);
+        }
         if (data.id_turno) updateData.id_turno = data.id_turno;
         if (data.id_user !== undefined) updateData.id_user = data.id_user;
         

@@ -43,7 +43,7 @@ export class WhatsAppServiceFactory {
             this.instance = new WhatsAppWebService();
         }
 
-        return this.instance;
+        return this.instance!;
     }
 
     /**

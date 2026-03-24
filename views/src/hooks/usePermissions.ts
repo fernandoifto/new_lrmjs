@@ -1,6 +1,5 @@
 import { useState, useEffect } from 'react';
 import { api } from '@/api/api';
-import { getCookieClient } from '@/lib/cookieClient';
 
 export function usePermissions() {
     const [permissoes, setPermissoes] = useState<string[]>([]);
@@ -13,16 +12,8 @@ export function usePermissions() {
 
     const loadPermissions = async () => {
         try {
-            const token = getCookieClient();
-            if (!token) {
-                setLoading(false);
-                return;
-            }
-
             // Verificar se o usuário é admin primeiro
-            const userDetail = await api.get('/detail', {
-                headers: { Authorization: `Bearer ${token}` }
-            });
+            const userDetail = await api.get('/detail', {});
 
             setIsAdmin(userDetail.data.is_admin || false);
 
@@ -33,9 +24,7 @@ export function usePermissions() {
                 return;
             }
 
-            const response = await api.get('/user-permissoes', {
-                headers: { Authorization: `Bearer ${token}` }
-            });
+            const response = await api.get('/user-permissoes', {});
 
             setPermissoes(response.data.permissoes || []);
         } catch (error) {

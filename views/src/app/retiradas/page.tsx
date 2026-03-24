@@ -4,7 +4,6 @@ import { useEffect, useState } from 'react';
 import { api } from '@/api/api';
 import { useRouter } from 'next/navigation';
 import { toast } from 'react-toastify';
-import { getCookieClient } from '@/lib/cookieClient';
 import Header from '../home/components/header';
 import Menu from '../components/menu';
 import WithPermission from '@/components/withPermission';
@@ -62,19 +61,8 @@ export default function RetiradasPage() {
     const loadRetiradas = async () => {
         try {
             setLoading(true);
-            const token = getCookieClient();
 
-            if (!token) {
-                toast.error('Você precisa estar logado para acessar esta página');
-                router.push('/login');
-                return;
-            }
-
-            const response = await api.get('/retiradas', {
-                headers: {
-                    Authorization: `Bearer ${token}`
-                }
-            });
+            const response = await api.get('/retiradas', {});
 
             setRetiradas(response.data);
             setFilteredRetiradas(response.data);
@@ -274,18 +262,8 @@ export default function RetiradasPage() {
         }
 
         try {
-            const token = getCookieClient();
-            if (!token) {
-                toast.error('Você precisa estar logado');
-                router.push('/login');
-                return;
-            }
 
-            await api.delete(`/retirada/${id}`, {
-                headers: {
-                    Authorization: `Bearer ${token}`
-                }
-            });
+            await api.delete(`/retirada/${id}`, {});
 
             toast.success('Retirada excluída com sucesso e estoque revertido!');
             loadRetiradas();

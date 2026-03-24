@@ -6,10 +6,8 @@ import { useState, useEffect } from 'react';
 import { api } from '@/api/api';
 import { toast } from 'react-toastify';
 import { useRouter } from 'next/navigation';
-import { getCookieClient } from '@/lib/cookieClient';
 import Header from '../home/components/header';
 import Menu from '../components/menu';
-import WithPermission from '@/components/withPermission';
 
 export default function CadastroUsuarios() {
   const router = useRouter();
@@ -19,12 +17,6 @@ export default function CadastroUsuarios() {
   useEffect(() => {
     setMounted(true);
     // Verificar se o usuário está logado
-    const token = getCookieClient();
-    if (!token) {
-      toast.error('Você precisa estar logado para acessar esta página');
-      router.push('/login');
-      return;
-    }
   }, [router]);
   const [formData, setFormData] = useState({
     username: '',
@@ -44,14 +36,6 @@ export default function CadastroUsuarios() {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setLoading(true);
-
-    const token = getCookieClient();
-    if (!token) {
-      toast.error('Você precisa estar logado');
-      router.push('/login');
-      setLoading(false);
-      return;
-    }
 
     // Validações
     if (!formData.username || !formData.email || !formData.password || !formData.confirmPassword) {
@@ -77,11 +61,7 @@ export default function CadastroUsuarios() {
         username: formData.username,
         email: formData.email,
         password: formData.password
-      }, {
-        headers: {
-          Authorization: `Bearer ${token}`
-        }
-      });
+      }, {});
 
       if (response.data) {
         toast.success('Usuário criado com sucesso!');
@@ -205,7 +185,7 @@ export default function CadastroUsuarios() {
         </div>
       </div>
       </main>
-    </WithPermission>
+    </>
   );
 }
 

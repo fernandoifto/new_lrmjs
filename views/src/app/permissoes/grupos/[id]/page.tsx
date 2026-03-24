@@ -4,7 +4,6 @@ import { useEffect, useState } from 'react';
 import { api } from '@/api/api';
 import { useRouter, useParams } from 'next/navigation';
 import { toast } from 'react-toastify';
-import { getCookieClient } from '@/lib/cookieClient';
 import Header from '../../../home/components/header';
 import Menu from '../../../components/menu';
 import WithPermission from '@/components/withPermission';
@@ -48,12 +47,6 @@ export default function GrupoPermissoesPage() {
     const [saving, setSaving] = useState(false);
 
     useEffect(() => {
-        const token = getCookieClient();
-        if (!token) {
-            toast.error('Você precisa estar logado para acessar esta página');
-            router.push('/login');
-            return;
-        }
         if (params.id) {
             loadData(Number(params.id));
         }
@@ -62,16 +55,9 @@ export default function GrupoPermissoesPage() {
     const loadData = async (grupoId: number) => {
         try {
             setLoading(true);
-            const token = getCookieClient();
-            if (!token) return;
-
-            const [grupoRes, permissoesRes] = await Promise.all([
-                api.get(`/role/${grupoId}`, {
-                    headers: { Authorization: `Bearer ${token}` }
-                }),
-                api.get('/permissoes', {
-                    headers: { Authorization: `Bearer ${token}` }
-                })
+const [grupoRes, permissoesRes] = await Promise.all([
+                api.get(`/role/${grupoId}`, {}),
+                api.get('/permissoes', {})
             ]);
 
             setGrupo(grupoRes.data);
@@ -117,14 +103,9 @@ export default function GrupoPermissoesPage() {
 
         try {
             setSaving(true);
-            const token = getCookieClient();
-            if (!token) return;
-
-            await api.put(`/role/${grupo.id}/permissoes`, {
+await api.put(`/role/${grupo.id}/permissoes`, {
                 permissoes_ids: selectedPermissoes
-            }, {
-                headers: { Authorization: `Bearer ${token}` }
-            });
+            }, {});
 
             toast.success('Permissões atualizadas com sucesso!');
             loadData(grupo.id);

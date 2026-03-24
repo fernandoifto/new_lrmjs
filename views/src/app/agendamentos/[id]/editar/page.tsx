@@ -3,7 +3,6 @@ import { useEffect, useState, useRef } from 'react';
 import { api } from '@/api/api';
 import { useRouter, useParams } from 'next/navigation';
 import { toast } from 'react-toastify';
-import { getCookieClient } from '@/lib/cookieClient';
 import Header from '../../../home/components/header';
 import Menu from '../../../components/menu';
 import WithPermission from '@/components/withPermission';
@@ -65,32 +64,17 @@ export default function EditarAgendamentoPage() {
     const loadData = async (id: number) => {
         try {
             setLoading(true);
-            const token = getCookieClient();
-
-            if (!token) {
-                toast.error('Você precisa estar logado para acessar esta página');
-                router.push('/login');
-                return;
-            }
 
             // Carregar turnos
             const turnosResponse = await api.get('/turnos');
             setTurnos(turnosResponse.data);
 
             // Carregar usuários
-            const usersResponse = await api.get('/users', {
-                headers: {
-                    Authorization: `Bearer ${token}`
-                }
-            });
+            const usersResponse = await api.get('/users', {});
             setUsers(usersResponse.data);
 
             // Carregar agendamento
-            const agendamentoResponse = await api.get(`/agendamento/${id}`, {
-                headers: {
-                    Authorization: `Bearer ${token}`
-                }
-            });
+            const agendamentoResponse = await api.get(`/agendamento/${id}`, {});
 
             const agendamentoData = agendamentoResponse.data;
             setAgendamento(agendamentoData);
@@ -142,13 +126,6 @@ export default function EditarAgendamentoPage() {
         if (!agendamento) return;
 
         setSaving(true);
-        const token = getCookieClient();
-
-        if (!token) {
-            toast.error('Você precisa estar logado');
-            router.push('/login');
-            return;
-        }
 
         const formData = new FormData(e.currentTarget as HTMLFormElement);
         const turnoIndex = parseInt(formData.get('turno') as string);
@@ -180,7 +157,6 @@ export default function EditarAgendamentoPage() {
                 },
                 {
                     headers: {
-                        Authorization: `Bearer ${token}`,
                         'Content-Type': 'application/json'
                     }
                 }

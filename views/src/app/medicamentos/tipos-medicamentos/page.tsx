@@ -4,9 +4,8 @@ import { useEffect, useState } from 'react';
 import { api } from '@/api/api';
 import { useRouter } from 'next/navigation';
 import { toast } from 'react-toastify';
-import { getCookieClient } from '@/lib/cookieClient';
-import Header from '../home/components/header';
-import Menu from '../components/menu';
+import Header from '../../home/components/header';
+import Menu from '../../components/menu';
 import WithPermission from '@/components/withPermission';
 import { usePermissions } from '@/hooks/usePermissions';
 import { FaTags, FaPlus, FaEye, FaEdit, FaTrash } from 'react-icons/fa';
@@ -35,19 +34,8 @@ export default function TiposMedicamentosPage() {
     const loadTiposMedicamentos = async () => {
         try {
             setLoading(true);
-            const token = getCookieClient();
 
-            if (!token) {
-                toast.error('Você precisa estar logado para acessar esta página');
-                router.push('/login');
-                return;
-            }
-
-            const response = await api.get('/medicamentos', {
-                headers: {
-                    Authorization: `Bearer ${token}`
-                }
-            });
+            const response = await api.get('/medicamentos', {});
 
             setTiposMedicamentos(response.data);
         } catch (error: any) {
@@ -69,18 +57,8 @@ export default function TiposMedicamentosPage() {
         }
 
         try {
-            const token = getCookieClient();
-            if (!token) {
-                toast.error('Você precisa estar logado');
-                router.push('/login');
-                return;
-            }
 
-            await api.delete(`/medicamento/${id}`, {
-                headers: {
-                    Authorization: `Bearer ${token}`
-                }
-            });
+            await api.delete(`/medicamento/${id}`, {});
 
             toast.success('Tipo de medicamento excluído com sucesso!');
             loadTiposMedicamentos();
@@ -109,7 +87,7 @@ export default function TiposMedicamentosPage() {
     }
 
     return (
-        <>
+        <WithPermission requiredPermission="tipos_medicamentos.ver">
             <Header />
             <Menu />
             <main className={styles.main}>

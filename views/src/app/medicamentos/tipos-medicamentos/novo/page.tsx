@@ -1,10 +1,9 @@
 'use client';
 
-import { useState, useRef, useEffect } from 'react';
+import { useState, useRef } from 'react';
 import { api } from '@/api/api';
 import { useRouter } from 'next/navigation';
 import { toast } from 'react-toastify';
-import { getCookieClient } from '@/lib/cookieClient';
 import Header from '../../../home/components/header';
 import Menu from '../../../components/menu';
 import WithPermission from '@/components/withPermission';
@@ -19,14 +18,6 @@ export default function NovoMedicamentoPage() {
     const [formData, setFormData] = useState({
         descricao: ''
     });
-
-    useEffect(() => {
-        const token = getCookieClient();
-        if (!token) {
-            toast.error('Você precisa estar logado para acessar esta página');
-            router.push('/login');
-        }
-    }, [router]);
 
     const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
         const { name, value } = e.target;
@@ -45,22 +36,11 @@ export default function NovoMedicamentoPage() {
         }
 
         setSaving(true);
-        const token = getCookieClient();
-
-        if (!token) {
-            toast.error('Você precisa estar logado');
-            router.push('/login');
-            return;
-        }
 
         try {
             await api.post('/medicamento', {
                 descricao: formData.descricao.trim()
-            }, {
-                headers: {
-                    Authorization: `Bearer ${token}`
-                }
-            });
+            }, {});
 
             toast.success('Tipo de medicamento criado com sucesso!');
             setTimeout(() => {
@@ -80,7 +60,7 @@ export default function NovoMedicamentoPage() {
     };
 
     return (
-        <>
+        <WithPermission requiredPermission="tipos_medicamentos.criar">
             <Header />
             <Menu />
             <main className={styles.main}>

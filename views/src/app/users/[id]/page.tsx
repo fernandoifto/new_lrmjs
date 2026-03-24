@@ -4,7 +4,6 @@ import { useEffect, useState } from 'react';
 import { api } from '@/api/api';
 import { useRouter, useParams } from 'next/navigation';
 import { toast } from 'react-toastify';
-import { getCookieClient } from '@/lib/cookieClient';
 import Header from '../../home/components/header';
 import Menu from '../../components/menu';
 import WithPermission from '@/components/withPermission';
@@ -48,19 +47,8 @@ export default function UserViewPage() {
     const loadUser = async (id: number) => {
         try {
             setLoading(true);
-            const token = getCookieClient();
 
-            if (!token) {
-                toast.error('Você precisa estar logado para acessar esta página');
-                router.push('/login');
-                return;
-            }
-
-            const response = await api.get(`/user/${id}`, {
-                headers: {
-                    Authorization: `Bearer ${token}`
-                }
-            });
+            const response = await api.get(`/user/${id}`, {});
 
             setUser(response.data);
         } catch (error: any) {

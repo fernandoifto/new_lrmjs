@@ -4,7 +4,6 @@ import { useEffect, useState } from 'react';
 import { api } from '@/api/api';
 import { useRouter } from 'next/navigation';
 import { toast } from 'react-toastify';
-import { getCookieClient } from '@/lib/cookieClient';
 import Header from '../../../home/components/header';
 import Menu from '../../../components/menu';
 import WithPermission from '@/components/withPermission';
@@ -39,19 +38,8 @@ export default function GruposListPage() {
     const loadGrupos = async () => {
         try {
             setLoading(true);
-            const token = getCookieClient();
 
-            if (!token) {
-                toast.error('Você precisa estar logado para acessar esta página');
-                router.push('/login');
-                return;
-            }
-
-            const response = await api.get('/roles', {
-                headers: {
-                    Authorization: `Bearer ${token}`
-                }
-            });
+            const response = await api.get('/roles', {});
 
             setGrupos(response.data);
         } catch (error: any) {
@@ -73,18 +61,8 @@ export default function GruposListPage() {
         }
 
         try {
-            const token = getCookieClient();
-            if (!token) {
-                toast.error('Você precisa estar logado');
-                router.push('/login');
-                return;
-            }
 
-            await api.delete(`/role/${id}`, {
-                headers: {
-                    Authorization: `Bearer ${token}`
-                }
-            });
+            await api.delete(`/role/${id}`, {});
 
             toast.success('Grupo excluído com sucesso!');
             loadGrupos();

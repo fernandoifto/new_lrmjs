@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useState, useRef } from 'react';
+import { useEffect, useState, useRef, useCallback } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { toast } from 'react-toastify';
 import { api } from '@/api/api';
@@ -61,6 +61,39 @@ export default function LotesDisponiveisPage() {
     const [fotoReceita, setFotoReceita] = useState<File | null>(null);
     const [fotoReceitaPreview, setFotoReceitaPreview] = useState<string | null>(null);
     const fileInputRef = useRef<HTMLInputElement>(null);
+    const [pacienteContextToken, setPacienteContextToken] = useState<string | null>(null);
+    const [ctxReady, setCtxReady] = useState(false);
+
+    const loadLotes = useCallback(async () => {
+        try {
+            setLoading(true);
+            const response = await api.get('/lotes-disponiveis');
+            setLotes(response.data);
+        } catch (error: unknown) {
+            console.error('Erro ao carregar lotes:', error);
+            toast.error('Erro ao carregar medicamentos disponíveis');
+        } finally {
+            setLoading(false);
+        }
+    }, []);
+
+    const loadSolicitacoes = useCallback(async () => {
+        if (!pacienteId || !pacienteContextToken) return;
+
+        try {
+            setLoadingSolicitacoes(true);
+            const response = await api.get(`/solicitacoes/paciente?paciente=${pacienteId}`, {
+                headers: {
+                    'X-Paciente-Context': pacienteContextToken,
+                },
+            });
+            setSolicitacoesExistentes(response.data);
+        } catch (error: unknown) {
+            console.error('Erro ao carregar solicitações:', error);
+        } finally {
+            setLoadingSolicitacoes(false);
+        }
+    }, [pacienteId, pacienteContextToken]);
 
     useEffect(() => {
         if (!pacienteId) {
@@ -68,44 +101,46 @@ export default function LotesDisponiveisPage() {
             router.push('/solicitar-doacao');
             return;
         }
-        loadLotes();
-        loadSolicitacoes();
-        
-        // Recarregar solicitações a cada 10 segundos para verificar confirmações
-        const interval = setInterval(() => {
-            loadSolicitacoes();
-        }, 10000);
-        
-        return () => clearInterval(interval);
+        let raw: string | null = null;
+        try {
+            raw = sessionStorage.getItem('lrm_paciente_ctx');
+        } catch {
+            raw = null;
+        }
+        if (!raw) {
+            toast.error('Sessão expirada. Informe seu CPF novamente.');
+            router.push('/solicitar-doacao');
+            return;
+        }
+        let ctx: { id: number; token: string };
+        try {
+            ctx = JSON.parse(raw);
+        } catch {
+            toast.error('Sessão inválida. Informe seu CPF novamente.');
+            router.push('/solicitar-doacao');
+            return;
+        }
+        if (String(ctx.id) !== String(pacienteId) || !ctx.token) {
+            toast.error('Sessão do paciente inválida. Informe seu CPF novamente.');
+            router.push('/solicitar-doacao');
+            return;
+        }
+        setPacienteContextToken(ctx.token);
+        setCtxReady(true);
     }, [pacienteId, router]);
 
-    const loadLotes = async () => {
-        try {
-            setLoading(true);
-            const response = await api.get('/lotes-disponiveis');
-            setLotes(response.data);
-        } catch (error: any) {
-            console.error('Erro ao carregar lotes:', error);
-            toast.error('Erro ao carregar medicamentos disponíveis');
-        } finally {
-            setLoading(false);
-        }
-    };
+    useEffect(() => {
+        if (!pacienteId || !ctxReady || !pacienteContextToken) return;
 
-    const loadSolicitacoes = async () => {
-        if (!pacienteId) return;
-        
-        try {
-            setLoadingSolicitacoes(true);
-            const response = await api.get(`/solicitacoes/paciente?paciente=${pacienteId}`);
-            setSolicitacoesExistentes(response.data);
-        } catch (error: any) {
-            console.error('Erro ao carregar solicitações:', error);
-            // Não mostrar erro para o usuário, apenas logar
-        } finally {
-            setLoadingSolicitacoes(false);
-        }
-    };
+        void loadLotes();
+        void loadSolicitacoes();
+
+        const interval = setInterval(() => {
+            void loadSolicitacoes();
+        }, 10000);
+
+        return () => clearInterval(interval);
+    }, [pacienteId, ctxReady, pacienteContextToken, loadLotes, loadSolicitacoes]);
 
     const handleQuantidadeChange = (loteId: number, quantidade: number) => {
         const qtd = parseInt(quantidade.toString()) || 0;
@@ -165,6 +200,12 @@ export default function LotesDisponiveisPage() {
             return;
         }
 
+        if (!pacienteContextToken) {
+            toast.error('Sessão expirada. Informe seu CPF novamente.');
+            router.push('/solicitar-doacao');
+            return;
+        }
+
         if (!fotoReceita) {
             toast.error('É obrigatório enviar a foto da receita médica');
             return;
@@ -203,8 +244,8 @@ export default function LotesDisponiveisPage() {
 
                 return api.post('/solicitacao', formData, {
                     headers: {
-                        'Content-Type': 'multipart/form-data'
-                    }
+                        'X-Paciente-Context': pacienteContextToken,
+                    },
                 });
             });
 

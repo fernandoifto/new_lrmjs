@@ -4,7 +4,6 @@ import { useState, useRef, useEffect } from 'react';
 import { api } from '@/api/api';
 import { useRouter } from 'next/navigation';
 import { toast } from 'react-toastify';
-import { getCookieClient } from '@/lib/cookieClient';
 import Header from '../../home/components/header';
 import Menu from '../../components/menu';
 import WithPermission from '@/components/withPermission';
@@ -39,12 +38,7 @@ export default function NovoUserPage() {
     const loadGrupos = async () => {
         try {
             setLoadingGrupos(true);
-            const token = getCookieClient();
-            if (!token) return;
-
-            const response = await api.get('/roles', {
-                headers: { Authorization: `Bearer ${token}` }
-            });
+const response = await api.get('/roles', {});
 
             setGrupos(response.data);
         } catch (error: any) {
@@ -101,13 +95,6 @@ export default function NovoUserPage() {
         }
 
         setSaving(true);
-        const token = getCookieClient();
-
-        if (!token) {
-            toast.error('Você precisa estar logado');
-            router.push('/login');
-            return;
-        }
 
         try {
             const response = await api.post('/user', {
@@ -115,11 +102,7 @@ export default function NovoUserPage() {
                 email: formData.email,
                 password: formData.password,
                 grupos_ids: selectedGrupos
-            }, {
-                headers: {
-                    Authorization: `Bearer ${token}`
-                }
-            });
+            }, {});
 
             toast.success('Usuário criado com sucesso!');
             setTimeout(() => {

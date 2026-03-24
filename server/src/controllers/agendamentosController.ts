@@ -1,6 +1,7 @@
 import { Request, Response } from "express";
 import { CreateAgendamentosModel, ListAgendamentosModel, GetAgendamentoModel, UpdateAgendamentoModel, MarcarVisitadoModel, DeleteAgendamentoModel } from "../models/agendamentosModels";
 import { uploadMultiple } from "../middlewares/upload";
+import { attachUploadTokensToAgendamentoFotos, attachUploadTokensToAgendamentos } from "../utils/responseTransforms";
 
 class CreateAgendamentosController{
     async handle(request: Request, response: Response) {
@@ -39,7 +40,7 @@ class CreateAgendamentosController{
                         id_turno: parseInt(id_turno),
                         id_user: id_user ? parseInt(id_user) : undefined
                     });
-                    return response.status(201).json(agendamento);
+                    return response.status(201).json(attachUploadTokensToAgendamentoFotos(agendamento));
                 } catch (error: any) {
                     return response.status(400).json({ error: error.message });
                 }
@@ -55,7 +56,7 @@ class ListAgendamentosController {
         try {
             const listAgendamentos = new ListAgendamentosModel();
             const agendamentos = await listAgendamentos.execute();
-            return response.json(agendamentos);
+            return response.json(attachUploadTokensToAgendamentos(agendamentos));
         } catch (error: any) {
             return response.status(400).json({ error: error.message });
         }
@@ -68,7 +69,7 @@ class GetAgendamentoController {
             const { id } = request.params;
             const getAgendamento = new GetAgendamentoModel();
             const agendamento = await getAgendamento.execute(parseInt(id));
-            return response.json(agendamento);
+            return response.json(attachUploadTokensToAgendamentoFotos(agendamento));
         } catch (error: any) {
             return response.status(404).json({ error: error.message });
         }
@@ -96,7 +97,7 @@ class UpdateAgendamentoController {
                 id_user: id_user ? parseInt(id_user) : undefined
             });
             
-            return response.json(agendamento);
+            return response.json(attachUploadTokensToAgendamentoFotos(agendamento));
         } catch (error: any) {
             return response.status(400).json({ error: error.message });
         }
@@ -117,7 +118,7 @@ class MarcarVisitadoController {
             
             const agendamento = await marcarVisitado.execute(parseInt(id), parseInt(userId));
             
-            return response.json(agendamento);
+            return response.json(attachUploadTokensToAgendamentoFotos(agendamento));
         } catch (error: any) {
             return response.status(400).json({ error: error.message });
         }

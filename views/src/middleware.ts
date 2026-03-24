@@ -45,7 +45,6 @@ export async function middleware(request: NextRequest) {
     }
 
     const isValid = await validateToken(token);
-    console.log(isValid);
 
     if(!isValid){
         return NextResponse.redirect(new URL("/login", request.url));
@@ -60,10 +59,8 @@ async function validateToken(token: string){
     
     try {
         await api.get("/detail", {
-            headers: {
-                Authorization: `Bearer ${token}`
-            }
-        })
+            headers: { Authorization: `Bearer ${token}` },
+        });
         return true;
     } catch (error) {
         return false;

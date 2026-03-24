@@ -1,6 +1,5 @@
 import { useState, useEffect } from 'react';
 import { api } from '@/api/api';
-import { getCookieClient } from '@/lib/cookieClient';
 
 export function usePendingSolicitacoes() {
     const [pendingCount, setPendingCount] = useState<number>(0);
@@ -19,18 +18,7 @@ export function usePendingSolicitacoes() {
 
     const loadPendingCount = async () => {
         try {
-            const token = getCookieClient();
-            if (!token) {
-                setPendingCount(0);
-                setLoading(false);
-                return;
-            }
-
-            const response = await api.get('/solicitacoes?status=pendente_de_aprovacao', {
-                headers: {
-                    Authorization: `Bearer ${token}`
-                }
-            });
+            const response = await api.get('/solicitacoes?status=pendente_de_aprovacao', {});
 
             setPendingCount(Array.isArray(response.data) ? response.data.length : 0);
         } catch (error: any) {

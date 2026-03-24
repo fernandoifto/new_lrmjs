@@ -4,7 +4,6 @@ import { useEffect, useState, useRef } from 'react';
 import { api } from '@/api/api';
 import { useRouter, useParams } from 'next/navigation';
 import { toast } from 'react-toastify';
-import { getCookieClient } from '@/lib/cookieClient';
 import Header from '../../../home/components/header';
 import Menu from '../../../components/menu';
 import WithPermission from '@/components/withPermission';
@@ -81,25 +80,12 @@ export default function EditarRetiradaPage() {
     const loadData = async (id: number) => {
         try {
             setLoading(true);
-            const token = getCookieClient();
-
-            if (!token) {
-                toast.error('Você precisa estar logado');
-                router.push('/login');
-                return;
-            }
 
             // Carregar pacientes e lotes
             const [pacientesRes, lotesRes, retiradaRes] = await Promise.all([
-                api.get('/pacientes', {
-                    headers: { Authorization: `Bearer ${token}` }
-                }),
-                api.get('/lotes', {
-                    headers: { Authorization: `Bearer ${token}` }
-                }),
-                api.get(`/retirada/${id}`, {
-                    headers: { Authorization: `Bearer ${token}` }
-                })
+                api.get('/pacientes', {}),
+                api.get('/lotes', {}),
+                api.get(`/retirada/${id}`, {})
             ]);
 
             setPacientes(pacientesRes.data);
@@ -233,24 +219,13 @@ export default function EditarRetiradaPage() {
         }
 
         setSaving(true);
-        const token = getCookieClient();
-
-        if (!token) {
-            toast.error('Você precisa estar logado');
-            router.push('/login');
-            return;
-        }
 
         try {
             await api.put(`/retirada/${params.id}`, {
                 qtde: quantidade,
                 id_lotes: parseInt(formData.id_lotes),
                 id_pacientes: parseInt(formData.id_pacientes)
-            }, {
-                headers: {
-                    Authorization: `Bearer ${token}`
-                }
-            });
+            }, {});
 
             toast.success('Retirada atualizada com sucesso!');
             setTimeout(() => {

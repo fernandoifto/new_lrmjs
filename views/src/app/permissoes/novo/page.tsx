@@ -4,7 +4,6 @@ import { useState, useRef, useEffect } from 'react';
 import { api } from '@/api/api';
 import { useRouter } from 'next/navigation';
 import { toast } from 'react-toastify';
-import { getCookieClient } from '@/lib/cookieClient';
 import Header from '../../home/components/header';
 import Menu from '../../components/menu';
 import WithPermission from '@/components/withPermission';
@@ -24,11 +23,6 @@ export default function NovaPermissaoPage() {
     });
 
     useEffect(() => {
-        const token = getCookieClient();
-        if (!token) {
-            toast.error('Você precisa estar logado para acessar esta página');
-            router.push('/login');
-        }
     }, [router]);
 
     const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>) => {
@@ -48,13 +42,6 @@ export default function NovaPermissaoPage() {
         }
 
         setSaving(true);
-        const token = getCookieClient();
-
-        if (!token) {
-            toast.error('Você precisa estar logado');
-            router.push('/login');
-            return;
-        }
 
         try {
             await api.post('/permissao', {
@@ -62,11 +49,7 @@ export default function NovaPermissaoPage() {
                 descricao: formData.descricao.trim() || null,
                 pagina: formData.pagina.trim() || null,
                 acao: formData.acao.trim() || null
-            }, {
-                headers: {
-                    Authorization: `Bearer ${token}`
-                }
-            });
+            }, {});
 
             toast.success('Permissão criada com sucesso!');
             setTimeout(() => {

@@ -3,7 +3,6 @@
 import { useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { toast } from 'react-toastify';
-import { getCookieClient } from '@/lib/cookieClient';
 import Header from '../home/components/header';
 import Menu from '../components/menu';
 import WithPermission from '@/components/withPermission';
@@ -17,11 +16,6 @@ export default function PacientesDoacoesPage() {
     const { hasPermission, hasAnyPermission, isAdmin, loading } = usePermissions();
 
     useEffect(() => {
-        const token = getCookieClient();
-        if (!token) {
-            toast.error('Você precisa estar logado para acessar esta página');
-            router.push('/login');
-        }
     }, [router]);
 
     return (

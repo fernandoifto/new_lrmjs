@@ -4,7 +4,6 @@ import { useEffect, useState, useRef } from 'react';
 import { api } from '@/api/api';
 import { useRouter, useParams } from 'next/navigation';
 import { toast } from 'react-toastify';
-import { getCookieClient } from '@/lib/cookieClient';
 import Header from '../../../../home/components/header';
 import Menu from '../../../../components/menu';
 import WithPermission from '@/components/withPermission';
@@ -39,19 +38,8 @@ export default function EditarMedicamentoPage() {
     const loadMedicamento = async (id: number) => {
         try {
             setLoading(true);
-            const token = getCookieClient();
 
-            if (!token) {
-                toast.error('Você precisa estar logado');
-                router.push('/login');
-                return;
-            }
-
-            const response = await api.get(`/medicamento/${id}`, {
-                headers: {
-                    Authorization: `Bearer ${token}`
-                }
-            });
+            const response = await api.get(`/medicamento/${id}`, {});
 
             setMedicamento(response.data);
             setFormData({
@@ -91,22 +79,11 @@ export default function EditarMedicamentoPage() {
         }
 
         setSaving(true);
-        const token = getCookieClient();
-
-        if (!token) {
-            toast.error('Você precisa estar logado');
-            router.push('/login');
-            return;
-        }
 
         try {
             await api.put(`/medicamento/${tipoMedicamento.id}`, {
                 descricao: formData.descricao.trim()
-            }, {
-                headers: {
-                    Authorization: `Bearer ${token}`
-                }
-            });
+            }, {});
 
             toast.success('Tipo de medicamento atualizado com sucesso!');
             setTimeout(() => {
@@ -144,7 +121,7 @@ export default function EditarMedicamentoPage() {
     }
 
     return (
-        <>
+        <WithPermission requiredPermission="tipos_medicamentos.editar">
             <Header />
             <Menu />
             <main className={styles.main}>

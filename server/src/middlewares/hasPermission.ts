@@ -1,6 +1,8 @@
 import { Request, Response, NextFunction } from "express";
 import { verify } from "jsonwebtoken";
 import prismaClient from "../tools/prisma";
+import { JWT_VERIFY_OPTIONS } from "../config/jwtOptions";
+import { getAuthTokenFromRequest } from "./getAuthToken";
 
 interface IPayload {
     sub: string;
@@ -9,14 +11,12 @@ interface IPayload {
 export function hasPermission(permissionName: string) {
     return async (request: Request, response: Response, next: NextFunction) => {
         try {
-            const authToken = request.headers.authorization;
-            
-            if (!authToken) {
+            const token = getAuthTokenFromRequest(request);
+
+            if (!token) {
                 return response.status(401).json({ error: "Token não fornecido" });
             }
-            
-            const token = authToken.split(" ")[1];
-            const { sub } = verify(token, process.env.JWT_SECRET as string) as IPayload;
+            const { sub } = verify(token, process.env.JWT_SECRET as string, JWT_VERIFY_OPTIONS) as IPayload;
             const userId = Number(sub);
 
             // Buscar usuário

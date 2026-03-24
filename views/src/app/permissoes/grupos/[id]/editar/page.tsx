@@ -4,7 +4,6 @@ import { useEffect, useState, useRef } from 'react';
 import { api } from '@/api/api';
 import { useRouter, useParams } from 'next/navigation';
 import { toast } from 'react-toastify';
-import { getCookieClient } from '@/lib/cookieClient';
 import Header from '../../../../home/components/header';
 import Menu from '../../../../components/menu';
 import WithPermission from '@/components/withPermission';
@@ -41,19 +40,8 @@ export default function EditarGrupoPage() {
     const loadGrupo = async (id: number) => {
         try {
             setLoading(true);
-            const token = getCookieClient();
 
-            if (!token) {
-                toast.error('Você precisa estar logado');
-                router.push('/login');
-                return;
-            }
-
-            const response = await api.get(`/role/${id}`, {
-                headers: {
-                    Authorization: `Bearer ${token}`
-                }
-            });
+            const response = await api.get(`/role/${id}`, {});
 
             setGrupo(response.data);
             setFormData({
@@ -94,23 +82,12 @@ export default function EditarGrupoPage() {
         }
 
         setSaving(true);
-        const token = getCookieClient();
-
-        if (!token) {
-            toast.error('Você precisa estar logado');
-            router.push('/login');
-            return;
-        }
 
         try {
             await api.put(`/role/${grupo.id}`, {
                 nome: formData.nome.trim(),
                 descricao: formData.descricao.trim() || null
-            }, {
-                headers: {
-                    Authorization: `Bearer ${token}`
-                }
-            });
+            }, {});
 
             toast.success('Grupo atualizado com sucesso!');
             setTimeout(() => {

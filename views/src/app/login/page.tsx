@@ -3,10 +3,8 @@ import 'bootstrap/dist/css/bootstrap.min.css';
 import styles from './page.module.css';
 import Link from 'next/link';
 import { useState } from 'react';
-import { api } from '@/api/api';
 import { useRouter } from 'next/navigation';
 import { toast } from 'react-toastify';
-import { setCookie } from 'cookies-next';
 
 export default function Login() {
   const router = useRouter();
@@ -44,27 +42,27 @@ export default function Login() {
     }
 
     try {
-      const response = await api.post('/auth', {
-        email: formData.email,
-        password: formData.password
+      const response = await fetch('/api/auth/session', {
+        method: 'POST',
+        credentials: 'include',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          email: formData.email,
+          password: formData.password,
+        }),
       });
 
-      if (response.data && response.data.token) {
-        // Salvar token no cookie
-        const expressTime = 60 * 60 * 24 * 30; // 30 dias em segundos
-        setCookie('session', response.data.token, {
-          maxAge: expressTime,
-          path: '/',
-          secure: process.env.NODE_ENV === 'production',
-        });
+      const data = await response.json().catch(() => ({}));
 
-        toast.success('Login realizado com sucesso!');
-        setTimeout(() => {
-          router.push('/agendamentos');
-        }, 1000);
-      } else {
-        toast.error('Erro ao fazer login. Tente novamente.');
+      if (!response.ok) {
+        toast.error((data as { error?: string }).error || 'Erro ao fazer login. Tente novamente.');
+        return;
       }
+
+      toast.success('Login realizado com sucesso!');
+      setTimeout(() => {
+        router.push('/agendamentos');
+      }, 1000);
     } catch (error: any) {
       console.error('Erro ao fazer login:', error);
       const errorMessage = error.response?.data?.error || error.message || 'Erro ao fazer login. Verifique suas credenciais.';

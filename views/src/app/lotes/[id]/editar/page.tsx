@@ -4,7 +4,6 @@ import { useEffect, useState, useRef } from 'react';
 import { api } from '@/api/api';
 import { useRouter, useParams } from 'next/navigation';
 import { toast } from 'react-toastify';
-import { getCookieClient } from '@/lib/cookieClient';
 import Header from '../../../home/components/header';
 import Menu from '../../../components/menu';
 import WithPermission from '@/components/withPermission';
@@ -80,44 +79,21 @@ export default function EditarLotePage() {
     const loadData = async (id: number) => {
         try {
             setLoading(true);
-            const token = getCookieClient();
-
-            if (!token) {
-                toast.error('Você precisa estar logado');
-                router.push('/login');
-                return;
-            }
 
             // Carregar medicamentos
-            const medicamentosResponse = await api.get('/medicamentos', {
-                headers: {
-                    Authorization: `Bearer ${token}`
-                }
-            });
+            const medicamentosResponse = await api.get('/medicamentos', {});
             setMedicamentos(medicamentosResponse.data);
 
             // Carregar formas farmacêuticas
-            const formasResponse = await api.get('/formas-farmaceuticas', {
-                headers: {
-                    Authorization: `Bearer ${token}`
-                }
-            });
+            const formasResponse = await api.get('/formas-farmaceuticas', {});
             setFormasFarmaceuticas(formasResponse.data);
 
             // Carregar tipos de medicamentos
-            const tiposResponse = await api.get('/tipos-medicamentos', {
-                headers: {
-                    Authorization: `Bearer ${token}`
-                }
-            });
+            const tiposResponse = await api.get('/tipos-medicamentos', {});
             setTiposMedicamentos(tiposResponse.data);
 
             // Carregar lote
-            const loteResponse = await api.get(`/lote/${id}`, {
-                headers: {
-                    Authorization: `Bearer ${token}`
-                }
-            });
+            const loteResponse = await api.get(`/lote/${id}`, {});
 
             const loteData = loteResponse.data;
             setLote(loteData);
@@ -195,13 +171,6 @@ export default function EditarLotePage() {
         }
 
         setSaving(true);
-        const token = getCookieClient();
-
-        if (!token) {
-            toast.error('Você precisa estar logado');
-            router.push('/login');
-            return;
-        }
 
         try {
             await api.put(`/lote/${lote.id}`, {
@@ -212,11 +181,7 @@ export default function EditarLotePage() {
                 id_medicamento: parseInt(formData.id_medicamento),
                 id_forma_farmaceutica: parseInt(formData.id_forma_farmaceutica),
                 id_tipo_medicamento: parseInt(formData.id_tipo_medicamento)
-            }, {
-                headers: {
-                    Authorization: `Bearer ${token}`
-                }
-            });
+            }, {});
 
             toast.success('Lote atualizado com sucesso!');
             setTimeout(() => {

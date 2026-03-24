@@ -15,6 +15,9 @@ import { UpdateUserGruposController } from "./controllers/userGruposController";
 import { WhatsAppController } from "./controllers/whatsappController";
 import { isAuthenticated } from "./middlewares/isAutenticated";
 import { hasPermission } from "./middlewares/hasPermission";
+import { isAdmin } from "./middlewares/isAdmin";
+import { requirePacienteContextQuery } from "./middlewares/pacienteContext";
+import { loginLimiter, passwordResetLimiter, publicDataLimiter } from "./middlewares/rateLimits";
 
 const router = Router();
 
@@ -30,16 +33,16 @@ router.delete("/agendamento/:id", isAuthenticated, hasPermission("agendamentos.e
 router.get("/turnos", new ListTurnosController().handle);
 
 //Rotas de users
-router.post("/auth", new AuthUserController().handle);
-router.post("/user", new CreateUserController().handle);
+router.post("/auth", loginLimiter, new AuthUserController().handle);
+router.post("/user", isAuthenticated, isAdmin, new CreateUserController().handle);
 router.get("/detail", isAuthenticated, new DetailUserController().handle);
-router.post("/forgot-password", new ForgotPasswordController().handle);
-router.post("/reset-password", new ResetPasswordController().handle);
-router.get("/users", isAuthenticated, new ListUsersController().handle);
-router.get("/user/:id", isAuthenticated, new GetUserController().handle);
-router.put("/user/:id", isAuthenticated, new UpdateUserController().handle);
-router.delete("/user/:id", isAuthenticated, new DeleteUserController().handle);
-router.put("/user/:id/grupos", isAuthenticated, new UpdateUserGruposController().handle);
+router.post("/forgot-password", passwordResetLimiter, new ForgotPasswordController().handle);
+router.post("/reset-password", passwordResetLimiter, new ResetPasswordController().handle);
+router.get("/users", isAuthenticated, isAdmin, new ListUsersController().handle);
+router.get("/user/:id", isAuthenticated, isAdmin, new GetUserController().handle);
+router.put("/user/:id", isAuthenticated, isAdmin, new UpdateUserController().handle);
+router.delete("/user/:id", isAuthenticated, isAdmin, new DeleteUserController().handle);
+router.put("/user/:id/grupos", isAuthenticated, isAdmin, new UpdateUserGruposController().handle);
 
 //Rotas de tipos de medicamentos
 router.post("/tipo-medicamento", isAuthenticated, hasPermission("tipos_medicamentos.criar"), new CreateTipoMedicamentoController().handle);
@@ -72,11 +75,11 @@ router.delete("/lote/:id", isAuthenticated, hasPermission("lotes.excluir"), new 
 
 //Rotas de pacientes
 // Rota pública para cadastro de pacientes (usado em solicitações)
-router.post("/paciente/public", new CreatePacienteController().handle);
+router.post("/paciente/public", publicDataLimiter, new CreatePacienteController().handle);
 router.post("/paciente", isAuthenticated, hasPermission("pacientes.criar"), new CreatePacienteController().handle);
 router.get("/pacientes", isAuthenticated, hasPermission("pacientes.ver"), new ListPacientesController().handle);
 router.get("/paciente/:id", isAuthenticated, hasPermission("pacientes.ver"), new GetPacienteController().handle);
-router.get("/paciente/cpf/:cpf", new GetPacienteByCPFController().handle); // Rota pública para buscar por CPF
+router.get("/paciente/cpf/:cpf", publicDataLimiter, new GetPacienteByCPFController().handle); // Pública: retorna apenas id + token de contexto
 router.put("/paciente/:id", isAuthenticated, hasPermission("pacientes.editar"), new UpdatePacienteController().handle);
 router.delete("/paciente/:id", isAuthenticated, hasPermission("pacientes.excluir"), new DeletePacienteController().handle);
 
@@ -88,8 +91,13 @@ router.put("/retirada/:id", isAuthenticated, hasPermission("retiradas.editar"), 
 router.delete("/retirada/:id", isAuthenticated, hasPermission("retiradas.excluir"), new DeleteRetiradaController().handle);
 
 //Rotas de solicitações (pré-retiradas)
-router.post("/solicitacao", new CreateSolicitacaoController().handle); // Rota pública
-router.get("/solicitacoes/paciente", new ListSolicitacoesByPacienteController().handle); // Rota pública para buscar por paciente
+router.post("/solicitacao", publicDataLimiter, new CreateSolicitacaoController().handle); // Pública: exige X-Paciente-Context
+router.get(
+    "/solicitacoes/paciente",
+    publicDataLimiter,
+    requirePacienteContextQuery,
+    new ListSolicitacoesByPacienteController().handle
+);
 router.get("/solicitacoes", isAuthenticated, hasPermission("retiradas.ver"), new ListSolicitacoesController().handle);
 router.get("/solicitacao/:id", isAuthenticated, hasPermission("retiradas.ver"), new GetSolicitacaoController().handle);
 router.post("/solicitacao/:id/confirmar", isAuthenticated, hasPermission("retiradas.criar"), new ConfirmarSolicitacaoController().handle);
@@ -97,20 +105,20 @@ router.post("/solicitacao/:id/concluir", isAuthenticated, hasPermission("retirad
 router.post("/solicitacao/:id/recusar", isAuthenticated, hasPermission("retiradas.editar"), new RecusarSolicitacaoController().handle);
 router.delete("/solicitacao/:id", isAuthenticated, hasPermission("retiradas.excluir"), new DeleteSolicitacaoController().handle);
 
-//Rotas de permissões
-router.post("/permissao", isAuthenticated, new CreatePermissaoController().handle);
-router.get("/permissoes", isAuthenticated, new ListPermissoesController().handle);
-router.get("/permissao/:id", isAuthenticated, new GetPermissaoController().handle);
-router.put("/permissao/:id", isAuthenticated, new UpdatePermissaoController().handle);
-router.delete("/permissao/:id", isAuthenticated, new DeletePermissaoController().handle);
+//Rotas de permissões (somente admin)
+router.post("/permissao", isAuthenticated, isAdmin, new CreatePermissaoController().handle);
+router.get("/permissoes", isAuthenticated, isAdmin, new ListPermissoesController().handle);
+router.get("/permissao/:id", isAuthenticated, isAdmin, new GetPermissaoController().handle);
+router.put("/permissao/:id", isAuthenticated, isAdmin, new UpdatePermissaoController().handle);
+router.delete("/permissao/:id", isAuthenticated, isAdmin, new DeletePermissaoController().handle);
 
-//Rotas de roles
-router.post("/role", isAuthenticated, new CreateRoleController().handle);
-router.get("/roles", isAuthenticated, new ListRolesController().handle);
-router.get("/role/:id", isAuthenticated, new GetRoleController().handle);
-router.put("/role/:id", isAuthenticated, new UpdateRoleController().handle);
-router.delete("/role/:id", isAuthenticated, new DeleteRoleController().handle);
-router.put("/role/:id/permissoes", isAuthenticated, new UpdateRolePermissoesController().handle);
+//Rotas de roles (somente admin)
+router.post("/role", isAuthenticated, isAdmin, new CreateRoleController().handle);
+router.get("/roles", isAuthenticated, isAdmin, new ListRolesController().handle);
+router.get("/role/:id", isAuthenticated, isAdmin, new GetRoleController().handle);
+router.put("/role/:id", isAuthenticated, isAdmin, new UpdateRoleController().handle);
+router.delete("/role/:id", isAuthenticated, isAdmin, new DeleteRoleController().handle);
+router.put("/role/:id/permissoes", isAuthenticated, isAdmin, new UpdateRolePermissoesController().handle);
 
 //Rotas de permissões do usuário
 router.get("/user-permissoes", isAuthenticated, new GetUserPermissoesController().handle);

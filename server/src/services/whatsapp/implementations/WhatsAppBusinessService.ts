@@ -1,5 +1,4 @@
 import axios, { AxiosInstance } from 'axios';
-import axios, { AxiosInstance } from 'axios';
 import { IWhatsAppService } from '../interfaces/IWhatsAppService';
 import { IncomingMessage, MessageResult, WhatsAppConfig } from '../types';
 

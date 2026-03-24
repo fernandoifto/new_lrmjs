@@ -3,7 +3,6 @@ import { useEffect, useState } from 'react';
 import { api } from '@/api/api';
 import { useRouter, useParams } from 'next/navigation';
 import { toast } from 'react-toastify';
-import { getCookieClient } from '@/lib/cookieClient';
 import Header from '../../home/components/header';
 import Menu from '../../components/menu';
 import WithPermission from '@/components/withPermission';
@@ -55,19 +54,8 @@ export default function AgendamentoViewPage() {
     const loadAgendamento = async (id: number) => {
         try {
             setLoading(true);
-            const token = getCookieClient();
 
-            if (!token) {
-                toast.error('Você precisa estar logado para acessar esta página');
-                router.push('/login');
-                return;
-            }
-
-            const response = await api.get(`/agendamento/${id}`, {
-                headers: {
-                    Authorization: `Bearer ${token}`
-                }
-            });
+            const response = await api.get(`/agendamento/${id}`, {});
 
             setAgendamento(response.data);
         } catch (error: any) {
@@ -173,25 +161,11 @@ export default function AgendamentoViewPage() {
 
     const handleVisitar = async (id: number) => {
         try {
-            const token = getCookieClient();
-            if (!token) {
-                toast.error('Você precisa estar logado');
-                router.push('/login');
-                return;
-            }
 
             // Obter o ID do usuário atual
-            const userResponse = await api.get('/detail', {
-                headers: {
-                    Authorization: `Bearer ${token}`
-                }
-            });
+            const userResponse = await api.get('/detail', {});
 
-            await api.patch(`/agendamento/${id}/visitar?userId=${userResponse.data.id}`, {}, {
-                headers: {
-                    Authorization: `Bearer ${token}`
-                }
-            });
+            await api.patch(`/agendamento/${id}/visitar?userId=${userResponse.data.id}`, {}, {});
 
             toast.success('Agendamento marcado como visitado!');
             loadAgendamento(id); // Recarrega a lista
@@ -212,18 +186,8 @@ export default function AgendamentoViewPage() {
         }
 
         try {
-            const token = getCookieClient();
-            if (!token) {
-                toast.error('Você precisa estar logado');
-                router.push('/login');
-                return;
-            }
 
-            await api.delete(`/agendamento/${id}`, {
-                headers: {
-                    Authorization: `Bearer ${token}`
-                }
-            });
+            await api.delete(`/agendamento/${id}`, {});
 
             toast.success('Agendamento excluído com sucesso!');
             router.push('/agendamentos/list');

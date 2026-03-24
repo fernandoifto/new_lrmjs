@@ -2,6 +2,7 @@ import prismaClient from "../tools/prisma";
 import bcrypt from "bcryptjs";
 import { sign, verify } from "jsonwebtoken";
 import { EmailService } from "../services/emailService";
+import { JWT_ALGORITHM, JWT_VERIFY_OPTIONS } from "../config/jwtOptions";
 
 interface IUser {
     username: string;
@@ -41,6 +42,7 @@ class AuthUserModel {
         const token = sign({ 
             email: user.email
         }, process.env.JWT_SECRET as string, {
+            algorithm: JWT_ALGORITHM,
             subject: user.id.toString(),
             expiresIn: "1d"
         });
@@ -95,13 +97,19 @@ class CreateUserModel {
             }
         });
 
-        // Atribuir grupos ao usuário se fornecidos
+        // Atribuir grupos ao usuário se fornecidos (apenas IDs inteiros positivos)
         if (grupos_ids && grupos_ids.length > 0) {
+            const roleIds = grupos_ids
+                .map((id) => (typeof id === "string" ? parseInt(id, 10) : id))
+                .filter((id) => Number.isInteger(id) && id > 0);
+            if (roleIds.length !== grupos_ids.length) {
+                throw new Error("IDs de grupos inválidos");
+            }
             await prismaClient.userRoles.createMany({
-                data: grupos_ids.map(id_role => ({
+                data: roleIds.map((id_role) => ({
                     id_user: user.id,
-                    id_role
-                }))
+                    id_role,
+                })),
             });
         }
 
@@ -169,7 +177,7 @@ export class ResetPasswordModel {
 
         let decoded: any;
         try {
-            decoded = verify(token, process.env.JWT_SECRET as string);
+            decoded = verify(token, process.env.JWT_SECRET as string, JWT_VERIFY_OPTIONS);
             
             // Verificar se o token é do tipo password_reset
             if (decoded.type !== "password_reset") {

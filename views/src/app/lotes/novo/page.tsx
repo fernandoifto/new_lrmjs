@@ -4,7 +4,6 @@ import { useState, useRef, useEffect } from 'react';
 import { api } from '@/api/api';
 import { useRouter } from 'next/navigation';
 import { toast } from 'react-toastify';
-import { getCookieClient } from '@/lib/cookieClient';
 import Header from '../../home/components/header';
 import Menu from '../../components/menu';
 import WithPermission from '@/components/withPermission';
@@ -65,46 +64,22 @@ export default function NovoLotePage() {
     });
 
     useEffect(() => {
-        const token = getCookieClient();
-        if (!token) {
-            toast.error('Você precisa estar logado para acessar esta página');
-            router.push('/login');
-            return;
-        }
         loadData();
     }, [router]);
 
     const loadData = async () => {
         try {
             setLoading(true);
-            const token = getCookieClient();
-
-            if (!token) {
-                return;
-            }
-
             // Carregar medicamentos
-            const medicamentosResponse = await api.get('/medicamentos', {
-                headers: {
-                    Authorization: `Bearer ${token}`
-                }
-            });
+            const medicamentosResponse = await api.get('/medicamentos', {});
             setMedicamentos(medicamentosResponse.data);
 
             // Carregar formas farmacêuticas
-            const formasResponse = await api.get('/formas-farmaceuticas', {
-                headers: {
-                    Authorization: `Bearer ${token}`
-                }
-            });
+            const formasResponse = await api.get('/formas-farmaceuticas', {});
             setFormasFarmaceuticas(formasResponse.data);
 
             // Carregar tipos de medicamentos
-            const tiposResponse = await api.get('/tipos-medicamentos', {
-                headers: {
-                    Authorization: `Bearer ${token}`
-                }
-            });
+            const tiposResponse = await api.get('/tipos-medicamentos', {});
             setTiposMedicamentos(tiposResponse.data);
         } catch (error: any) {
             console.error('Erro ao carregar dados:', error);
@@ -135,17 +110,11 @@ export default function NovoLotePage() {
         }
 
         setSavingModal(true);
-        const token = getCookieClient();
-
-        try {
+try {
             const response = await api.post('/medicamento', {
                 descricao: modalMedicamentoData.descricao.trim(),
                 principioativo: modalMedicamentoData.principioativo.trim()
-            }, {
-                headers: {
-                    Authorization: `Bearer ${token}`
-                }
-            });
+            }, {});
 
             toast.success('Medicamento criado com sucesso!');
             setMedicamentos([...medicamentos, response.data]);
@@ -167,16 +136,10 @@ export default function NovoLotePage() {
         }
 
         setSavingModal(true);
-        const token = getCookieClient();
-
-        try {
+try {
             const response = await api.post('/forma-farmaceutica', {
                 descricao: modalFormaData.descricao.trim()
-            }, {
-                headers: {
-                    Authorization: `Bearer ${token}`
-                }
-            });
+            }, {});
 
             toast.success('Forma farmacêutica criada com sucesso!');
             setFormasFarmaceuticas([...formasFarmaceuticas, response.data]);
@@ -198,16 +161,10 @@ export default function NovoLotePage() {
         }
 
         setSavingModal(true);
-        const token = getCookieClient();
-
-        try {
+try {
             const response = await api.post('/tipo-medicamento', {
                 descricao: modalTipoData.descricao.trim()
-            }, {
-                headers: {
-                    Authorization: `Bearer ${token}`
-                }
-            });
+            }, {});
 
             toast.success('Tipo de medicamento criado com sucesso!');
             setTiposMedicamentos([...tiposMedicamentos, response.data]);
@@ -270,13 +227,6 @@ export default function NovoLotePage() {
         }
 
         setSaving(true);
-        const token = getCookieClient();
-
-        if (!token) {
-            toast.error('Você precisa estar logado');
-            router.push('/login');
-            return;
-        }
 
         try {
             await api.post('/lote', {
@@ -287,11 +237,7 @@ export default function NovoLotePage() {
                 id_medicamento: parseInt(formData.id_medicamento),
                 id_forma_farmaceutica: parseInt(formData.id_forma_farmaceutica),
                 id_tipo_medicamento: parseInt(formData.id_tipo_medicamento)
-            }, {
-                headers: {
-                    Authorization: `Bearer ${token}`
-                }
-            });
+            }, {});
 
             toast.success('Lote criado com sucesso!');
             setTimeout(() => {

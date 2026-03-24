@@ -4,7 +4,6 @@ import { useState, useRef, useEffect } from 'react';
 import { api } from '@/api/api';
 import { useRouter, useParams } from 'next/navigation';
 import { toast } from 'react-toastify';
-import { getCookieClient } from '@/lib/cookieClient';
 import Header from '../../../home/components/header';
 import Menu from '../../../components/menu';
 import WithPermission from '@/components/withPermission';
@@ -38,19 +37,8 @@ export default function EditarPacientePage() {
     const loadPaciente = async (id: number) => {
         try {
             setLoading(true);
-            const token = getCookieClient();
 
-            if (!token) {
-                toast.error('Você precisa estar logado');
-                router.push('/login');
-                return;
-            }
-
-            const response = await api.get(`/paciente/${id}`, {
-                headers: {
-                    Authorization: `Bearer ${token}`
-                }
-            });
+            const response = await api.get(`/paciente/${id}`, {});
 
             const paciente = response.data;
             setFormData({
@@ -123,13 +111,6 @@ export default function EditarPacientePage() {
         }
 
         setSaving(true);
-        const token = getCookieClient();
-
-        if (!token) {
-            toast.error('Você precisa estar logado');
-            router.push('/login');
-            return;
-        }
 
         try {
             await api.put(`/paciente/${params.id}`, {
@@ -138,11 +119,7 @@ export default function EditarPacientePage() {
                 datanascimento: formData.datanascimento,
                 telefone: phoneValue.replace(/\D/g, ''),
                 cartaosus: formData.cartaosus.trim()
-            }, {
-                headers: {
-                    Authorization: `Bearer ${token}`
-                }
-            });
+            }, {});
 
             toast.success('Paciente atualizado com sucesso!');
             setTimeout(() => {

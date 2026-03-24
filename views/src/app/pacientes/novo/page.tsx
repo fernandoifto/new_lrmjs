@@ -4,7 +4,6 @@ import { useState, useRef, useEffect } from 'react';
 import { api } from '@/api/api';
 import { useRouter } from 'next/navigation';
 import { toast } from 'react-toastify';
-import { getCookieClient } from '@/lib/cookieClient';
 import Header from '../../home/components/header';
 import HeaderRight from '../../home/components/headerRight';
 import Menu from '../../components/menu';
@@ -39,11 +38,6 @@ export default function NovoPacientePage() {
             setIsPublicRegistration(true);
         } else {
             // Verificar autenticação apenas se não vier de solicitação pública
-            const token = getCookieClient();
-            if (!token) {
-                toast.error('Você precisa estar logado para acessar esta página');
-                router.push('/login');
-            }
         }
     }, [router]);
 
@@ -97,50 +91,32 @@ export default function NovoPacientePage() {
         const urlParams = new URLSearchParams(window.location.search);
         const cpfParam = urlParams.get('cpf');
         const isPublicRegistration = !!cpfParam;
-        const token = getCookieClient();
-
-        // Se for cadastro público, não precisa de token
-        if (!isPublicRegistration && !token) {
-            toast.error('Você precisa estar logado');
-            router.push('/login');
-            setSaving(false);
-            return;
-        }
-
-        const headers: any = {};
-        if (token) {
-            headers.Authorization = `Bearer ${token}`;
-        }
 
         try {
             const endpoint = isPublicRegistration ? '/paciente/public' : '/paciente';
-            await api.post(endpoint, {
+            const createRes = await api.post(endpoint, {
                 nome: formData.nome.trim(),
                 cpf: cpfValue.replace(/\D/g, ''),
                 datanascimento: formData.datanascimento,
                 telefone: phoneValue.replace(/\D/g, ''),
                 cartaosus: formData.cartaosus.trim()
-            }, {
-                headers
             });
 
             toast.success('Paciente criado com sucesso!');
             
-            // Se veio de solicitação pública, redirecionar para lotes disponíveis
             const urlParams = new URLSearchParams(window.location.search);
             const cpfParam = urlParams.get('cpf');
             if (cpfParam) {
-                // Buscar o paciente recém-criado para obter o ID
-                try {
-                    const pacienteResponse = await api.get(`/paciente/cpf/${cpfValue.replace(/\D/g, '')}`);
-                    setTimeout(() => {
-                        router.push(`/lotes-disponiveis?paciente=${pacienteResponse.data.id}`);
-                    }, 1500);
-                } catch (error) {
-                    setTimeout(() => {
-                        router.push('/pacientes');
-                    }, 1500);
+                const { id, pacienteContextToken } = createRes.data;
+                if (typeof window !== 'undefined' && pacienteContextToken && id != null) {
+                    sessionStorage.setItem(
+                        'lrm_paciente_ctx',
+                        JSON.stringify({ id, token: pacienteContextToken })
+                    );
                 }
+                setTimeout(() => {
+                    router.push(`/lotes-disponiveis?paciente=${id}`);
+                }, 1500);
             } else {
                 setTimeout(() => {
                     router.push('/pacientes');

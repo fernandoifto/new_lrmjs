@@ -4,7 +4,6 @@ import { useEffect, useState } from 'react';
 import { api } from '@/api/api';
 import { useRouter, useParams } from 'next/navigation';
 import { toast } from 'react-toastify';
-import { getCookieClient } from '@/lib/cookieClient';
 import Header from '../../../home/components/header';
 import Menu from '../../../components/menu';
 import styles from './page.module.css';
@@ -44,12 +43,6 @@ export default function RolePermissoesPage() {
     const [saving, setSaving] = useState(false);
 
     useEffect(() => {
-        const token = getCookieClient();
-        if (!token) {
-            toast.error('Você precisa estar logado para acessar esta página');
-            router.push('/login');
-            return;
-        }
         if (params.id) {
             loadData(Number(params.id));
         }
@@ -58,16 +51,9 @@ export default function RolePermissoesPage() {
     const loadData = async (roleId: number) => {
         try {
             setLoading(true);
-            const token = getCookieClient();
-            if (!token) return;
-
-            const [roleRes, permissoesRes] = await Promise.all([
-                api.get(`/role/${roleId}`, {
-                    headers: { Authorization: `Bearer ${token}` }
-                }),
-                api.get('/permissoes', {
-                    headers: { Authorization: `Bearer ${token}` }
-                })
+const [roleRes, permissoesRes] = await Promise.all([
+                api.get(`/role/${roleId}`, {}),
+                api.get('/permissoes', {})
             ]);
 
             setRole(roleRes.data);
@@ -104,14 +90,9 @@ export default function RolePermissoesPage() {
 
         try {
             setSaving(true);
-            const token = getCookieClient();
-            if (!token) return;
-
-            await api.put(`/role/${role.id}/permissoes`, {
+await api.put(`/role/${role.id}/permissoes`, {
                 permissoes_ids: selectedPermissoes
-            }, {
-                headers: { Authorization: `Bearer ${token}` }
-            });
+            }, {});
 
             toast.success('Permissões atualizadas com sucesso!');
             loadData(role.id);

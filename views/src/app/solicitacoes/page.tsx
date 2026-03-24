@@ -4,7 +4,6 @@ import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { toast } from 'react-toastify';
 import { api } from '@/api/api';
-import { getCookieClient } from '@/lib/cookieClient';
 import Header from '../home/components/header';
 import Menu from '../components/menu';
 import WithPermission from '@/components/withPermission';
@@ -75,13 +74,6 @@ export default function SolicitacoesPage() {
     const loadSolicitacoes = async () => {
         try {
             setLoading(true);
-            const token = getCookieClient();
-
-            if (!token) {
-                toast.error('Você precisa estar logado para acessar esta página');
-                router.push('/login');
-                return;
-            }
 
             const statusParam = filter === 'todas' ? undefined : 
                 filter === 'pendentes' ? 'pendente_de_aprovacao' : 
@@ -90,11 +82,7 @@ export default function SolicitacoesPage() {
                 'recusada';
             const url = statusParam ? `/solicitacoes?status=${statusParam}` : '/solicitacoes';
 
-            const response = await api.get(url, {
-                headers: {
-                    Authorization: `Bearer ${token}`
-                }
-            });
+            const response = await api.get(url, {});
 
             setSolicitacoes(response.data);
             setFilteredSolicitacoes(response.data);
@@ -117,18 +105,8 @@ export default function SolicitacoesPage() {
         }
 
         try {
-            const token = getCookieClient();
-            if (!token) {
-                toast.error('Você precisa estar logado');
-                router.push('/login');
-                return;
-            }
 
-            await api.post(`/solicitacao/${id}/confirmar`, {}, {
-                headers: {
-                    Authorization: `Bearer ${token}`
-                }
-            });
+            await api.post(`/solicitacao/${id}/confirmar`, {}, {});
 
             toast.success('Solicitação aprovada para retirada! O solicitante pode retirar o medicamento.');
             loadSolicitacoes();
@@ -149,25 +127,11 @@ export default function SolicitacoesPage() {
         }
 
         try {
-            const token = getCookieClient();
-            if (!token) {
-                toast.error('Você precisa estar logado');
-                router.push('/login');
-                return;
-            }
 
             // Obter ID do usuário atual
-            const userResponse = await api.get('/detail', {
-                headers: {
-                    Authorization: `Bearer ${token}`
-                }
-            });
+            const userResponse = await api.get('/detail', {});
 
-            await api.post(`/solicitacao/${id}/concluir?userId=${userResponse.data.id}`, {}, {
-                headers: {
-                    Authorization: `Bearer ${token}`
-                }
-            });
+            await api.post(`/solicitacao/${id}/concluir?userId=${userResponse.data.id}`, {}, {});
 
             toast.success('Doação concluída com sucesso! Retirada registrada e estoque atualizado.');
             loadSolicitacoes();
@@ -188,18 +152,8 @@ export default function SolicitacoesPage() {
         }
 
         try {
-            const token = getCookieClient();
-            if (!token) {
-                toast.error('Você precisa estar logado');
-                router.push('/login');
-                return;
-            }
 
-            await api.post(`/solicitacao/${id}/recusar`, {}, {
-                headers: {
-                    Authorization: `Bearer ${token}`
-                }
-            });
+            await api.post(`/solicitacao/${id}/recusar`, {}, {});
 
             toast.success('Solicitação recusada');
             loadSolicitacoes();

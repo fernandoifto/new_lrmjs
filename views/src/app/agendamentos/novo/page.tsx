@@ -4,7 +4,6 @@ import { useEffect, useState, useRef } from 'react';
 import { api } from '@/api/api';
 import { useRouter, AppRouterInstance } from 'next/navigation';
 import { toast } from 'react-toastify';
-import { getCookieClient } from '@/lib/cookieClient';
 import Header from '../../home/components/header';
 import Menu from '../../components/menu';
 import WithPermission from '@/components/withPermission';
@@ -32,13 +31,6 @@ export default function NovoAgendamentoPage() {
 
     const loadTurnos = async () => {
         try {
-            const token = getCookieClient();
-
-            if (!token) {
-                toast.error('Você precisa estar logado para acessar esta página');
-                router.push('/login');
-                return;
-            }
 
             const response = await api.get('/turnos');
             setTurnos(response.data);

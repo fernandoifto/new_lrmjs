@@ -1,22 +1,22 @@
 import { Request, Response, NextFunction } from "express";
 import { verify } from "jsonwebtoken";
 import prismaClient from "../tools/prisma";
+import { JWT_VERIFY_OPTIONS } from "../config/jwtOptions";
+import { getAuthTokenFromRequest } from "./getAuthToken";
 
 interface IPayload {
     sub: string;
 }
 
 export async function isAuthenticated(request: Request, response: Response, next: NextFunction) {
-    const authToken = request.headers.authorization;
-    
-    if (!authToken) {
+    const token = getAuthTokenFromRequest(request);
+
+    if (!token) {
         return response.status(401).end();
     }
     
-    const token = authToken.split(" ")[1];
-    
     try {
-        const { sub } = verify(token, process.env.JWT_SECRET as string) as IPayload;
+        const { sub } = verify(token, process.env.JWT_SECRET as string, JWT_VERIFY_OPTIONS) as IPayload;
         const userId = Number(sub);
         
         // Verificar se o usuário existe e está ativo

@@ -1,5 +1,6 @@
 import { Request, Response } from "express";
 import { CreatePacienteModel, ListPacientesModel, GetPacienteModel, GetPacienteByCPFModel, UpdatePacienteModel, DeletePacienteModel } from "../models/pacientesModels";
+import { issuePacienteContextToken } from "../services/pacienteContextToken";
 
 class CreatePacienteController {
     async handle(req: Request, res: Response) {
@@ -14,6 +15,14 @@ class CreatePacienteController {
                 telefone,
                 cartaosus
             });
+
+            const isPublic = req.path === "/paciente/public" || req.originalUrl.split("?")[0].endsWith("/paciente/public");
+            if (isPublic) {
+                return res.status(201).json({
+                    id: paciente.id,
+                    pacienteContextToken: issuePacienteContextToken(paciente.id),
+                });
+            }
 
             return res.status(201).json(paciente);
         } catch (error: any) {
@@ -58,7 +67,10 @@ class GetPacienteByCPFController {
             const getPacienteByCPFModel = new GetPacienteByCPFModel();
             const paciente = await getPacienteByCPFModel.execute(cpf);
 
-            return res.status(200).json(paciente);
+            return res.status(200).json({
+                id: paciente.id,
+                pacienteContextToken: issuePacienteContextToken(paciente.id),
+            });
         } catch (error: any) {
             return res.status(404).json({ error: error.message });
         }

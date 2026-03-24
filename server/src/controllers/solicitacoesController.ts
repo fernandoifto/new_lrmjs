@@ -1,6 +1,19 @@
 import { Request, Response } from "express";
 import { CreateSolicitacaoModel, ListSolicitacoesModel, GetSolicitacaoModel, ConfirmarSolicitacaoModel, ConcluirDoacaoModel, RecusarSolicitacaoModel, DeleteSolicitacaoModel, ListSolicitacoesByPacienteModel } from "../models/solicitacoesModels";
 import { uploadSingleReceita } from "../middlewares/upload";
+import { verifyPacienteContextToken } from "../services/pacienteContextToken";
+import {
+    attachUploadTokensToSolicitacao,
+    attachUploadTokensToSolicitacoes,
+    stripFotoReceitaFromSolicitacoes,
+} from "../utils/responseTransforms";
+
+function readPacienteContextHeader(req: Request): string | undefined {
+    const h = req.headers["x-paciente-context"];
+    if (typeof h === "string") return h.trim();
+    if (Array.isArray(h) && h[0]) return h[0].trim();
+    return undefined;
+}
 
 class CreateSolicitacaoController {
     async handle(req: Request, res: Response) {
@@ -21,6 +34,11 @@ class CreateSolicitacaoController {
                     
                     if (isNaN(idLotes) || isNaN(idPacientes) || isNaN(quantidade)) {
                         return res.status(400).json({ error: "IDs e quantidade devem ser números válidos" });
+                    }
+
+                    const ctx = readPacienteContextHeader(req);
+                    if (verifyPacienteContextToken(ctx) !== idPacientes) {
+                        return res.status(403).json({ error: "Token de contexto do paciente inválido ou expirado" });
                     }
                     
                     // Processar foto da receita enviada
@@ -43,7 +61,7 @@ class CreateSolicitacaoController {
                         foto_receita: fotoReceitaUrl
                     });
 
-                    return res.status(201).json(solicitacao);
+                    return res.status(201).json(attachUploadTokensToSolicitacao(solicitacao));
                 } catch (error: any) {
                     return res.status(400).json({ error: error.message });
                 }
@@ -61,7 +79,7 @@ class ListSolicitacoesController {
             const listSolicitacoesModel = new ListSolicitacoesModel();
             const solicitacoes = await listSolicitacoesModel.execute(status as string | undefined);
 
-            return res.status(200).json(solicitacoes);
+            return res.status(200).json(attachUploadTokensToSolicitacoes(solicitacoes));
         } catch (error: any) {
             return res.status(400).json({ error: error.message });
         }
@@ -76,7 +94,7 @@ class GetSolicitacaoController {
             const getSolicitacaoModel = new GetSolicitacaoModel();
             const solicitacao = await getSolicitacaoModel.execute(parseInt(id));
 
-            return res.status(200).json(solicitacao);
+            return res.status(200).json(attachUploadTokensToSolicitacao(solicitacao));
         } catch (error: any) {
             return res.status(404).json({ error: error.message });
         }
@@ -91,7 +109,7 @@ class ConfirmarSolicitacaoController {
             const confirmarSolicitacaoModel = new ConfirmarSolicitacaoModel();
             const solicitacao = await confirmarSolicitacaoModel.execute(parseInt(id));
 
-            return res.status(200).json(solicitacao);
+            return res.status(200).json(attachUploadTokensToSolicitacao(solicitacao));
         } catch (error: any) {
             return res.status(400).json({ error: error.message });
         }
@@ -126,7 +144,7 @@ class RecusarSolicitacaoController {
             const recusarSolicitacaoModel = new RecusarSolicitacaoModel();
             const solicitacao = await recusarSolicitacaoModel.execute(parseInt(id));
 
-            return res.status(200).json(solicitacao);
+            return res.status(200).json(attachUploadTokensToSolicitacao(solicitacao));
         } catch (error: any) {
             return res.status(400).json({ error: error.message });
         }
@@ -152,15 +170,10 @@ class ListSolicitacoesByPacienteController {
     async handle(req: Request, res: Response) {
         try {
             const { paciente } = req.query;
-
-            if (!paciente) {
-                return res.status(400).json({ error: "ID do paciente é obrigatório" });
-            }
-
             const listSolicitacoesByPacienteModel = new ListSolicitacoesByPacienteModel();
             const solicitacoes = await listSolicitacoesByPacienteModel.execute(parseInt(paciente as string));
 
-            return res.status(200).json(solicitacoes);
+            return res.status(200).json(stripFotoReceitaFromSolicitacoes(solicitacoes));
         } catch (error: any) {
             return res.status(400).json({ error: error.message });
         }

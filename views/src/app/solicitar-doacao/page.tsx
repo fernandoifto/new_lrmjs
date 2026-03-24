@@ -34,12 +34,18 @@ export default function SolicitarDoacaoPage() {
         try {
             // Buscar paciente por CPF (endpoint público)
             const response = await api.get(`/paciente/cpf/${cpfLimpo}`);
-            const paciente = response.data;
+            const { id, pacienteContextToken } = response.data;
 
-            // Se paciente existe, redirecionar para lotes disponíveis
+            if (typeof window !== 'undefined' && pacienteContextToken) {
+                sessionStorage.setItem(
+                    'lrm_paciente_ctx',
+                    JSON.stringify({ id, token: pacienteContextToken })
+                );
+            }
+
             toast.success('Paciente encontrado! Redirecionando...');
             setTimeout(() => {
-                router.push(`/lotes-disponiveis?paciente=${paciente.id}`);
+                router.push(`/lotes-disponiveis?paciente=${id}`);
             }, 1000);
         } catch (error: any) {
             if (error.response?.status === 404) {

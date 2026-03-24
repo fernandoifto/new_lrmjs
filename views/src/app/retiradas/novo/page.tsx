@@ -4,7 +4,6 @@ import { useEffect, useState } from 'react';
 import { api } from '@/api/api';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { toast } from 'react-toastify';
-import { getCookieClient } from '@/lib/cookieClient';
 import Header from '../../home/components/header';
 import Menu from '../../components/menu';
 import WithPermission from '@/components/withPermission';
@@ -56,12 +55,6 @@ export default function NovaRetiradaPage() {
     const [podeVerPacientes, setPodeVerPacientes] = useState(true);
 
     useEffect(() => {
-        const token = getCookieClient();
-        if (!token) {
-            toast.error('Você precisa estar logado para acessar esta página');
-            router.push('/login');
-            return;
-        }
         loadData();
     }, [router, searchParams]);
 
@@ -86,12 +79,6 @@ export default function NovaRetiradaPage() {
     const loadData = async () => {
         try {
             setLoading(true);
-            const token = getCookieClient();
-
-            if (!token) {
-                return;
-            }
-
             const pacienteIdParam = searchParams.get('paciente');
             const loteIdParam = searchParams.get('lote');
 
@@ -101,9 +88,7 @@ export default function NovaRetiradaPage() {
             if (pacienteIdParam) {
                 try {
                     const pacienteId = parseInt(pacienteIdParam);
-                    const pacienteRes = await api.get(`/paciente/${pacienteId}`, {
-                        headers: { Authorization: `Bearer ${token}` }
-                    });
+                    const pacienteRes = await api.get(`/paciente/${pacienteId}`, {});
                     pacientesData = [pacienteRes.data];
                 } catch (error: any) {
                     if (error.response?.status === 403) {
@@ -120,9 +105,7 @@ export default function NovaRetiradaPage() {
                 }
             } else {
                 try {
-                    const pacientesRes = await api.get('/pacientes', {
-                        headers: { Authorization: `Bearer ${token}` }
-                    });
+                    const pacientesRes = await api.get('/pacientes', {});
                     pacientesData = pacientesRes.data;
                 } catch (error: any) {
                     if (error.response?.status === 403) {
@@ -143,9 +126,7 @@ export default function NovaRetiradaPage() {
             if (loteIdParam) {
                 try {
                     const loteId = parseInt(loteIdParam);
-                    const loteRes = await api.get(`/lote/${loteId}`, {
-                        headers: { Authorization: `Bearer ${token}` }
-                    });
+                    const loteRes = await api.get(`/lote/${loteId}`, {});
                     lotesData = [loteRes.data];
                 } catch (error: any) {
                     if (error.response?.status === 403) {
@@ -174,9 +155,7 @@ export default function NovaRetiradaPage() {
                 }
             } else {
                 try {
-                    const lotesRes = await api.get('/lotes', {
-                        headers: { Authorization: `Bearer ${token}` }
-                    });
+                    const lotesRes = await api.get('/lotes', {});
                     lotesData = lotesRes.data;
                 } catch (error: any) {
                     if (error.response?.status === 403) {
@@ -349,24 +328,13 @@ export default function NovaRetiradaPage() {
         }
 
         setSaving(true);
-        const token = getCookieClient();
-
-        if (!token) {
-            toast.error('Você precisa estar logado');
-            router.push('/login');
-            return;
-        }
 
         try {
             await api.post('/retirada', {
                 qtde: quantidade,
                 id_lotes: parseInt(formData.id_lotes),
                 id_pacientes: parseInt(formData.id_pacientes)
-            }, {
-                headers: {
-                    Authorization: `Bearer ${token}`
-                }
-            });
+            }, {});
 
             toast.success('Retirada registrada com sucesso!');
             setTimeout(() => {

@@ -2,6 +2,7 @@ import { Request, Response } from 'express';
 import { whatsappService } from '../services/whatsapp/whatsappService';
 import { WhatsAppBusinessService } from '../services/whatsapp/implementations/WhatsAppBusinessService';
 import { WhatsAppMcpAdapter } from '../services/whatsapp/mcp/whatsappMcpAdapter';
+import { WhatsAppMcpResult } from '../services/whatsapp/mcp/whatsappMcpClient';
 
 /**
  * Controller para endpoints relacionados ao WhatsApp
@@ -22,9 +23,9 @@ class WhatsAppController {
             if ('getQRCode' in service && typeof service.getQRCode === 'function') {
                 qrCode = service.getQRCode();
             } else if (service instanceof WhatsAppMcpAdapter) {
-                // Para MCP, obter QR Code via método específico
-                const qrResult = await service.getQRCode();
-                if (qrResult.success && qrResult.data?.qrCode) {
+                // Para MCP, obter QR Code via método específico (retorna WhatsAppMcpResult, não string)
+                const qrResult = (await service.getQRCode()) as unknown as WhatsAppMcpResult;
+                if (qrResult?.success && qrResult?.data?.qrCode) {
                     qrCode = qrResult.data.qrCode;
                 }
             }

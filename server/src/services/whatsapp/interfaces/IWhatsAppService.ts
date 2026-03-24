@@ -17,8 +17,8 @@ export interface IWhatsAppService {
     // Verificar se está conectado
     isConnected(): boolean;
     
-    // Obter QR Code (apenas para whatsapp-web.js)
-    getQRCode?(): string | null;
+    // Obter QR Code (whatsapp-web.js retorna string; MCP retorna Promise com success/data)
+    getQRCode?(): string | null | Promise<{ success: boolean; data?: any }>;
     
     // Desconectar
     disconnect(): Promise<void>;
