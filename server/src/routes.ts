@@ -1,5 +1,13 @@
 import { Router } from "express";
-import { CreateAgendamentosController, ListAgendamentosController, GetAgendamentoController, UpdateAgendamentoController, MarcarVisitadoController, DeleteAgendamentoController } from "./controllers/agendamentosController";
+import {
+    CreateAgendamentosController,
+    ListAgendamentosController,
+    GetAgendamentoController,
+    UpdateAgendamentoController,
+    MarcarVisitadoController,
+    AtualizarStatusAgendamentoController,
+    DeleteAgendamentoController
+} from "./controllers/agendamentosController";
 import { ListTurnosController } from "./controllers/turnosController";
 import { AuthUserController, CreateUserController, DetailUserController, ForgotPasswordController, ResetPasswordController, ListUsersController, GetUserController, UpdateUserController, DeleteUserController } from "./controllers/usersController";
 import { CreateTipoMedicamentoController, ListTiposMedicamentosController, GetTipoMedicamentoController, UpdateTipoMedicamentoController, DeleteTipoMedicamentoController } from "./controllers/tiposMedicamentosController";
@@ -26,6 +34,7 @@ router.post("/agendamento", new CreateAgendamentosController().handle); // Rota 
 router.get("/agendamentos", isAuthenticated, hasPermission("agendamentos.ver"), new ListAgendamentosController().handle);
 router.get("/agendamento/:id", isAuthenticated, hasPermission("agendamentos.ver"), new GetAgendamentoController().handle);
 router.put("/agendamento/:id", isAuthenticated, hasPermission("agendamentos.editar"), new UpdateAgendamentoController().handle);
+router.patch("/agendamento/:id/status", isAuthenticated, hasPermission("agendamentos.editar"), new AtualizarStatusAgendamentoController().handle);
 router.patch("/agendamento/:id/visitar", isAuthenticated, hasPermission("agendamentos.visitar"), new MarcarVisitadoController().handle);
 router.delete("/agendamento/:id", isAuthenticated, hasPermission("agendamentos.excluir"), new DeleteAgendamentoController().handle);
 

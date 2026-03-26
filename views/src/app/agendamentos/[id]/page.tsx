@@ -7,7 +7,7 @@ import Header from '../../home/components/header';
 import Menu from '../../components/menu';
 import WithPermission from '@/components/withPermission';
 import { usePermissions } from '@/hooks/usePermissions';
-import { FaCheckCircle, FaEdit, FaTrash, FaUserCircle, FaArrowLeft, FaCamera, FaTimes, FaChevronLeft, FaChevronRight } from 'react-icons/fa';
+import { FaHandHoldingMedical, FaClipboardCheck, FaEdit, FaTrash, FaUserCircle, FaArrowLeft, FaCamera, FaTimes, FaChevronLeft, FaChevronRight } from 'react-icons/fa';
 import styles from './page.module.css';
 import Link from 'next/link';
 
@@ -33,7 +33,14 @@ interface Agendamento {
         username: string;
         email: string;
     } | null;
+    status: 'AGUARDANDO_AGENDAMENTO' | 'VISITA_MARCADA_PARA_HOJE' | 'VISITADO';
 }
+
+const statusLabel: Record<Agendamento['status'], string> = {
+    AGUARDANDO_AGENDAMENTO: 'Aguardando agendamento',
+    VISITA_MARCADA_PARA_HOJE: 'Visita marcada para hoje',
+    VISITADO: 'Concluída',
+};
 
 export default function AgendamentoViewPage() {
     const router = useRouter();
@@ -180,6 +187,17 @@ export default function AgendamentoViewPage() {
         }
     };
 
+    const handleMarcarHoje = async (id: number) => {
+        try {
+            await api.patch(`/agendamento/${id}/status`, { status: 'VISITA_MARCADA_PARA_HOJE' }, {});
+            toast.success('Visita marcada para hoje!');
+            loadAgendamento(id);
+        } catch (error: any) {
+            console.error('Erro ao marcar visita para hoje:', error);
+            toast.error(error.response?.data?.error || 'Erro ao atualizar status');
+        }
+    };
+
     const handleDelete = async (id: number) => {
         if (!confirm('Tem certeza que deseja excluir este agendamento? Esta ação não pode ser desfeita.')) {
             return;
@@ -217,23 +235,33 @@ export default function AgendamentoViewPage() {
                                 <FaArrowLeft size={16} /> Voltar
                             </Link>
                             <div className={styles.headerActions}>
-                                {agendamento && !agendamento.user && hasPermission('agendamentos.visitar') && (
+                                {agendamento && agendamento.status === 'AGUARDANDO_AGENDAMENTO' && hasPermission('agendamentos.visitar') && (
+                                    <button
+                                        onClick={() => handleMarcarHoje(agendamento.id)}
+                                        className={styles.btnVisitar}
+                                        title="Coletar"
+                                    >
+                                        <FaHandHoldingMedical size={18} />
+                                        Coletar
+                                    </button>
+                                )}
+                                {agendamento && agendamento.status === 'VISITA_MARCADA_PARA_HOJE' && hasPermission('agendamentos.visitar') && (
                                     <button
                                         onClick={() => handleVisitar(agendamento.id)}
                                         className={styles.btnVisitar}
-                                        title="Marcar como visitado"
+                                        title="Concluir"
                                     >
-                                        <FaCheckCircle size={18} />
-                                        Visitar
+                                        <FaClipboardCheck size={18} />
+                                        Concluir
                                     </button>
                                 )}
-                                {agendamento && agendamento.user && (
+                                {agendamento && agendamento.status === 'VISITADO' && (
                                     <span className={styles.visitadoBadge}>
                                         <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" width="18" height="18">
                                             <path fill="none" d="M0 0h24v24H0z" />
                                             <path d="M9 16.17L4.83 12l-1.42 1.41L9 19 21 7l-1.41-1.41z" fill="currentColor" />
                                         </svg>
-                                        Visitado
+                                        {statusLabel[agendamento.status]}
                                     </span>
                                 )}
                                 {agendamento && hasPermission('agendamentos.editar') && (
@@ -367,6 +395,22 @@ export default function AgendamentoViewPage() {
                                 <h3>Informações do Sistema</h3>
                                 <div className={styles.infoGrid}>
                                     <div className={styles.infoItem}>
+                                        <span className={styles.label}>Status da coleta:</span>
+                                        <span
+                                            className={
+                                                agendamento.status === 'VISITADO'
+                                                    ? `${styles.value} ${styles.statusConcluidaValue}`
+                                                    : agendamento.status === 'AGUARDANDO_AGENDAMENTO'
+                                                        ? `${styles.value} ${styles.statusAguardandoVermelhaValue}`
+                                                    : agendamento.status === 'VISITA_MARCADA_PARA_HOJE'
+                                                        ? `${styles.value} ${styles.statusVisitaMarcadaAzulValue}`
+                                                        : styles.value
+                                            }
+                                        >
+                                            {statusLabel[agendamento.status]}
+                                        </span>
+                                    </div>
+                                    <div className={styles.infoItem}>
                                         <span className={styles.label}>Criado em</span>
                                         <span className={styles.value}>{formatDate(agendamento.created)}</span>
                                     </div>
@@ -374,7 +418,7 @@ export default function AgendamentoViewPage() {
                                         <span className={styles.label}>Última atualização</span>
                                         <span className={styles.value}>{formatDate(agendamento.modified)}</span>
                                     </div>
-                                    {agendamento.user && (
+                                    {agendamento.status === 'VISITADO' && agendamento.user && (
                                         <div className={styles.infoItem}>
                                             <span className={styles.label}>Visitado por</span>
                                             <span className={styles.value}>{agendamento.user.username}</span>

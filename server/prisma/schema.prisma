@@ -27,6 +27,7 @@ model Agendamentos {
   google_maps_url String? @db.Text  // URL do Google Maps ou coordenadas
   id_turno    Int
   id_user     Int?
+  status      String    @db.VarChar(40) @default("AGUARDANDO_AGENDAMENTO")
   created     DateTime  @default(now())
   modified    DateTime  @updatedAt
 

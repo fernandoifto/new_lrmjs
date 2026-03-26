@@ -30,7 +30,7 @@ export default function AgendamentosPage() {
                                 </div>
                                 <div>
                                     <h1>Agendamentos</h1>
-                                    <p>Gerencie agendamentos, visualize visitados e não visitados</p>
+                                    <p>Gerencie agendamentos por status de visita</p>
                                 </div>
                             </div>
                         </div>
@@ -44,20 +44,28 @@ export default function AgendamentosPage() {
                                 <p>Visualize todos os agendamentos cadastrados no sistema</p>
                             </Link>
 
-                            <Link href="/agendamentos/list?filtro=visitados" className={styles.buttonCard}>
+                            <Link href="/agendamentos/list?filtro=aguardando_agendamento" className={styles.buttonCard}>
                                 <div className={styles.buttonIcon}>
                                     <FaCheckCircle size={32} />
                                 </div>
-                                <h3>Agendamentos Visitados</h3>
-                                <p>Visualize apenas os agendamentos que já foram visitados</p>
+                                <h3>Aguardando Agendamento</h3>
+                                <p>Visualize os agendamentos ainda não marcados para hoje</p>
                             </Link>
 
-                            <Link href="/agendamentos/list?filtro=nao-visitados" className={styles.buttonCard}>
+                            <Link href="/agendamentos/list?filtro=visita_marcada_hoje" className={styles.buttonCard}>
                                 <div className={styles.buttonIcon}>
                                     <FaExclamationCircle size={32} />
                                 </div>
-                                <h3>Agendamentos Não Visitados</h3>
-                                <p>Visualize apenas os agendamentos que ainda não foram visitados</p>
+                                <h3>Visita Marcada para Hoje</h3>
+                                <p>Visualize os agendamentos previstos para atendimento hoje</p>
+                            </Link>
+
+                            <Link href="/agendamentos/list?filtro=visitado" className={styles.buttonCard}>
+                                <div className={styles.buttonIcon}>
+                                    <FaCheckCircle size={32} />
+                                </div>
+                                <h3>Visitado</h3>
+                                <p>Visualize os agendamentos já concluídos</p>
                             </Link>
                         </div>
                     </div>

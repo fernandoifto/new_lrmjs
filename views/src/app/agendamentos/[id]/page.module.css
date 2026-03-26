@@ -217,6 +217,21 @@
   font-size: 1.1rem;
 }
 
+.statusConcluidaValue {
+  color: #28a745 !important;
+  font-weight: 600;
+}
+
+.statusVisitaMarcadaAzulValue {
+  color: var(--cor-primaria) !important;
+  font-weight: 600;
+}
+
+.statusAguardandoVermelhaValue {
+  color: #dc3545 !important;
+  font-weight: 600;
+}
+
 /* Estilos para mapa do Google Maps */
 .mapContainer {
   margin-top: 1.5rem;

@@ -311,9 +311,13 @@
 
 .grid {
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(350px, 1fr));
+  grid-template-columns: repeat(3, minmax(0, 1fr));
   gap: 1.5rem;
   width: 100%;
+}
+
+.gridTodos {
+  grid-template-columns: repeat(4, minmax(0, 1fr));
 }
 
 .card {
@@ -436,6 +440,28 @@
   cursor: pointer;
 }
 
+.deleteAndStatusRow {
+  display: flex;
+  gap: 0.5rem;
+  flex: 1;
+  flex-wrap: nowrap;
+}
+
+.statusConcluida {
+  color: #28a745 !important;
+  font-weight: 600;
+}
+
+.statusVisitaMarcadaAzul {
+  color: var(--cor-primaria) !important;
+  font-weight: 600;
+}
+
+.statusAguardandoVermelha {
+  color: #dc3545 !important;
+  font-weight: 600;
+}
+
 .btnView {
   background-color: rgba(63, 129, 208, 0.1);
   color: var(--cor-primaria);
@@ -463,6 +489,15 @@
   background-color: rgba(40, 167, 69, 0.2);
 }
 
+.btnDelete {
+  background-color: rgba(220, 53, 69, 0.1);
+  color: #dc3545;
+}
+
+.btnDelete:hover {
+  background-color: rgba(220, 53, 69, 0.2);
+}
+
 .visitadoBadge {
   flex: 1;
   padding: 0.6rem 1rem;
@@ -482,6 +517,14 @@
 @media (max-width: 1024px) {
   .contentWrapper {
     max-width: 90%;
+  }
+
+  .grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .gridTodos {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
   }
 }
 
@@ -509,6 +552,10 @@
   }
 
   .grid {
+    grid-template-columns: 1fr;
+  }
+
+  .gridTodos {
     grid-template-columns: 1fr;
   }
 

@@ -15,6 +15,7 @@ interface IAgendamento {
     google_maps_url?: string; // URL do Google Maps ou coordenadas
     id_turno: number;
     id_user?: number;
+    status?: AgendamentoStatus;
 }
 
 interface IUpdateAgendamento {
@@ -29,6 +30,29 @@ interface IUpdateAgendamento {
     google_maps_url?: string; // URL do Google Maps ou coordenadas
     id_turno?: number;
     id_user?: number;
+    status?: AgendamentoStatus;
+}
+
+export type AgendamentoStatus = "AGUARDANDO_AGENDAMENTO" | "VISITA_MARCADA_PARA_HOJE" | "VISITADO";
+
+function isAgendamentoStatus(value: unknown): value is AgendamentoStatus {
+    return value === "AGUARDANDO_AGENDAMENTO" || value === "VISITA_MARCADA_PARA_HOJE" || value === "VISITADO";
+}
+
+function validateStatusTransition(current: AgendamentoStatus, next: AgendamentoStatus, allowRollback = true) {
+    if (current === next) return;
+
+    if (allowRollback) return;
+
+    const allowedForward: Record<AgendamentoStatus, AgendamentoStatus[]> = {
+        AGUARDANDO_AGENDAMENTO: ["VISITA_MARCADA_PARA_HOJE"],
+        VISITA_MARCADA_PARA_HOJE: ["VISITADO"],
+        VISITADO: [],
+    };
+
+    if (!allowedForward[current].includes(next)) {
+        throw new Error("Transição de status inválida");
+    }
 }
 
 //Modelo de criar agendamento
@@ -47,7 +71,8 @@ class CreateAgendamentosModel{
                 fotos: fotos || null,
                 google_maps_url: google_maps_url || null,
                 id_turno: id_turno,
-                id_user: id_user
+                id_user: id_user,
+                status: "AGUARDANDO_AGENDAMENTO",
             },
             include: {
                 turno: true,
@@ -66,15 +91,13 @@ class CreateAgendamentosModel{
 
 //Modelo de listar agendamentos
 class ListAgendamentosModel {
-    async execute(p: ParsedPagination, opts?: { q?: string; visitado?: string }) {
+    async execute(p: ParsedPagination, opts?: { q?: string; status?: AgendamentoStatus }) {
         const t = opts?.q?.trim();
-        const filtroVisitado = opts?.visitado;
+        const filtroStatus = opts?.status;
         // eslint-disable-next-line @typescript-eslint/no-explicit-any
         const andParts: any[] = [];
-        if (filtroVisitado === "visitados") {
-            andParts.push({ id_user: { not: null } });
-        } else if (filtroVisitado === "nao-visitados") {
-            andParts.push({ id_user: null });
+        if (filtroStatus) {
+            andParts.push({ status: filtroStatus });
         }
         if (t) {
             const digits = t.replace(/\D/g, "");
@@ -173,6 +196,19 @@ class UpdateAgendamentoModel {
         }
         if (data.id_turno) updateData.id_turno = data.id_turno;
         if (data.id_user !== undefined) updateData.id_user = data.id_user;
+        if (data.status !== undefined) {
+            if (!isAgendamentoStatus(data.status)) {
+                throw new Error("Status de agendamento inválido");
+            }
+            const currentStatus = (agendamentoExists.status as AgendamentoStatus) || "AGUARDANDO_AGENDAMENTO";
+            validateStatusTransition(currentStatus, data.status, true);
+            updateData.status = data.status;
+            if (data.status !== "VISITADO") {
+                updateData.id_user = null;
+            } else if (updateData.id_user === undefined && agendamentoExists.id_user == null) {
+                throw new Error("É necessário informar o usuário responsável ao marcar como visitado");
+            }
+        }
         
         const agendamento = await prismaClient.agendamentos.update({
             where: {
@@ -206,9 +242,12 @@ class MarcarVisitadoModel {
             throw new Error("Agendamento não encontrado");
         }
         
-        // Se já foi visitado, não permite alterar
-        if (agendamentoExists.id_user !== null) {
+        const currentStatus = (agendamentoExists.status as AgendamentoStatus) || "AGUARDANDO_AGENDAMENTO";
+        if (currentStatus === "VISITADO") {
             throw new Error("Agendamento já foi visitado");
+        }
+        if (currentStatus !== "VISITA_MARCADA_PARA_HOJE") {
+            throw new Error("Para concluir a visita, primeiro marque como 'Visita marcada para hoje'");
         }
         
         const agendamento = await prismaClient.agendamentos.update({
@@ -216,7 +255,8 @@ class MarcarVisitadoModel {
                 id: id
             },
             data: {
-                id_user: idUserVisitou
+                id_user: idUserVisitou,
+                status: "VISITADO"
             },
             include: {
                 turno: true,
@@ -230,6 +270,47 @@ class MarcarVisitadoModel {
             }
         });
         
+        return agendamento;
+    }
+}
+
+class AtualizarStatusAgendamentoModel {
+    async execute(id: number, status: AgendamentoStatus, idUserVisitou?: number | null) {
+        if (!isAgendamentoStatus(status)) {
+            throw new Error("Status de agendamento inválido");
+        }
+
+        const agendamentoExists = await prismaClient.agendamentos.findUnique({
+            where: { id },
+        });
+        if (!agendamentoExists) {
+            throw new Error("Agendamento não encontrado");
+        }
+
+        const currentStatus = (agendamentoExists.status as AgendamentoStatus) || "AGUARDANDO_AGENDAMENTO";
+        validateStatusTransition(currentStatus, status, false);
+
+        if (status === "VISITADO" && (!idUserVisitou || Number.isNaN(idUserVisitou))) {
+            throw new Error("É necessário informar o usuário responsável ao marcar como visitado");
+        }
+
+        const agendamento = await prismaClient.agendamentos.update({
+            where: { id },
+            data: {
+                status,
+                id_user: status === "VISITADO" ? idUserVisitou! : null,
+            },
+            include: {
+                turno: true,
+                user: {
+                    select: {
+                        id: true,
+                        username: true,
+                        email: true,
+                    },
+                },
+            },
+        });
         return agendamento;
     }
 }
@@ -255,5 +336,13 @@ class DeleteAgendamentoModel {
     }
 }
 
-export { CreateAgendamentosModel, ListAgendamentosModel, GetAgendamentoModel, UpdateAgendamentoModel, MarcarVisitadoModel, DeleteAgendamentoModel }
+export {
+    CreateAgendamentosModel,
+    ListAgendamentosModel,
+    GetAgendamentoModel,
+    UpdateAgendamentoModel,
+    MarcarVisitadoModel,
+    AtualizarStatusAgendamentoModel,
+    DeleteAgendamentoModel
+}
 

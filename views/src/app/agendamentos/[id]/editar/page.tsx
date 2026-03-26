@@ -28,6 +28,7 @@ interface Agendamento {
         username: string;
         email: string;
     } | null;
+    status: 'AGUARDANDO_AGENDAMENTO' | 'VISITA_MARCADA_PARA_HOJE' | 'VISITADO';
 }
 
 interface Turno {
@@ -138,7 +139,13 @@ export default function EditarAgendamentoPage() {
         }
 
         const idUserValue = formData.get('id_user');
-        const id_user = idUserValue && idUserValue !== '' ? parseInt(idUserValue as string) : null;
+        const status = (formData.get('status') as Agendamento['status']) || 'AGUARDANDO_AGENDAMENTO';
+        const id_user = status === 'VISITADO' && idUserValue && idUserValue !== '' ? parseInt(idUserValue as string) : null;
+        if (status === 'VISITADO' && !id_user) {
+            toast.error('Selecione o usuário responsável para status "Concluída".');
+            setSaving(false);
+            return;
+        }
 
         try {
             const response = await api.put(
@@ -153,7 +160,8 @@ export default function EditarAgendamentoPage() {
                     datavisita: formData.get('datavisita'),
                     google_maps_url: formData.get('google_maps_url') as string || null,
                     id_turno: selectedTurno.id,
-                    id_user: id_user
+                    id_user: id_user,
+                    status
                 },
                 {
                     headers: {
@@ -419,15 +427,27 @@ export default function EditarAgendamentoPage() {
                                         <path d="M9 16.17L4.83 12l-1.42 1.41L9 19 21 7l-1.41-1.41z" fill="currentColor" />
                                     </svg>
                                 </div>
-                                <h3>Usuário que Visitou</h3>
+                                <h3>Status da Visita</h3>
                             </div>
                             <div className={styles.cardBody}>
                                 <div className={styles.inputRow}>
                                     <div className={styles.inputGroup}>
+                                        <label htmlFor="status">
+                                            <span>Status do agendamento</span>
+                                            <select id="status" name="status" defaultValue={agendamento.status}>
+                                                <option value="AGUARDANDO_AGENDAMENTO">Aguardando agendamento</option>
+                                                <option value="VISITA_MARCADA_PARA_HOJE">Visita marcada para hoje</option>
+                                                <option value="VISITADO">Concluída</option>
+                                            </select>
+                                        </label>
+                                    </div>
+                                </div>
+                                <div className={styles.inputRow}>
+                                    <div className={styles.inputGroup}>
                                         <label htmlFor="id_user">
-                                            <span>Selecione o usuário que visitou (opcional)</span>
+                                            <span>Usuário que visitou (obrigatório quando status = Concluída)</span>
                                             <select id="id_user" name="id_user" defaultValue={agendamento.user?.id || ''}>
-                                                <option value="">Nenhum (não visitado)</option>
+                                                <option value="">Não informado</option>
                                                 {users.map((user) => (
                                                     <option 
                                                         key={user.id} 

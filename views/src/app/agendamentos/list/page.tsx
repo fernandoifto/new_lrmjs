@@ -7,7 +7,7 @@ import Header from '../../home/components/header';
 import Menu from '../../components/menu';
 import WithPermission from '@/components/withPermission';
 import { usePermissions } from '@/hooks/usePermissions';
-import { FaCalendarAlt, FaFilePdf, FaPlus, FaSearch, FaTimes, FaCheckCircle, FaEye, FaEdit, FaTrash, FaUserCircle } from 'react-icons/fa';
+import { FaCalendarAlt, FaFilePdf, FaPlus, FaSearch, FaTimes, FaHandHoldingMedical, FaClipboardCheck, FaEye, FaEdit, FaTrash, FaUserCircle } from 'react-icons/fa';
 import styles from './page.module.css';
 import Link from 'next/link';
 import jsPDF from 'jspdf';
@@ -35,7 +35,14 @@ interface Agendamento {
         username: string;
         email: string;
     } | null;
+    status: 'AGUARDANDO_AGENDAMENTO' | 'VISITA_MARCADA_PARA_HOJE' | 'VISITADO';
 }
+
+const statusLabel: Record<Agendamento['status'], string> = {
+    AGUARDANDO_AGENDAMENTO: 'Aguardando agendamento',
+    VISITA_MARCADA_PARA_HOJE: 'Visita marcada para hoje',
+    VISITADO: 'Concluída',
+};
 
 function AgendamentosListPageContent() {
     const router = useRouter();
@@ -177,7 +184,12 @@ function AgendamentosListPageContent() {
 
             if (filtro !== 'todos') {
                 doc.setFontSize(10);
-                doc.text(`Filtro: ${filtro === 'visitados' ? 'Visitados' : 'Não Visitados'}`, margin, y);
+                const filtroLabel = filtro === 'aguardando_agendamento'
+                    ? 'Aguardando agendamento'
+                    : filtro === 'visita_marcada_hoje'
+                    ? 'Visita marcada para hoje'
+                    : 'Concluída';
+                doc.text(`Filtro: ${filtroLabel}`, margin, y);
                 y += 5;
             }
             if (activeSearchTerm) {
@@ -243,7 +255,7 @@ function AgendamentosListPageContent() {
                     formatPhone(agendamento.telefone) || '',
                     formatCEP(agendamento.cep) || '',
                     agendamento.turno?.descricao || '',
-                    agendamento.user ? 'Visitado' : 'Não Visitado'
+                    statusLabel[agendamento.status]
                 ];
 
                 rowData.forEach((data, idx) => {
@@ -295,6 +307,17 @@ function AgendamentosListPageContent() {
         }
     };
 
+    const handleMarcarParaHoje = async (id: number) => {
+        try {
+            await api.patch(`/agendamento/${id}/status`, { status: 'VISITA_MARCADA_PARA_HOJE' }, {});
+            toast.success('Agendamento marcado como visita para hoje!');
+            loadAgendamentos();
+        } catch (error: any) {
+            console.error('Erro ao marcar visita para hoje:', error);
+            toast.error(error.response?.data?.error || 'Erro ao atualizar status');
+        }
+    };
+
     const handleDelete = async (id: number) => {
         if (!confirm('Tem certeza que deseja excluir este agendamento? Esta ação não pode ser desfeita.')) {
             return;
@@ -336,10 +359,12 @@ function AgendamentosListPageContent() {
                                 <div>
                                     <h1>Agendamentos</h1>
                                     <p>
-                                        {filtro === 'visitados' 
-                                            ? 'Lista de agendamentos visitados' 
-                                            : filtro === 'nao-visitados'
-                                            ? 'Lista de agendamentos não visitados'
+                                        {filtro === 'visitado'
+                                            ? 'Lista de agendamentos com status Concluída'
+                                            : filtro === 'visita_marcada_hoje'
+                                            ? 'Lista de agendamentos com visita marcada para hoje'
+                                            : filtro === 'aguardando_agendamento'
+                                            ? 'Lista de agendamentos aguardando agendamento'
                                             : 'Lista de todos os agendamentos cadastrados'}
                                     </p>
                                 </div>
@@ -353,16 +378,22 @@ function AgendamentosListPageContent() {
                                         Todos
                                     </Link>
                                     <Link 
-                                        href="/agendamentos/list?filtro=visitados"
-                                        className={`${styles.filterBtn} ${filtro === 'visitados' ? styles.filterBtnActive : ''}`}
+                                        href="/agendamentos/list?filtro=aguardando_agendamento"
+                                        className={`${styles.filterBtn} ${filtro === 'aguardando_agendamento' ? styles.filterBtnActive : ''}`}
                                     >
-                                        Visitados
+                                        Aguardando agendamento
                                     </Link>
                                     <Link 
-                                        href="/agendamentos/list?filtro=nao-visitados"
-                                        className={`${styles.filterBtn} ${filtro === 'nao-visitados' ? styles.filterBtnActive : ''}`}
+                                        href="/agendamentos/list?filtro=visita_marcada_hoje"
+                                        className={`${styles.filterBtn} ${filtro === 'visita_marcada_hoje' ? styles.filterBtnActive : ''}`}
                                     >
-                                        Não Visitados
+                                        Visita marcada para hoje
+                                    </Link>
+                                    <Link
+                                        href="/agendamentos/list?filtro=visitado"
+                                        className={`${styles.filterBtn} ${filtro === 'visitado' ? styles.filterBtnActive : ''}`}
+                                    >
+                                        Concluída
                                     </Link>
                                 </div>
                                 {agendamentos.length > 0 && (
@@ -515,13 +546,15 @@ function AgendamentosListPageContent() {
                         ) : agendamentos.length === 0 ? (
                             <div className={styles.emptyState}>
                                 <p>
-                                    {filtro === 'visitados' 
-                                        ? 'Nenhum agendamento visitado encontrado' 
-                                        : filtro === 'nao-visitados'
-                                        ? 'Nenhum agendamento não visitado encontrado'
+                                    {filtro === 'visitado'
+                                        ? 'Nenhum agendamento visitado encontrado'
+                                        : filtro === 'visita_marcada_hoje'
+                                        ? 'Nenhum agendamento com visita marcada para hoje'
+                                        : filtro === 'aguardando_agendamento'
+                                        ? 'Nenhum agendamento aguardando agendamento'
                                         : 'Nenhum agendamento encontrado'}
                                 </p>
-                                {filtro !== 'visitados' && hasPermission('agendamentos.criar') && (
+                                {filtro !== 'visitado' && hasPermission('agendamentos.criar') && (
                                     <Link href="/agendamentos/novo" className={styles.btnNew}>
                                         Criar primeiro agendamento
                                     </Link>
@@ -529,7 +562,7 @@ function AgendamentosListPageContent() {
                             </div>
                         ) : (
                             <>
-                            <div className={styles.grid}>
+                            <div className={`${styles.grid} ${filtro === 'todos' ? styles.gridTodos : ''}`}>
                             {agendamentos.map((agendamento) => (
                                 <div key={agendamento.id} className={styles.card}>
                                     <div className={styles.cardHeader}>
@@ -566,10 +599,26 @@ function AgendamentosListPageContent() {
                                             </div>
                                         )}
                                         <div className={styles.infoRow}>
+                                            <span className={styles.label}>Status da coleta:</span>
+                                            <span
+                                                className={
+                                                    agendamento.status === 'VISITADO'
+                                                        ? styles.statusConcluida
+                                                        : agendamento.status === 'AGUARDANDO_AGENDAMENTO'
+                                                            ? styles.statusAguardandoVermelha
+                                                        : agendamento.status === 'VISITA_MARCADA_PARA_HOJE'
+                                                            ? styles.statusVisitaMarcadaAzul
+                                                            : undefined
+                                                }
+                                            >
+                                                {statusLabel[agendamento.status]}
+                                            </span>
+                                        </div>
+                                        <div className={styles.infoRow}>
                                             <span className={styles.label}>Criado em:</span>
                                             <span>{formatDate(agendamento.created)}</span>
                                         </div>
-                                        {agendamento.user && (
+                                        {agendamento.status === 'VISITADO' && agendamento.user && (
                                             <div className={styles.infoRow}>
                                                 <span className={styles.label}>Visitado por:</span>
                                                 <span>{agendamento.user.username}</span>
@@ -595,32 +644,44 @@ function AgendamentosListPageContent() {
                                                 <FaEdit size={16} />
                                             </Link>
                                         )}
-                                        {hasPermission('agendamentos.excluir') && (
-                                            <button
-                                                onClick={() => handleDelete(agendamento.id)}
-                                                className={styles.btnDelete}
-                                                title="Excluir"
-                                            >
-                                                <FaTrash size={16} />
-                                            </button>
-                                        )}
-                                        {!agendamento.user && hasPermission('agendamentos.visitar') && (
-                                            <button
-                                                onClick={() => handleVisitar(agendamento.id)}
-                                                className={styles.btnVisitar}
-                                                title="Marcar como visitado"
-                                            >
-                                                <FaCheckCircle size={18} />
-                                                Visitar
-                                            </button>
-                                        )}
-                                        {agendamento.user && (
+                                        <div className={styles.deleteAndStatusRow}>
+                                            {hasPermission('agendamentos.excluir') && (
+                                                <button
+                                                    onClick={() => handleDelete(agendamento.id)}
+                                                    className={styles.btnDelete}
+                                                    title="Excluir"
+                                                >
+                                                    <FaTrash size={16} />
+                                                </button>
+                                            )}
+                                            {agendamento.status === 'AGUARDANDO_AGENDAMENTO' && hasPermission('agendamentos.visitar') && (
+                                                <button
+                                                    onClick={() => handleMarcarParaHoje(agendamento.id)}
+                                                    className={styles.btnVisitar}
+                                                    title="Coletar"
+                                                >
+                                                    <FaHandHoldingMedical size={18} />
+                                                    Coletar
+                                                </button>
+                                            )}
+                                            {agendamento.status === 'VISITA_MARCADA_PARA_HOJE' && hasPermission('agendamentos.visitar') && (
+                                                <button
+                                                    onClick={() => handleVisitar(agendamento.id)}
+                                                    className={styles.btnVisitar}
+                                                    title="Concluir"
+                                                >
+                                                    <FaClipboardCheck size={18} />
+                                                    Concluir
+                                                </button>
+                                            )}
+                                        </div>
+                                        {agendamento.status === 'VISITADO' && (
                                             <span className={styles.visitadoBadge}>
                                                 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" width="18" height="18">
                                                     <path fill="none" d="M0 0h24v24H0z" />
                                                     <path d="M9 16.17L4.83 12l-1.42 1.41L9 19 21 7l-1.41-1.41z" fill="currentColor" />
                                                 </svg>
-                                                Visitado
+                                                Concluída
                                             </span>
                                         )}
                                     </div>
