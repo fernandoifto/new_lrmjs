@@ -71,16 +71,16 @@ export default function NovoLotePage() {
         try {
             setLoading(true);
             // Carregar medicamentos
-            const medicamentosResponse = await api.get('/medicamentos', {});
-            setMedicamentos(medicamentosResponse.data);
+            const medicamentosResponse = await api.get('/medicamentos', { params: { page: 1, pageSize: 200 } });
+            setMedicamentos(medicamentosResponse.data.data);
 
             // Carregar formas farmacêuticas
-            const formasResponse = await api.get('/formas-farmaceuticas', {});
-            setFormasFarmaceuticas(formasResponse.data);
+            const formasResponse = await api.get('/formas-farmaceuticas', { params: { page: 1, pageSize: 200 } });
+            setFormasFarmaceuticas(formasResponse.data.data);
 
             // Carregar tipos de medicamentos
-            const tiposResponse = await api.get('/tipos-medicamentos', {});
-            setTiposMedicamentos(tiposResponse.data);
+            const tiposResponse = await api.get('/tipos-medicamentos', { params: { page: 1, pageSize: 200 } });
+            setTiposMedicamentos(tiposResponse.data.data);
         } catch (error: any) {
             console.error('Erro ao carregar dados:', error);
             if (error.response?.status === 401) {

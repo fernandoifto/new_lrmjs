@@ -1,5 +1,6 @@
 import { AuthUserModel, CreateUserModel, ForgotPasswordModel, ResetPasswordModel, ListUsersModel, GetUserModel, UpdateUserModel, DeleteUserModel } from "../models/usersModels";
 import { Request, Response } from "express";
+import { parsePaginationParams, paginatedResponse } from "../utils/pagination";
 import prismaClient from "../tools/prisma";
 
 export class AuthUserController {
@@ -89,9 +90,10 @@ export class ResetPasswordController {
 export class ListUsersController {
     async handle(request: Request, response: Response) {
         try {
+            const p = parsePaginationParams(request.query);
             const listUsers = new ListUsersModel();
-            const users = await listUsers.execute();
-            return response.json(users);
+            const { items, total } = await listUsers.execute(p);
+            return response.json(paginatedResponse(items, total, p.page, p.pageSize));
         } catch (error: any) {
             return response.status(400).json({ error: error.message });
         }

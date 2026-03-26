@@ -1,3 +1,5 @@
+'use client';
+
 import { useState, useEffect } from 'react';
 import { api } from '@/api/api';
 
@@ -18,9 +20,12 @@ export function usePendingSolicitacoes() {
 
     const loadPendingCount = async () => {
         try {
-            const response = await api.get('/solicitacoes?status=pendente_de_aprovacao', {});
+            const response = await api.get('/solicitacoes', {
+                params: { status: 'pendente_de_aprovacao', page: 1, pageSize: 1 },
+            });
 
-            setPendingCount(Array.isArray(response.data) ? response.data.length : 0);
+            const total = response.data?.pagination?.total;
+            setPendingCount(typeof total === 'number' ? total : (response.data?.data?.length ?? 0));
         } catch (error: any) {
             console.error('Erro ao carregar solicitações pendentes:', error);
             setPendingCount(0);

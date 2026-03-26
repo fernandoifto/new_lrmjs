@@ -83,14 +83,11 @@ export default function MedicamentoViewPage() {
     const loadLotes = async (medicamentoId: number) => {
         try {
             setLoadingLotes(true);
-            const response = await api.get('/lotes', {});
+            const response = await api.get('/lotes', {
+                params: { page: 1, pageSize: 200, idMedicamento: medicamentoId },
+            });
 
-            // Filtrar lotes que pertencem a este medicamento
-            const lotesDoMedicamento = response.data.filter((lote: any) => 
-                lote.medicamento?.id === medicamentoId
-            );
-
-            setLotes(lotesDoMedicamento);
+            setLotes(response.data.data);
         } catch (error: any) {
             console.error('Erro ao carregar lotes:', error);
             if (error.response?.status === 401) {

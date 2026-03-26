@@ -11,6 +11,9 @@ import { usePermissions } from '@/hooks/usePermissions';
 import { FaUsersCog, FaPlus, FaEye, FaEdit, FaTrash } from 'react-icons/fa';
 import styles from './page.module.css';
 import Link from 'next/link';
+import { LIST_PAGE_SIZE } from '@/lib/pagedApi';
+import type { PaginationMeta } from '@/lib/pagedApi';
+import { PaginationBar } from '@/components/PaginationBar';
 
 interface Grupo {
     id: number;
@@ -29,19 +32,28 @@ export default function GruposListPage() {
     const [grupos, setGrupos] = useState<Grupo[]>([]);
     const [loading, setLoading] = useState(true);
     const [mounted, setMounted] = useState(false);
+    const [page, setPage] = useState(1);
+    const [pagination, setPagination] = useState<PaginationMeta | null>(null);
 
     useEffect(() => {
         setMounted(true);
-        loadGrupos();
     }, []);
+
+    useEffect(() => {
+        if (!mounted) return;
+        loadGrupos();
+    }, [mounted, page]);
 
     const loadGrupos = async () => {
         try {
             setLoading(true);
 
-            const response = await api.get('/roles', {});
+            const response = await api.get('/roles', {
+                params: { page, pageSize: LIST_PAGE_SIZE },
+            });
 
-            setGrupos(response.data);
+            setGrupos(response.data.data);
+            setPagination(response.data.pagination);
         } catch (error: any) {
             console.error('Erro ao carregar grupos:', error);
             if (error.response?.status === 401) {
@@ -131,6 +143,7 @@ export default function GruposListPage() {
                                 )}
                             </div>
                         ) : (
+                            <>
                             <div className={styles.grid}>
                                 {grupos.map((grupo) => (
                                     <div key={grupo.id} className={styles.card}>
@@ -190,6 +203,16 @@ export default function GruposListPage() {
                                     </div>
                                 ))}
                             </div>
+                            {pagination != null && (
+                                <PaginationBar
+                                    page={pagination.page}
+                                    totalPages={pagination.totalPages}
+                                    total={pagination.total}
+                                    disabled={loading}
+                                    onPageChange={setPage}
+                                />
+                            )}
+                            </>
                         )}
                     </div>
                 </div>

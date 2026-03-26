@@ -66,12 +66,12 @@ export default function EditarAgendamentoPage() {
             setLoading(true);
 
             // Carregar turnos
-            const turnosResponse = await api.get('/turnos');
-            setTurnos(turnosResponse.data);
+            const turnosResponse = await api.get('/turnos', { params: { page: 1, pageSize: 100 } });
+            setTurnos(turnosResponse.data.data);
 
             // Carregar usuários
-            const usersResponse = await api.get('/users', {});
-            setUsers(usersResponse.data);
+            const usersResponse = await api.get('/users', { params: { page: 1, pageSize: 200 } });
+            setUsers(usersResponse.data.data);
 
             // Carregar agendamento
             const agendamentoResponse = await api.get(`/agendamento/${id}`, {});

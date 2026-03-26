@@ -11,6 +11,9 @@ import { usePermissions } from '@/hooks/usePermissions';
 import { FaUsers, FaPlus, FaEye, FaEdit, FaTrash } from 'react-icons/fa';
 import styles from './page.module.css';
 import Link from 'next/link';
+import { LIST_PAGE_SIZE } from '@/lib/pagedApi';
+import type { PaginationMeta } from '@/lib/pagedApi';
+import { PaginationBar } from '@/components/PaginationBar';
 
 interface User {
     id: number;
@@ -27,19 +30,28 @@ export default function UsersListPage() {
     const [users, setUsers] = useState<User[]>([]);
     const [loading, setLoading] = useState(true);
     const [mounted, setMounted] = useState(false);
+    const [page, setPage] = useState(1);
+    const [pagination, setPagination] = useState<PaginationMeta | null>(null);
 
     useEffect(() => {
         setMounted(true);
-        loadUsers();
     }, []);
+
+    useEffect(() => {
+        if (!mounted) return;
+        loadUsers();
+    }, [mounted, page]);
 
     const loadUsers = async () => {
         try {
             setLoading(true);
 
-            const response = await api.get('/users', {});
+            const response = await api.get('/users', {
+                params: { page, pageSize: LIST_PAGE_SIZE },
+            });
 
-            setUsers(response.data);
+            setUsers(response.data.data);
+            setPagination(response.data.pagination);
         } catch (error: any) {
             console.error('Erro ao carregar usuários:', error);
             if (error.response?.status === 401) {
@@ -129,6 +141,7 @@ export default function UsersListPage() {
                                 )}
                             </div>
                         ) : (
+                            <>
                             <div className={styles.grid}>
                                 {users.map((user) => (
                                     <div key={user.id} className={styles.card}>
@@ -187,6 +200,16 @@ export default function UsersListPage() {
                                     </div>
                                 ))}
                             </div>
+                            {pagination && (
+                                <PaginationBar
+                                    page={pagination.page}
+                                    totalPages={pagination.totalPages}
+                                    total={pagination.total}
+                                    onPageChange={setPage}
+                                    disabled={loading}
+                                />
+                            )}
+                            </>
                         )}
                     </div>
                 </div>

@@ -10,6 +10,7 @@ import WithPermission from '@/components/withPermission';
 import styles from './page.module.css';
 import formStyles from '@/app/agendar/forms/style/styles.module.css';
 import Link from 'next/link';
+import { SELECT_PAGE_SIZE } from '@/lib/pagedApi';
 
 interface Paciente {
     id: number;
@@ -83,16 +84,16 @@ export default function EditarRetiradaPage() {
 
             // Carregar pacientes e lotes
             const [pacientesRes, lotesRes, retiradaRes] = await Promise.all([
-                api.get('/pacientes', {}),
-                api.get('/lotes', {}),
+                api.get('/pacientes', { params: { page: 1, pageSize: SELECT_PAGE_SIZE } }),
+                api.get('/lotes', { params: { page: 1, pageSize: SELECT_PAGE_SIZE } }),
                 api.get(`/retirada/${id}`, {})
             ]);
 
-            setPacientes(pacientesRes.data);
+            setPacientes(pacientesRes.data.data);
             // Filtrar apenas lotes com quantidade disponível e não vencidos
             const hoje = new Date();
             hoje.setHours(0, 0, 0, 0);
-            const lotesDisponiveis = lotesRes.data.filter((lote: Lote) => {
+            const lotesDisponiveis = lotesRes.data.data.filter((lote: Lote) => {
                 if (lote.qtde <= 0) return false;
                 const dataVencimento = new Date(lote.datavencimento);
                 dataVencimento.setHours(0, 0, 0, 0);

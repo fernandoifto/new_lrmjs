@@ -18,11 +18,12 @@ jest.mock("../src/tools/prisma", () => ({
             findUnique: jest.fn(),
             findFirst: jest.fn(),
             findMany: jest.fn(),
+            count: jest.fn(),
             create: jest.fn(),
             update: jest.fn(),
             delete: jest.fn(),
         },
-        turnos: { findMany: jest.fn() },
+        turnos: { findMany: jest.fn(), count: jest.fn() },
         pacientes: {
             findFirst: jest.fn(),
             findUnique: jest.fn(),
@@ -31,6 +32,7 @@ jest.mock("../src/tools/prisma", () => ({
         },
         solicitacoes: {
             findMany: jest.fn(),
+            count: jest.fn(),
             findUnique: jest.fn(),
             create: jest.fn(),
             update: jest.fn(),
@@ -85,10 +87,10 @@ import { signUploadRelativePath } from "../src/services/uploadAccessToken";
 
 /** Prisma real é substituído por jest.mock — tipagem relaxada para configurar mocks. */
 const prismaMock = prisma as unknown as {
-    users: { findUnique: jest.Mock; findMany: jest.Mock };
+    users: { findUnique: jest.Mock; findMany: jest.Mock; count: jest.Mock };
     pacientes: { findFirst: jest.Mock };
-    solicitacoes: { findMany: jest.Mock; create: jest.Mock };
-    turnos: { findMany: jest.Mock };
+    solicitacoes: { findMany: jest.Mock; count: jest.Mock; create: jest.Mock };
+    turnos: { findMany: jest.Mock; count: jest.Mock };
 };
 
 function jwtForUser(userId: number): string {
@@ -109,8 +111,11 @@ describe("Segurança da API (integração)", () => {
     beforeEach(() => {
         jest.clearAllMocks();
         prismaMock.turnos.findMany.mockResolvedValue([]);
+        prismaMock.turnos.count.mockResolvedValue(0);
         prismaMock.users.findMany.mockResolvedValue([]);
+        prismaMock.users.count.mockResolvedValue(0);
         prismaMock.solicitacoes.findMany.mockResolvedValue([]);
+        prismaMock.solicitacoes.count.mockResolvedValue(0);
 
         prismaMock.users.findUnique.mockImplementation(async (args: { where?: { id?: number }; include?: { userRoles?: boolean } }) => {
             const id = args?.where?.id;
@@ -160,9 +165,11 @@ describe("Segurança da API (integração)", () => {
         });
 
         it("GET /users retorna 200 para administrador", async () => {
+            prismaMock.users.count.mockResolvedValue(0);
             const res = await request(app).get("/users").set("Authorization", `Bearer ${jwtForUser(1)}`);
             expect(res.status).toBe(200);
-            expect(Array.isArray(res.body)).toBe(true);
+            expect(Array.isArray(res.body.data)).toBe(true);
+            expect(res.body.pagination).toMatchObject({ page: expect.any(Number), total: 0 });
         });
 
         it("GET /roles retorna 403 para não-admin (antes qualquer logado acessava)", async () => {
@@ -224,6 +231,7 @@ describe("Segurança da API (integração)", () => {
                 .set("X-Paciente-Context", issuePacienteContextToken(99));
             expect(wrong.status).toBe(403);
 
+            prismaMock.solicitacoes.count.mockResolvedValue(1);
             prismaMock.solicitacoes.findMany.mockResolvedValue([
                 {
                     id: 1,
@@ -243,7 +251,7 @@ describe("Segurança da API (integração)", () => {
                 .get("/solicitacoes/paciente?paciente=7")
                 .set("X-Paciente-Context", issuePacienteContextToken(7));
             expect(ok.status).toBe(200);
-            expect(ok.body[0]).not.toHaveProperty("foto_receita");
+            expect(ok.body.data[0]).not.toHaveProperty("foto_receita");
         });
 
         it("POST /solicitacao rejeita quando X-Paciente-Context não corresponde a id_pacientes (anti-IDOR na criação)", async () => {

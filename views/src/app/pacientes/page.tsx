@@ -11,6 +11,9 @@ import { usePermissions } from '@/hooks/usePermissions';
 import { FaUserFriends, FaPlus, FaSearch, FaTimes, FaEye, FaEdit, FaTrash, FaHandHoldingHeart } from 'react-icons/fa';
 import styles from './page.module.css';
 import Link from 'next/link';
+import { LIST_PAGE_SIZE } from '@/lib/pagedApi';
+import type { PaginationMeta } from '@/lib/pagedApi';
+import { PaginationBar } from '@/components/PaginationBar';
 
 interface Paciente {
     id: number;
@@ -27,9 +30,10 @@ export default function PacientesPage() {
     const router = useRouter();
     const { hasPermission } = usePermissions();
     const [pacientes, setPacientes] = useState<Paciente[]>([]);
-    const [filteredPacientes, setFilteredPacientes] = useState<Paciente[]>([]);
     const [loading, setLoading] = useState(true);
     const [mounted, setMounted] = useState(false);
+    const [page, setPage] = useState(1);
+    const [pagination, setPagination] = useState<PaginationMeta | null>(null);
     const [searchTerm, setSearchTerm] = useState('');
     const [searchOption, setSearchOption] = useState('nome');
     const [activeSearchTerm, setActiveSearchTerm] = useState('');
@@ -37,21 +41,29 @@ export default function PacientesPage() {
 
     useEffect(() => {
         setMounted(true);
-        loadPacientes();
     }, []);
 
     useEffect(() => {
-        filterPacientes();
-    }, [pacientes, activeSearchTerm, activeSearchOption]);
+        if (!mounted) return;
+        loadPacientes();
+    }, [mounted, page, activeSearchTerm, activeSearchOption]);
 
     const loadPacientes = async () => {
         try {
             setLoading(true);
 
-            const response = await api.get('/pacientes', {});
+            const response = await api.get('/pacientes', {
+                params: {
+                    page,
+                    pageSize: LIST_PAGE_SIZE,
+                    ...(activeSearchTerm.trim()
+                        ? { q: activeSearchTerm.trim(), campo: activeSearchOption }
+                        : {}),
+                },
+            });
 
-            setPacientes(response.data);
-            setFilteredPacientes(response.data);
+            setPacientes(response.data.data);
+            setPagination(response.data.pagination);
         } catch (error: any) {
             console.error('Erro ao carregar pacientes:', error);
             if (error.response?.status === 401) {
@@ -92,33 +104,10 @@ export default function PacientesPage() {
         return phone;
     };
 
-    const filterPacientes = () => {
-        let filtered = [...pacientes];
-        
-        if (activeSearchTerm.trim() !== '') {
-            const searchLower = activeSearchTerm.toLowerCase().trim();
-            filtered = filtered.filter(paciente => {
-                switch (activeSearchOption) {
-                    case 'nome':
-                        return paciente.nome.toLowerCase().includes(searchLower);
-                    case 'cpf':
-                        return paciente.cpf.replace(/\D/g, '').includes(searchLower.replace(/\D/g, ''));
-                    case 'telefone':
-                        return paciente.telefone.replace(/\D/g, '').includes(searchLower.replace(/\D/g, ''));
-                    case 'cartaosus':
-                        return paciente.cartaosus.toLowerCase().includes(searchLower);
-                    default:
-                        return true;
-                }
-            });
-        }
-        
-        setFilteredPacientes(filtered);
-    };
-
     const handleSearch = () => {
         setActiveSearchTerm(searchTerm);
         setActiveSearchOption(searchOption);
+        setPage(1);
     };
 
     const handleClearSearch = () => {
@@ -126,6 +115,7 @@ export default function PacientesPage() {
         setActiveSearchTerm('');
         setActiveSearchOption('nome');
         setSearchOption('nome');
+        setPage(1);
     };
 
     const handleDelete = async (id: number, nome: string) => {
@@ -262,8 +252,8 @@ export default function PacientesPage() {
                                     </button>
                                     {activeSearchTerm && (
                                         <div className={styles.searchResults}>
-                                            {filteredPacientes.length > 0 ? (
-                                                <span>{filteredPacientes.length} resultado(s) encontrado(s)</span>
+                                            {pacientes.length > 0 ? (
+                                                <span>{pagination?.total ?? pacientes.length} resultado(s) encontrado(s)</span>
                                             ) : (
                                                 <span>Nenhum resultado encontrado</span>
                                             )}
@@ -277,7 +267,7 @@ export default function PacientesPage() {
                             <div className={styles.loadingContainer}>
                                 <p>Carregando pacientes...</p>
                             </div>
-                        ) : filteredPacientes.length === 0 ? (
+                        ) : pacientes.length === 0 ? (
                             <div className={styles.emptyState}>
                                 <p>
                                     {activeSearchTerm 
@@ -291,8 +281,9 @@ export default function PacientesPage() {
                                 )}
                             </div>
                         ) : (
+                            <>
                             <div className={styles.grid}>
-                                {filteredPacientes.map((paciente) => (
+                                {pacientes.map((paciente) => (
                                     <div key={paciente.id} className={styles.card}>
                                         <div className={styles.cardHeader}>
                                             <div className={styles.cardIcon}>
@@ -356,6 +347,16 @@ export default function PacientesPage() {
                                     </div>
                                 ))}
                             </div>
+                            {pagination && (
+                                <PaginationBar
+                                    page={pagination.page}
+                                    totalPages={pagination.totalPages}
+                                    total={pagination.total}
+                                    onPageChange={setPage}
+                                    disabled={loading}
+                                />
+                            )}
+                            </>
                         )}
                     </div>
                 </div>

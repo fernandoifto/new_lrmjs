@@ -1,4 +1,5 @@
 import prismaClient from "../tools/prisma";
+import type { ParsedPagination } from "../utils/pagination";
 import type { PrismaClient } from "../tools/generated/prisma";
 
 interface ISolicitacao {
@@ -91,30 +92,55 @@ class CreateSolicitacaoModel {
 
 //Modelo de listar solicitações
 class ListSolicitacoesModel {
-    async execute(status?: string) {
-        const where: any = {};
+    async execute(status: string | undefined, p: ParsedPagination, search?: string) {
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        const andParts: any[] = [];
         if (status) {
-            where.status = status;
+            andParts.push({ status });
         }
-
-        const solicitacoes = await prismaClient.solicitacoes.findMany({
-            where,
-            include: {
-                lotes: {
-                    include: {
-                        medicamento: true,
-                        formaFarmaceutica: true,
-                        tipoMedicamento: true
-                    }
-                },
-                paciente: true
-            },
-            orderBy: {
-                created: 'desc'
+        const q = search?.trim();
+        if (q) {
+            const digits = q.replace(/\D/g, "");
+            const pacienteOr: Array<{ nome?: { contains: string; mode: "insensitive" }; cpf?: { contains: string } }> = [
+                { nome: { contains: q, mode: "insensitive" } },
+            ];
+            if (digits.length > 0) {
+                pacienteOr.push({ cpf: { contains: digits } });
             }
-        });
+            andParts.push({
+                OR: [
+                    { paciente: { OR: pacienteOr } },
+                    { lotes: { numero: { contains: q, mode: "insensitive" } } },
+                    { lotes: { medicamento: { descricao: { contains: q, mode: "insensitive" } } } },
+                ],
+            });
+        }
+        const where = andParts.length > 0 ? { AND: andParts } : {};
 
-        return solicitacoes;
+        const include = {
+            lotes: {
+                include: {
+                    medicamento: true,
+                    formaFarmaceutica: true,
+                    tipoMedicamento: true
+                }
+            },
+            paciente: true
+        };
+        const orderBy = { created: "desc" as const };
+
+        const [total, items] = await Promise.all([
+            prismaClient.solicitacoes.count({ where }),
+            prismaClient.solicitacoes.findMany({
+                where,
+                include,
+                orderBy,
+                skip: p.skip,
+                take: p.take,
+            }),
+        ]);
+
+        return { items, total };
     }
 }
 
@@ -362,31 +388,36 @@ class DeleteSolicitacaoModel {
 
 //Modelo de listar solicitações por paciente
 class ListSolicitacoesByPacienteModel {
-    async execute(id_pacientes: number) {
+    async execute(id_pacientes: number, p: ParsedPagination) {
         if (!id_pacientes) {
             throw new Error("ID do paciente é obrigatório");
         }
 
-        const solicitacoes = await prismaClient.solicitacoes.findMany({
-            where: {
-                id_pacientes: id_pacientes
+        const where = { id_pacientes: id_pacientes };
+        const include = {
+            lotes: {
+                include: {
+                    medicamento: true,
+                    formaFarmaceutica: true,
+                    tipoMedicamento: true
+                }
             },
-            include: {
-                lotes: {
-                    include: {
-                        medicamento: true,
-                        formaFarmaceutica: true,
-                        tipoMedicamento: true
-                    }
-                },
-                paciente: true
-            },
-            orderBy: {
-                created: 'desc'
-            }
-        });
+            paciente: true
+        };
+        const orderBy = { created: "desc" as const };
 
-        return solicitacoes;
+        const [total, items] = await Promise.all([
+            prismaClient.solicitacoes.count({ where }),
+            prismaClient.solicitacoes.findMany({
+                where,
+                include,
+                orderBy,
+                skip: p.skip,
+                take: p.take,
+            }),
+        ]);
+
+        return { items, total };
     }
 }
 

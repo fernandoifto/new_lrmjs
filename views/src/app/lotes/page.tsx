@@ -12,6 +12,9 @@ import { FaBoxes, FaFilePdf, FaPlus, FaSearch, FaTimes, FaEye, FaEdit, FaTrash, 
 import styles from './page.module.css';
 import Link from 'next/link';
 import jsPDF from 'jspdf';
+import { LIST_PAGE_SIZE } from '@/lib/pagedApi';
+import type { PaginationMeta } from '@/lib/pagedApi';
+import { PaginationBar } from '@/components/PaginationBar';
 
 interface Lote {
     id: number;
@@ -40,7 +43,8 @@ export default function LotesPage() {
     const router = useRouter();
     const { hasPermission } = usePermissions();
     const [lotes, setLotes] = useState<Lote[]>([]);
-    const [filteredLotes, setFilteredLotes] = useState<Lote[]>([]);
+    const [page, setPage] = useState(1);
+    const [pagination, setPagination] = useState<PaginationMeta | null>(null);
     const [loading, setLoading] = useState(true);
     const [mounted, setMounted] = useState(false);
     const [searchTerm, setSearchTerm] = useState('');
@@ -50,21 +54,30 @@ export default function LotesPage() {
 
     useEffect(() => {
         setMounted(true);
-        loadLotes();
     }, []);
 
     useEffect(() => {
-        filterLotes();
-    }, [lotes, activeSearchTerm, activeSearchOption]);
+        if (!mounted) return;
+        loadLotes();
+    }, [mounted, page, activeSearchTerm, activeSearchOption]);
 
     const loadLotes = async () => {
         try {
             setLoading(true);
 
-            const response = await api.get('/lotes', {});
+            const params: Record<string, string | number> = {
+                page,
+                pageSize: LIST_PAGE_SIZE,
+            };
+            if (activeSearchTerm.trim()) {
+                params.q = activeSearchTerm.trim();
+                params.campo = activeSearchOption;
+            }
 
-            setLotes(response.data);
-            setFilteredLotes(response.data);
+            const response = await api.get('/lotes', { params });
+
+            setLotes(response.data.data);
+            setPagination(response.data.pagination);
         } catch (error: any) {
             console.error('Erro ao carregar lotes:', error);
             if (error.response?.status === 401) {
@@ -127,41 +140,10 @@ export default function LotesPage() {
         }
     };
 
-    const filterLotes = () => {
-        let filtered = [...lotes];
-        
-        if (activeSearchTerm.trim() !== '') {
-            const searchLower = activeSearchTerm.toLowerCase().trim();
-            filtered = filtered.filter(lote => {
-                switch (activeSearchOption) {
-                    case 'numero':
-                        return lote.numero.toLowerCase().includes(searchLower);
-                    case 'medicamento':
-                        return lote.medicamento.descricao.toLowerCase().includes(searchLower);
-                    case 'principioativo':
-                        return lote.medicamento.principioativo.toLowerCase().includes(searchLower);
-                    case 'formafarmaceutica':
-                        return lote.formaFarmaceutica.descricao.toLowerCase().includes(searchLower);
-                    case 'tipomedicamento':
-                        return lote.tipoMedicamento.descricao.toLowerCase().includes(searchLower);
-                    case 'quantidade':
-                        return lote.qtde.toString().includes(searchLower);
-                    case 'datafabricacao':
-                        return formatDate(lote.datafabricacao).toLowerCase().includes(searchLower);
-                    case 'datavencimento':
-                        return formatDate(lote.datavencimento).toLowerCase().includes(searchLower);
-                    default:
-                        return true;
-                }
-            });
-        }
-        
-        setFilteredLotes(filtered);
-    };
-
     const handleSearch = () => {
         setActiveSearchTerm(searchTerm);
         setActiveSearchOption(searchOption);
+        setPage(1);
     };
 
     const handleClearSearch = () => {
@@ -169,10 +151,24 @@ export default function LotesPage() {
         setActiveSearchTerm('');
         setActiveSearchOption('numero');
         setSearchOption('numero');
+        setPage(1);
     };
 
-    const handleGeneratePDF = () => {
+    const handleGeneratePDF = async () => {
         try {
+            const baseParams: Record<string, string | number> = { pageSize: 200 };
+            if (activeSearchTerm.trim()) {
+                baseParams.q = activeSearchTerm.trim();
+                baseParams.campo = activeSearchOption;
+            }
+            const first = await api.get('/lotes', { params: { ...baseParams, page: 1 } });
+            let rows: Lote[] = [...first.data.data];
+            const totalApiPages = first.data.pagination.totalPages;
+            for (let p = 2; p <= totalApiPages; p++) {
+                const r = await api.get('/lotes', { params: { ...baseParams, page: p } });
+                rows = rows.concat(r.data.data);
+            }
+
             const doc = new jsPDF('landscape', 'mm', 'a4');
             const pageWidth = doc.internal.pageSize.getWidth();
             const pageHeight = doc.internal.pageSize.getHeight();
@@ -233,7 +229,7 @@ export default function LotesPage() {
             doc.setFontSize(8);
             doc.setFont('helvetica', 'normal');
             
-            filteredLotes.forEach((lote) => {
+            rows.forEach((lote) => {
                 if (y > pageHeight - 20) {
                     doc.addPage();
                     y = startY;
@@ -285,7 +281,7 @@ export default function LotesPage() {
                 doc.setFontSize(8);
                 doc.setFont('helvetica', 'normal');
                 doc.text(
-                    `Página ${i} de ${totalPages} - Total de lotes: ${filteredLotes.length}`,
+                    `Página ${i} de ${totalPages} - Total de lotes: ${rows.length}`,
                     pageWidth / 2,
                     pageHeight - 5,
                     { align: 'center' }
@@ -324,7 +320,7 @@ export default function LotesPage() {
                                 </div>
                             </div>
                             <div className={styles.headerActions}>
-                                {filteredLotes.length > 0 && (
+                                {pagination != null && pagination.total > 0 && (
                                     <button
                                         onClick={handleGeneratePDF}
                                         className={styles.btnPDF}
@@ -464,10 +460,10 @@ export default function LotesPage() {
                                         <FaSearch size={20} />
                                         Buscar
                                     </button>
-                                    {activeSearchTerm && (
+                                    {activeSearchTerm && pagination != null && (
                                         <div className={styles.searchResults}>
-                                            {filteredLotes.length > 0 ? (
-                                                <span>{filteredLotes.length} resultado(s) encontrado(s)</span>
+                                            {pagination.total > 0 ? (
+                                                <span>{pagination.total} resultado(s) encontrado(s)</span>
                                             ) : (
                                                 <span>Nenhum resultado encontrado</span>
                                             )}
@@ -481,7 +477,7 @@ export default function LotesPage() {
                             <div className={styles.loadingContainer}>
                                 <p>Carregando...</p>
                             </div>
-                        ) : filteredLotes.length === 0 ? (
+                        ) : lotes.length === 0 ? (
                             <div className={styles.emptyState}>
                                 <p>
                                     {activeSearchTerm 
@@ -495,8 +491,9 @@ export default function LotesPage() {
                                 )}
                             </div>
                         ) : (
+                            <>
                             <div className={styles.grid}>
-                                {filteredLotes.map((lote) => {
+                                {lotes.map((lote) => {
                                     const vencimentoStatus = getVencimentoStatus(lote.datavencimento);
                                     return (
                                         <div key={lote.id} className={styles.card}>
@@ -584,6 +581,16 @@ export default function LotesPage() {
                                     );
                                 })}
                             </div>
+                            {pagination != null && (
+                                <PaginationBar
+                                    page={pagination.page}
+                                    totalPages={pagination.totalPages}
+                                    total={pagination.total}
+                                    disabled={loading}
+                                    onPageChange={setPage}
+                                />
+                            )}
+                            </>
                         )}
                     </div>
                 </div>

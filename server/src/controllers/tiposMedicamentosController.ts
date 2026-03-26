@@ -1,4 +1,5 @@
 import { Request, Response } from "express";
+import { parsePaginationParams, paginatedResponse } from "../utils/pagination";
 import { 
     CreateTipoMedicamentoModel, 
     ListTiposMedicamentosModel, 
@@ -24,9 +25,11 @@ export class CreateTipoMedicamentoController {
 export class ListTiposMedicamentosController {
     async handle(request: Request, response: Response) {
         try {
+            const p = parsePaginationParams(request.query);
+            const q = request.query.q ? String(request.query.q) : undefined;
             const listTiposMedicamentos = new ListTiposMedicamentosModel();
-            const tiposMedicamentos = await listTiposMedicamentos.execute();
-            return response.json(tiposMedicamentos);
+            const { items, total } = await listTiposMedicamentos.execute(p, { q });
+            return response.json(paginatedResponse(items, total, p.page, p.pageSize));
         } catch (error: any) {
             return response.status(400).json({ error: error.message });
         }

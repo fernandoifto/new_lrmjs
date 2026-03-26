@@ -2,12 +2,12 @@
 import 'bootstrap/dist/css/bootstrap.min.css';
 import styles from './page.module.css';
 import Link from 'next/link';
-import { useState, useEffect } from 'react';
+import { Suspense, useState, useEffect } from 'react';
 import { api } from '@/api/api';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { toast } from 'react-toastify';
 
-export default function ResetarSenha() {
+function ResetarSenhaContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const [loading, setLoading] = useState(false);
@@ -195,6 +195,14 @@ export default function ResetarSenha() {
         </div>
       </div>
     </main>
+  );
+}
+
+export default function ResetarSenha() {
+  return (
+    <Suspense fallback={null}>
+      <ResetarSenhaContent />
+    </Suspense>
   );
 }
 

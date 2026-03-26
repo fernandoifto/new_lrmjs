@@ -1,4 +1,5 @@
 import prismaClient from "../tools/prisma";
+import type { ParsedPagination } from "../utils/pagination";
 
 interface IPaciente {
     nome: string;
@@ -78,15 +79,46 @@ class GetPacienteByCPFModel {
 }
 
 //Modelo de listar pacientes
-class ListPacientesModel {
-    async execute() {
-        const pacientes = await prismaClient.pacientes.findMany({
-            orderBy: {
-                nome: 'asc'
-            }
-        });
+type ListPacientesFilter = {
+    q?: string;
+    campo?: string;
+};
 
-        return pacientes;
+class ListPacientesModel {
+    async execute(p: ParsedPagination, opts?: ListPacientesFilter) {
+        const where: {
+            nome?: { contains: string; mode: "insensitive" };
+            cpf?: { contains: string };
+            telefone?: { contains: string };
+            cartaosus?: { contains: string; mode: "insensitive" };
+        } = {};
+        const q = opts?.q?.trim();
+        const campo = opts?.campo || "nome";
+        if (q) {
+            if (campo === "cpf" || campo === "telefone") {
+                const digits = q.replace(/\D/g, "");
+                if (campo === "cpf" && digits) {
+                    where.cpf = { contains: digits };
+                } else if (campo === "telefone" && digits) {
+                    where.telefone = { contains: digits };
+                }
+            } else if (campo === "cartaosus") {
+                where.cartaosus = { contains: q, mode: "insensitive" };
+            } else {
+                where.nome = { contains: q, mode: "insensitive" };
+            }
+        }
+        const orderBy = { nome: 'asc' as const };
+        const [total, items] = await Promise.all([
+            prismaClient.pacientes.count({ where }),
+            prismaClient.pacientes.findMany({
+                where,
+                orderBy,
+                skip: p.skip,
+                take: p.take,
+            }),
+        ]);
+        return { items, total };
     }
 }
 

@@ -1,4 +1,5 @@
 import { Request, Response } from "express";
+import { parsePaginationParams, paginatedResponse } from "../utils/pagination";
 import { CreatePacienteModel, ListPacientesModel, GetPacienteModel, GetPacienteByCPFModel, UpdatePacienteModel, DeletePacienteModel } from "../models/pacientesModels";
 import { issuePacienteContextToken } from "../services/pacienteContextToken";
 
@@ -34,10 +35,13 @@ class CreatePacienteController {
 class ListPacientesController {
     async handle(req: Request, res: Response) {
         try {
+            const p = parsePaginationParams(req.query);
+            const q = req.query.q ? String(req.query.q) : undefined;
+            const campo = req.query.campo ? String(req.query.campo) : undefined;
             const listPacientesModel = new ListPacientesModel();
-            const pacientes = await listPacientesModel.execute();
+            const { items, total } = await listPacientesModel.execute(p, { q, campo });
 
-            return res.status(200).json(pacientes);
+            return res.status(200).json(paginatedResponse(items, total, p.page, p.pageSize));
         } catch (error: any) {
             return res.status(400).json({ error: error.message });
         }

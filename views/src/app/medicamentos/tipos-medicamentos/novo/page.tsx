@@ -38,13 +38,13 @@ export default function NovoMedicamentoPage() {
         setSaving(true);
 
         try {
-            await api.post('/medicamento', {
+            await api.post('/tipo-medicamento', {
                 descricao: formData.descricao.trim()
             }, {});
 
             toast.success('Tipo de medicamento criado com sucesso!');
             setTimeout(() => {
-                router.push('/medicamentos');
+                router.push('/medicamentos/tipos-medicamentos');
             }, 1500);
         } catch (error: any) {
             console.error('Erro ao criar medicamento:', error);

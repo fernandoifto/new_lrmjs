@@ -1,4 +1,5 @@
 import prismaClient from "../tools/prisma";
+import type { ParsedPagination } from "../utils/pagination";
 
 interface IRole {
     nome: string;
@@ -38,8 +39,8 @@ class CreateRoleModel {
 }
 
 class ListRolesModel {
-    async execute() {
-        const roles = await prismaClient.roles.findMany({
+    async execute(p: ParsedPagination) {
+        const base = {
             include: {
                 _count: {
                     select: {
@@ -48,10 +49,18 @@ class ListRolesModel {
                 }
             },
             orderBy: {
-                nome: 'asc'
+                nome: 'asc' as const
             }
-        });
-        return roles;
+        };
+        const [total, items] = await Promise.all([
+            prismaClient.roles.count(),
+            prismaClient.roles.findMany({
+                ...base,
+                skip: p.skip,
+                take: p.take,
+            }),
+        ]);
+        return { items, total };
     }
 }
 

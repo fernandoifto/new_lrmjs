@@ -1,5 +1,5 @@
 'use client';
-import { useEffect, useState } from 'react';
+import { Suspense, useEffect, useState } from 'react';
 import { api } from '@/api/api';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { toast } from 'react-toastify';
@@ -11,6 +11,9 @@ import { FaCalendarAlt, FaFilePdf, FaPlus, FaSearch, FaTimes, FaCheckCircle, FaE
 import styles from './page.module.css';
 import Link from 'next/link';
 import jsPDF from 'jspdf';
+import { LIST_PAGE_SIZE } from '@/lib/pagedApi';
+import type { PaginationMeta } from '@/lib/pagedApi';
+import { PaginationBar } from '@/components/PaginationBar';
 
 interface Agendamento {
     id: number;
@@ -34,14 +37,15 @@ interface Agendamento {
     } | null;
 }
 
-export default function AgendamentosListPage() {
+function AgendamentosListPageContent() {
     const router = useRouter();
     const searchParams = useSearchParams();
     const { hasPermission } = usePermissions();
     const [agendamentos, setAgendamentos] = useState<Agendamento[]>([]);
-    const [filteredAgendamentos, setFilteredAgendamentos] = useState<Agendamento[]>([]);
     const [loading, setLoading] = useState(true);
     const [mounted, setMounted] = useState(false);
+    const [page, setPage] = useState(1);
+    const [pagination, setPagination] = useState<PaginationMeta | null>(null);
     const [searchTerm, setSearchTerm] = useState('');
     const [searchOption, setSearchOption] = useState('nome');
     const [activeSearchTerm, setActiveSearchTerm] = useState('');
@@ -50,21 +54,34 @@ export default function AgendamentosListPage() {
     const filtro = searchParams.get('filtro') || 'todos';
 
     useEffect(() => {
+        setPage(1);
+    }, [filtro]);
+
+    useEffect(() => {
         setMounted(true);
-        loadAgendamentos();
     }, []);
 
     useEffect(() => {
-        filterAgendamentos();
-    }, [agendamentos, filtro, activeSearchTerm, activeSearchOption]);
+        if (!mounted) return;
+        loadAgendamentos();
+    }, [mounted, page, filtro, activeSearchTerm]);
 
     const loadAgendamentos = async () => {
         try {
             setLoading(true);
 
-            const response = await api.get('/agendamentos', {});
+            const visitadoParam = filtro === 'todos' ? undefined : filtro;
+            const response = await api.get('/agendamentos', {
+                params: {
+                    page,
+                    pageSize: LIST_PAGE_SIZE,
+                    ...(visitadoParam ? { filtro: visitadoParam } : {}),
+                    ...(activeSearchTerm.trim() ? { q: activeSearchTerm.trim() } : {}),
+                },
+            });
 
-            setAgendamentos(response.data);
+            setAgendamentos(response.data.data);
+            setPagination(response.data.pagination);
         } catch (error: any) {
             console.error('Erro ao carregar agendamentos:', error);
             if (error.response?.status === 401) {
@@ -107,47 +124,10 @@ export default function AgendamentosListPage() {
         return cep;
     };
 
-    const filterAgendamentos = () => {
-        let filtered = [...agendamentos];
-        
-        // Filtro por status (visitados/não visitados)
-        if (filtro === 'visitados') {
-            filtered = agendamentos.filter(ag => ag.user !== null);
-        } else if (filtro === 'nao-visitados') {
-            filtered = agendamentos.filter(ag => ag.user === null);
-        }
-        
-        // Filtro por busca no campo selecionado
-        if (activeSearchTerm.trim() !== '') {
-            const searchLower = activeSearchTerm.toLowerCase().trim();
-            filtered = filtered.filter(ag => {
-                switch (activeSearchOption) {
-                    case 'nome':
-                        return ag.nome.toLowerCase().includes(searchLower);
-                    case 'endereco':
-                        return ag.endereco.toLowerCase().includes(searchLower);
-                    case 'setor':
-                        return ag.setor.toLowerCase().includes(searchLower);
-                    case 'telefone':
-                        return ag.telefone.replace(/\D/g, '').includes(searchLower.replace(/\D/g, ''));
-                    case 'cep':
-                        return ag.cep.replace(/\D/g, '').includes(searchLower.replace(/\D/g, ''));
-                    case 'datavisita':
-                        return ag.datavisita?.toLowerCase().includes(searchLower) || false;
-                    case 'turno':
-                        return ag.turno.descricao.toLowerCase().includes(searchLower);
-                    default:
-                        return true;
-                }
-            });
-        }
-        
-        setFilteredAgendamentos(filtered);
-    };
-
     const handleSearch = () => {
         setActiveSearchTerm(searchTerm);
         setActiveSearchOption(searchOption);
+        setPage(1);
     };
 
     const handleClearSearch = () => {
@@ -155,10 +135,22 @@ export default function AgendamentosListPage() {
         setActiveSearchTerm('');
         setActiveSearchOption('nome');
         setSearchOption('nome');
+        setPage(1);
     };
 
-    const handleGeneratePDF = () => {
+    const handleGeneratePDF = async () => {
         try {
+            const visitadoParam = filtro === 'todos' ? undefined : filtro;
+            const pdfRes = await api.get('/agendamentos', {
+                params: {
+                    page: 1,
+                    pageSize: 200,
+                    ...(visitadoParam ? { filtro: visitadoParam } : {}),
+                    ...(activeSearchTerm.trim() ? { q: activeSearchTerm.trim() } : {}),
+                },
+            });
+            const rows = pdfRes.data.data as Agendamento[];
+
             const doc = new jsPDF('landscape', 'mm', 'a4');
             const pageWidth = doc.internal.pageSize.getWidth();
             const pageHeight = doc.internal.pageSize.getHeight();
@@ -223,7 +215,7 @@ export default function AgendamentosListPage() {
             doc.setFontSize(8);
             doc.setFont('helvetica', 'normal');
             
-            filteredAgendamentos.forEach((agendamento) => {
+            rows.forEach((agendamento) => {
                 if (y > pageHeight - 20) {
                     doc.addPage();
                     y = startY;
@@ -268,7 +260,7 @@ export default function AgendamentosListPage() {
                 doc.setFontSize(8);
                 doc.setFont('helvetica', 'normal');
                 doc.text(
-                    `Página ${i} de ${totalPages} - Total de agendamentos: ${filteredAgendamentos.length}`,
+                    `Página ${i} de ${totalPages} - Total no PDF: ${rows.length}${pdfRes.data.pagination?.total != null ? ` (filtro: ${pdfRes.data.pagination.total} no sistema)` : ''}`,
                     pageWidth / 2,
                     pageHeight - 5,
                     { align: 'center' }
@@ -373,7 +365,7 @@ export default function AgendamentosListPage() {
                                         Não Visitados
                                     </Link>
                                 </div>
-                                {filteredAgendamentos.length > 0 && (
+                                {agendamentos.length > 0 && (
                                     <button
                                         onClick={handleGeneratePDF}
                                         className={styles.btnPDF}
@@ -505,8 +497,8 @@ export default function AgendamentosListPage() {
                                     </button>
                                     {activeSearchTerm && (
                                         <div className={styles.searchResults}>
-                                            {filteredAgendamentos.length > 0 ? (
-                                                <span>{filteredAgendamentos.length} resultado(s) encontrado(s)</span>
+                                            {agendamentos.length > 0 ? (
+                                                <span>{pagination?.total ?? agendamentos.length} resultado(s) encontrado(s)</span>
                                             ) : (
                                                 <span>Nenhum resultado encontrado</span>
                                             )}
@@ -520,7 +512,7 @@ export default function AgendamentosListPage() {
                             <div className={styles.loadingContainer}>
                                 <p>Carregando agendamentos...</p>
                             </div>
-                        ) : filteredAgendamentos.length === 0 ? (
+                        ) : agendamentos.length === 0 ? (
                             <div className={styles.emptyState}>
                                 <p>
                                     {filtro === 'visitados' 
@@ -536,8 +528,9 @@ export default function AgendamentosListPage() {
                                 )}
                             </div>
                         ) : (
+                            <>
                             <div className={styles.grid}>
-                            {filteredAgendamentos.map((agendamento) => (
+                            {agendamentos.map((agendamento) => (
                                 <div key={agendamento.id} className={styles.card}>
                                     <div className={styles.cardHeader}>
                                         <div className={styles.cardIcon}>
@@ -634,11 +627,29 @@ export default function AgendamentosListPage() {
                                 </div>
                             ))}
                         </div>
+                        {pagination && (
+                            <PaginationBar
+                                page={pagination.page}
+                                totalPages={pagination.totalPages}
+                                total={pagination.total}
+                                onPageChange={setPage}
+                                disabled={loading}
+                            />
+                        )}
+                        </>
                         )}
                     </div>
                 </div>
             </main>
         </WithPermission>
+    );
+}
+
+export default function AgendamentosListPage() {
+    return (
+        <Suspense fallback={null}>
+            <AgendamentosListPageContent />
+        </Suspense>
     );
 }
 

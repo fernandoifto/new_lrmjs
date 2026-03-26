@@ -1,4 +1,5 @@
 import { Request, Response } from "express";
+import { parsePaginationParams, paginatedResponse } from "../utils/pagination";
 import { CreateSolicitacaoModel, ListSolicitacoesModel, GetSolicitacaoModel, ConfirmarSolicitacaoModel, ConcluirDoacaoModel, RecusarSolicitacaoModel, DeleteSolicitacaoModel, ListSolicitacoesByPacienteModel } from "../models/solicitacoesModels";
 import { uploadSingleReceita } from "../middlewares/upload";
 import { verifyPacienteContextToken } from "../services/pacienteContextToken";
@@ -75,11 +76,16 @@ class CreateSolicitacaoController {
 class ListSolicitacoesController {
     async handle(req: Request, res: Response) {
         try {
-            const { status } = req.query;
+            const { status, search } = req.query;
+            const p = parsePaginationParams(req.query);
             const listSolicitacoesModel = new ListSolicitacoesModel();
-            const solicitacoes = await listSolicitacoesModel.execute(status as string | undefined);
-
-            return res.status(200).json(attachUploadTokensToSolicitacoes(solicitacoes));
+            const { items, total } = await listSolicitacoesModel.execute(
+                status as string | undefined,
+                p,
+                search ? String(search) : undefined
+            );
+            const data = attachUploadTokensToSolicitacoes(items);
+            return res.status(200).json(paginatedResponse(data, total, p.page, p.pageSize));
         } catch (error: any) {
             return res.status(400).json({ error: error.message });
         }
@@ -170,10 +176,11 @@ class ListSolicitacoesByPacienteController {
     async handle(req: Request, res: Response) {
         try {
             const { paciente } = req.query;
+            const p = parsePaginationParams(req.query);
             const listSolicitacoesByPacienteModel = new ListSolicitacoesByPacienteModel();
-            const solicitacoes = await listSolicitacoesByPacienteModel.execute(parseInt(paciente as string));
-
-            return res.status(200).json(stripFotoReceitaFromSolicitacoes(solicitacoes));
+            const { items, total } = await listSolicitacoesByPacienteModel.execute(parseInt(paciente as string), p);
+            const data = stripFotoReceitaFromSolicitacoes(items);
+            return res.status(200).json(paginatedResponse(data, total, p.page, p.pageSize));
         } catch (error: any) {
             return res.status(400).json({ error: error.message });
         }

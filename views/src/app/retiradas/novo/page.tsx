@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { Suspense, useEffect, useState } from 'react';
 import { api } from '@/api/api';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { toast } from 'react-toastify';
@@ -11,6 +11,7 @@ import { usePermissions } from '@/hooks/usePermissions';
 import styles from './page.module.css';
 import formStyles from '@/app/agendar/forms/style/styles.module.css';
 import Link from 'next/link';
+import { SELECT_PAGE_SIZE } from '@/lib/pagedApi';
 
 interface Paciente {
     id: number;
@@ -34,7 +35,7 @@ interface Lote {
     };
 }
 
-export default function NovaRetiradaPage() {
+function NovaRetiradaPageContent() {
     const router = useRouter();
     const searchParams = useSearchParams();
     const { hasPermission } = usePermissions();
@@ -105,8 +106,8 @@ export default function NovaRetiradaPage() {
                 }
             } else {
                 try {
-                    const pacientesRes = await api.get('/pacientes', {});
-                    pacientesData = pacientesRes.data;
+                    const pacientesRes = await api.get('/pacientes', { params: { page: 1, pageSize: SELECT_PAGE_SIZE } });
+                    pacientesData = pacientesRes.data.data;
                 } catch (error: any) {
                     if (error.response?.status === 403) {
                         // Se não tiver permissão para ver lista, continuar sem ela
@@ -155,8 +156,8 @@ export default function NovaRetiradaPage() {
                 }
             } else {
                 try {
-                    const lotesRes = await api.get('/lotes', {});
-                    lotesData = lotesRes.data;
+                    const lotesRes = await api.get('/lotes', { params: { page: 1, pageSize: SELECT_PAGE_SIZE } });
+                    lotesData = lotesRes.data.data;
                 } catch (error: any) {
                     if (error.response?.status === 403) {
                         // Se não tiver permissão para ver lista, continuar sem ela
@@ -544,6 +545,14 @@ export default function NovaRetiradaPage() {
                 </div>
             </main>
         </WithPermission>
+    );
+}
+
+export default function NovaRetiradaPage() {
+    return (
+        <Suspense fallback={null}>
+            <NovaRetiradaPageContent />
+        </Suspense>
     );
 }
 

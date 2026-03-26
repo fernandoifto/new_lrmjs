@@ -1,4 +1,5 @@
 import { Request, Response } from "express";
+import { parsePaginationParams, paginatedResponse } from "../utils/pagination";
 import { 
     CreateLoteModel, 
     ListLotesModel,
@@ -33,9 +34,20 @@ export class CreateLoteController {
 export class ListLotesController {
     async handle(request: Request, response: Response) {
         try {
+            const p = parsePaginationParams(request.query);
+            const q = request.query.q ? String(request.query.q) : undefined;
+            const campo = request.query.campo ? String(request.query.campo) : undefined;
+            const rawMed = request.query.idMedicamento;
+            let idMedicamento: number | undefined;
+            if (rawMed !== undefined && String(rawMed) !== "") {
+                const n = parseInt(String(rawMed), 10);
+                if (!Number.isNaN(n)) {
+                    idMedicamento = n;
+                }
+            }
             const listLotes = new ListLotesModel();
-            const lotes = await listLotes.execute();
-            return response.json(lotes);
+            const { items, total } = await listLotes.execute(p, { q, campo, idMedicamento });
+            return response.json(paginatedResponse(items, total, p.page, p.pageSize));
         } catch (error: any) {
             return response.status(400).json({ error: error.message });
         }
@@ -45,9 +57,10 @@ export class ListLotesController {
 export class ListLotesDisponiveisController {
     async handle(request: Request, response: Response) {
         try {
+            const p = parsePaginationParams(request.query);
             const listLotesDisponiveis = new ListLotesDisponiveisModel();
-            const lotes = await listLotesDisponiveis.execute();
-            return response.json(lotes);
+            const { items, total } = await listLotesDisponiveis.execute(p);
+            return response.json(paginatedResponse(items, total, p.page, p.pageSize));
         } catch (error: any) {
             return response.status(400).json({ error: error.message });
         }

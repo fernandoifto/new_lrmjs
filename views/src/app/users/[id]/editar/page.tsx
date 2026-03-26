@@ -55,11 +55,11 @@ export default function EditarUserPage() {
 
             const [userRes, gruposRes] = await Promise.all([
                 api.get(`/user/${id}`, {}),
-                api.get('/roles', {})
+                api.get('/roles', { params: { page: 1, pageSize: 200 } })
             ]);
 
             setUser(userRes.data);
-            setGrupos(gruposRes.data);
+            setGrupos(gruposRes.data.data);
             setFormData({
                 username: userRes.data.username,
                 email: userRes.data.email,

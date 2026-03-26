@@ -1,4 +1,5 @@
 import prismaClient from "../tools/prisma";
+import type { ParsedPagination } from "../utils/pagination";
 
 interface IFormaFarmaceutica {
     descricao: string;
@@ -26,13 +27,17 @@ class CreateFormaFarmaceuticaModel {
 
 //Modelo de listar formas farmacêuticas
 class ListFormasFarmaceuticasModel {
-    async execute() {
-        const formasFarmaceuticas = await prismaClient.formasFarmaceuticas.findMany({
-            orderBy: {
-                descricao: 'asc'
-            }
-        });
-        return formasFarmaceuticas;
+    async execute(p: ParsedPagination) {
+        const orderBy = { descricao: 'asc' as const };
+        const [total, items] = await Promise.all([
+            prismaClient.formasFarmaceuticas.count(),
+            prismaClient.formasFarmaceuticas.findMany({
+                orderBy,
+                skip: p.skip,
+                take: p.take,
+            }),
+        ]);
+        return { items, total };
     }
 }
 

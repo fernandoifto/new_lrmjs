@@ -39,7 +39,7 @@ export default function EditarMedicamentoPage() {
         try {
             setLoading(true);
 
-            const response = await api.get(`/medicamento/${id}`, {});
+            const response = await api.get(`/tipo-medicamento/${id}`, {});
 
             setMedicamento(response.data);
             setFormData({
@@ -52,7 +52,7 @@ export default function EditarMedicamentoPage() {
                 router.push('/login');
             } else if (error.response?.status === 404) {
                 toast.error('Tipo de medicamento não encontrado');
-                router.push('/medicamentos');
+                router.push('/medicamentos/tipos-medicamentos');
             } else {
                 toast.error('Erro ao carregar medicamento');
             }
@@ -81,13 +81,13 @@ export default function EditarMedicamentoPage() {
         setSaving(true);
 
         try {
-            await api.put(`/medicamento/${tipoMedicamento.id}`, {
+            await api.put(`/tipo-medicamento/${tipoMedicamento.id}`, {
                 descricao: formData.descricao.trim()
             }, {});
 
             toast.success('Tipo de medicamento atualizado com sucesso!');
             setTimeout(() => {
-                router.push('/medicamentos');
+                router.push('/medicamentos/tipos-medicamentos');
             }, 1500);
         } catch (error: any) {
             console.error('Erro ao atualizar medicamento:', error);

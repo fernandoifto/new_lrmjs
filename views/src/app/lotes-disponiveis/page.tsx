@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useState, useRef, useCallback } from 'react';
+import { Suspense, useEffect, useState, useRef, useCallback } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { toast } from 'react-toastify';
 import { api } from '@/api/api';
@@ -47,7 +47,7 @@ interface Solicitacao {
     };
 }
 
-export default function LotesDisponiveisPage() {
+function LotesDisponiveisPageContent() {
     const router = useRouter();
     const searchParams = useSearchParams();
     const pacienteId = searchParams.get('paciente');
@@ -67,8 +67,10 @@ export default function LotesDisponiveisPage() {
     const loadLotes = useCallback(async () => {
         try {
             setLoading(true);
-            const response = await api.get('/lotes-disponiveis');
-            setLotes(response.data);
+            const response = await api.get('/lotes-disponiveis', {
+                params: { page: 1, pageSize: 200 },
+            });
+            setLotes(response.data.data);
         } catch (error: unknown) {
             console.error('Erro ao carregar lotes:', error);
             toast.error('Erro ao carregar medicamentos disponíveis');
@@ -82,12 +84,13 @@ export default function LotesDisponiveisPage() {
 
         try {
             setLoadingSolicitacoes(true);
-            const response = await api.get(`/solicitacoes/paciente?paciente=${pacienteId}`, {
+            const res = await api.get(`/solicitacoes/paciente?paciente=${pacienteId}`, {
                 headers: {
                     'X-Paciente-Context': pacienteContextToken,
                 },
+                params: { page: 1, pageSize: 200 },
             });
-            setSolicitacoesExistentes(response.data);
+            setSolicitacoesExistentes(res.data.data);
         } catch (error: unknown) {
             console.error('Erro ao carregar solicitações:', error);
         } finally {
@@ -585,5 +588,13 @@ export default function LotesDisponiveisPage() {
                 </div>
             </main>
         </>
+    );
+}
+
+export default function LotesDisponiveisPage() {
+    return (
+        <Suspense fallback={null}>
+            <LotesDisponiveisPageContent />
+        </Suspense>
     );
 }

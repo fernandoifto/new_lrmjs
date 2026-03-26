@@ -11,6 +11,9 @@ import { usePermissions } from '@/hooks/usePermissions';
 import { FaTags, FaPlus, FaEye, FaEdit, FaTrash } from 'react-icons/fa';
 import styles from './page.module.css';
 import Link from 'next/link';
+import { LIST_PAGE_SIZE } from '@/lib/pagedApi';
+import type { PaginationMeta } from '@/lib/pagedApi';
+import { PaginationBar } from '@/components/PaginationBar';
 
 interface TipoMedicamento {
     id: number;
@@ -25,19 +28,28 @@ export default function TiposMedicamentosPage() {
     const [tiposMedicamentos, setTiposMedicamentos] = useState<TipoMedicamento[]>([]);
     const [loading, setLoading] = useState(true);
     const [mounted, setMounted] = useState(false);
+    const [page, setPage] = useState(1);
+    const [pagination, setPagination] = useState<PaginationMeta | null>(null);
 
     useEffect(() => {
         setMounted(true);
-        loadTiposMedicamentos();
     }, []);
+
+    useEffect(() => {
+        if (!mounted) return;
+        loadTiposMedicamentos();
+    }, [mounted, page]);
 
     const loadTiposMedicamentos = async () => {
         try {
             setLoading(true);
 
-            const response = await api.get('/tipos-medicamentos', {});
+            const response = await api.get('/tipos-medicamentos', {
+                params: { page, pageSize: LIST_PAGE_SIZE },
+            });
 
-            setTiposMedicamentos(response.data);
+            setTiposMedicamentos(response.data.data);
+            setPagination(response.data.pagination);
         } catch (error: any) {
             console.error('Erro ao carregar tipos de medicamentos:', error);
             if (error.response?.status === 401) {
@@ -125,6 +137,7 @@ export default function TiposMedicamentosPage() {
                                 )}
                             </div>
                         ) : (
+                            <>
                             <div className={styles.grid}>
                                 {tiposMedicamentos.map((tipo) => (
                                     <div key={tipo.id} className={styles.card}>
@@ -170,6 +183,16 @@ export default function TiposMedicamentosPage() {
                                     </div>
                                 ))}
                             </div>
+                            {pagination != null && (
+                                <PaginationBar
+                                    page={pagination.page}
+                                    totalPages={pagination.totalPages}
+                                    total={pagination.total}
+                                    disabled={loading}
+                                    onPageChange={setPage}
+                                />
+                            )}
+                            </>
                         )}
                     </div>
                 </div>

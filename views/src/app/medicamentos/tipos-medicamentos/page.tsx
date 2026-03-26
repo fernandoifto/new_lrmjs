@@ -11,33 +11,45 @@ import { usePermissions } from '@/hooks/usePermissions';
 import { FaTags, FaPlus, FaEye, FaEdit, FaTrash } from 'react-icons/fa';
 import styles from './page.module.css';
 import Link from 'next/link';
+import { LIST_PAGE_SIZE } from '@/lib/pagedApi';
+import type { PaginationMeta } from '@/lib/pagedApi';
+import { PaginationBar } from '@/components/PaginationBar';
 
-interface Medicamento {
+interface TipoMedicamento {
     id: number;
     descricao: string;
     created: string;
     modified: string;
 }
 
-export default function TiposMedicamentosPage() {
+export default function TiposMedicamentosNestedListPage() {
     const router = useRouter();
     const { hasPermission } = usePermissions();
-    const [tiposMedicamentos, setTiposMedicamentos] = useState<Medicamento[]>([]);
+    const [tiposMedicamentos, setTiposMedicamentos] = useState<TipoMedicamento[]>([]);
     const [loading, setLoading] = useState(true);
     const [mounted, setMounted] = useState(false);
+    const [page, setPage] = useState(1);
+    const [pagination, setPagination] = useState<PaginationMeta | null>(null);
 
     useEffect(() => {
         setMounted(true);
-        loadTiposMedicamentos();
     }, []);
+
+    useEffect(() => {
+        if (!mounted) return;
+        loadTiposMedicamentos();
+    }, [mounted, page]);
 
     const loadTiposMedicamentos = async () => {
         try {
             setLoading(true);
 
-            const response = await api.get('/medicamentos', {});
+            const response = await api.get('/tipos-medicamentos', {
+                params: { page, pageSize: LIST_PAGE_SIZE },
+            });
 
-            setTiposMedicamentos(response.data);
+            setTiposMedicamentos(response.data.data);
+            setPagination(response.data.pagination);
         } catch (error: any) {
             console.error('Erro ao carregar tipos de medicamentos:', error);
             if (error.response?.status === 401) {
@@ -52,23 +64,22 @@ export default function TiposMedicamentosPage() {
     };
 
     const handleDelete = async (id: number, descricao: string) => {
-        if (!confirm(`Tem certeza que deseja excluir o medicamento "${descricao}"?`)) {
+        if (!confirm(`Tem certeza que deseja excluir o tipo "${descricao}"?`)) {
             return;
         }
 
         try {
-
-            await api.delete(`/medicamento/${id}`, {});
+            await api.delete(`/tipo-medicamento/${id}`, {});
 
             toast.success('Tipo de medicamento excluído com sucesso!');
             loadTiposMedicamentos();
         } catch (error: any) {
-            console.error('Erro ao excluir medicamento:', error);
+            console.error('Erro ao excluir tipo de medicamento:', error);
             if (error.response?.status === 401) {
                 toast.error('Sessão expirada. Faça login novamente.');
                 router.push('/login');
             } else {
-                toast.error(error.response?.data?.error || 'Erro ao excluir medicamento');
+                toast.error(error.response?.data?.error || 'Erro ao excluir tipo de medicamento');
             }
         }
     };
@@ -106,7 +117,7 @@ export default function TiposMedicamentosPage() {
                                 </div>
                             </div>
                             {hasPermission('tipos_medicamentos.criar') && (
-                                <Link href="/medicamentos/novo" className={styles.btnNew}>
+                                <Link href="/medicamentos/tipos-medicamentos/novo" className={styles.btnNew}>
                                     <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
                                         <path d="M12 5v14m7-7H5" />
                                     </svg>
@@ -121,14 +132,15 @@ export default function TiposMedicamentosPage() {
                             </div>
                         ) : tiposMedicamentos.length === 0 ? (
                             <div className={styles.emptyState}>
-                                <p>Nenhum medicamento cadastrado</p>
+                                <p>Nenhum tipo cadastrado</p>
                                 {hasPermission('tipos_medicamentos.criar') && (
-                                    <Link href="/medicamentos/novo" className={styles.btnNew}>
-                                        Cadastrar Primeiro Tipo
+                                    <Link href="/medicamentos/tipos-medicamentos/novo" className={styles.btnNew}>
+                                        Cadastrar primeiro tipo
                                     </Link>
                                 )}
                             </div>
                         ) : (
+                            <>
                             <div className={styles.grid}>
                                 {tiposMedicamentos.map((tipo) => (
                                     <div key={tipo.id} className={styles.card}>
@@ -174,6 +186,16 @@ export default function TiposMedicamentosPage() {
                                     </div>
                                 ))}
                             </div>
+                            {pagination != null && (
+                                <PaginationBar
+                                    page={pagination.page}
+                                    totalPages={pagination.totalPages}
+                                    total={pagination.total}
+                                    disabled={loading}
+                                    onPageChange={setPage}
+                                />
+                            )}
+                            </>
                         )}
                     </div>
                 </div>
@@ -181,4 +203,3 @@ export default function TiposMedicamentosPage() {
         </WithPermission>
     );
 }
-

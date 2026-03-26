@@ -1,5 +1,6 @@
 import prismaClient from "../tools/prisma";
 import { parseAndValidateGoogleMapsUrl } from "../utils/safeGoogleMapsUrl";
+import type { ParsedPagination } from "../utils/pagination";
 
 //Interface do agendamento
 interface IAgendamento {
@@ -65,8 +66,33 @@ class CreateAgendamentosModel{
 
 //Modelo de listar agendamentos
 class ListAgendamentosModel {
-    async execute() {
-        const agendamentos = await prismaClient.agendamentos.findMany({
+    async execute(p: ParsedPagination, opts?: { q?: string; visitado?: string }) {
+        const t = opts?.q?.trim();
+        const filtroVisitado = opts?.visitado;
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        const andParts: any[] = [];
+        if (filtroVisitado === "visitados") {
+            andParts.push({ id_user: { not: null } });
+        } else if (filtroVisitado === "nao-visitados") {
+            andParts.push({ id_user: null });
+        }
+        if (t) {
+            const digits = t.replace(/\D/g, "");
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any
+            const OR: any[] = [
+                { nome: { contains: t, mode: "insensitive" } },
+                { endereco: { contains: t, mode: "insensitive" } },
+                { setor: { contains: t, mode: "insensitive" } },
+            ];
+            if (digits.length > 0) {
+                OR.push({ telefone: { contains: digits } });
+            }
+            andParts.push({ OR });
+        }
+        const where = andParts.length > 0 ? { AND: andParts } : {};
+
+        const base = {
+            where,
             include: {
                 turno: true,
                 user: {
@@ -78,10 +104,18 @@ class ListAgendamentosModel {
                 }
             },
             orderBy: {
-                created: 'desc'
+                created: 'desc' as const
             }
-        });
-        return agendamentos;
+        };
+        const [total, items] = await Promise.all([
+            prismaClient.agendamentos.count({ where }),
+            prismaClient.agendamentos.findMany({
+                ...base,
+                skip: p.skip,
+                take: p.take,
+            }),
+        ]);
+        return { items, total };
     }
 }
 

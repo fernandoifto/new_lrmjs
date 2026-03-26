@@ -1,4 +1,5 @@
 import prismaClient from "../tools/prisma";
+import type { ParsedPagination } from "../utils/pagination";
 import bcrypt from "bcryptjs";
 import { sign, verify } from "jsonwebtoken";
 import { EmailService } from "../services/emailService";
@@ -224,8 +225,8 @@ interface IUpdateUser {
 
 //Modelo de listar usuários
 class ListUsersModel {
-    async execute() {
-        const users = await prismaClient.users.findMany({
+    async execute(p: ParsedPagination) {
+        const base = {
             select: {
                 id: true,
                 username: true,
@@ -234,10 +235,18 @@ class ListUsersModel {
                 modified: true
             },
             orderBy: {
-                created: 'desc'
+                created: 'desc' as const
             }
-        });
-        return users;
+        };
+        const [total, items] = await Promise.all([
+            prismaClient.users.count(),
+            prismaClient.users.findMany({
+                ...base,
+                skip: p.skip,
+                take: p.take,
+            }),
+        ]);
+        return { items, total };
     }
 }
 

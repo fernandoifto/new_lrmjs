@@ -1,5 +1,6 @@
 import prismaClient from "../tools/prisma";
 import type { PrismaClient } from "../tools/generated/prisma";
+import type { ParsedPagination } from "../utils/pagination";
 
 interface IRetirada {
     qtde: number;
@@ -115,8 +116,8 @@ class CreateRetiradaModel {
 
 //Modelo de listar retiradas
 class ListRetiradasModel {
-    async execute() {
-        const retiradas = await prismaClient.retiradas.findMany({
+    async execute(p: ParsedPagination) {
+        const base = {
             include: {
                 lotes: {
                     include: {
@@ -135,11 +136,18 @@ class ListRetiradasModel {
                 }
             },
             orderBy: {
-                created: 'desc'
+                created: 'desc' as const
             }
-        });
-
-        return retiradas;
+        };
+        const [total, items] = await Promise.all([
+            prismaClient.retiradas.count(),
+            prismaClient.retiradas.findMany({
+                ...base,
+                skip: p.skip,
+                take: p.take,
+            }),
+        ]);
+        return { items, total };
     }
 }
 

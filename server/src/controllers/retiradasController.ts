@@ -1,4 +1,5 @@
 import { Request, Response } from "express";
+import { parsePaginationParams, paginatedResponse } from "../utils/pagination";
 import { CreateRetiradaModel, ListRetiradasModel, GetRetiradaModel, UpdateRetiradaModel, DeleteRetiradaModel } from "../models/retiradasModels";
 
 class CreateRetiradaController {
@@ -29,10 +30,11 @@ class CreateRetiradaController {
 class ListRetiradasController {
     async handle(req: Request, res: Response) {
         try {
+            const p = parsePaginationParams(req.query);
             const listRetiradasModel = new ListRetiradasModel();
-            const retiradas = await listRetiradasModel.execute();
+            const { items, total } = await listRetiradasModel.execute(p);
 
-            return res.status(200).json(retiradas);
+            return res.status(200).json(paginatedResponse(items, total, p.page, p.pageSize));
         } catch (error: any) {
             return res.status(400).json({ error: error.message });
         }

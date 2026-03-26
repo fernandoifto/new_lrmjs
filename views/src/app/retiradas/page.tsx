@@ -12,6 +12,9 @@ import { FaHandHoldingHeart, FaFilePdf, FaPlus, FaSearch, FaTimes, FaEye, FaEdit
 import styles from './page.module.css';
 import Link from 'next/link';
 import jsPDF from 'jspdf';
+import { LIST_PAGE_SIZE } from '@/lib/pagedApi';
+import type { PaginationMeta } from '@/lib/pagedApi';
+import { PaginationBar } from '@/components/PaginationBar';
 
 interface Retirada {
     id: number;
@@ -44,6 +47,8 @@ export default function RetiradasPage() {
     const [filteredRetiradas, setFilteredRetiradas] = useState<Retirada[]>([]);
     const [loading, setLoading] = useState(true);
     const [mounted, setMounted] = useState(false);
+    const [page, setPage] = useState(1);
+    const [pagination, setPagination] = useState<PaginationMeta | null>(null);
     const [searchTerm, setSearchTerm] = useState('');
     const [searchOption, setSearchOption] = useState('paciente');
     const [activeSearchTerm, setActiveSearchTerm] = useState('');
@@ -51,8 +56,12 @@ export default function RetiradasPage() {
 
     useEffect(() => {
         setMounted(true);
-        loadRetiradas();
     }, []);
+
+    useEffect(() => {
+        if (!mounted) return;
+        loadRetiradas();
+    }, [mounted, page]);
 
     useEffect(() => {
         filterRetiradas();
@@ -62,10 +71,12 @@ export default function RetiradasPage() {
         try {
             setLoading(true);
 
-            const response = await api.get('/retiradas', {});
+            const response = await api.get('/retiradas', {
+                params: { page, pageSize: LIST_PAGE_SIZE },
+            });
 
-            setRetiradas(response.data);
-            setFilteredRetiradas(response.data);
+            setRetiradas(response.data.data);
+            setPagination(response.data.pagination);
         } catch (error: any) {
             console.error('Erro ao carregar retiradas:', error);
             if (error.response?.status === 401) {
@@ -127,6 +138,7 @@ export default function RetiradasPage() {
     const handleSearch = () => {
         setActiveSearchTerm(searchTerm);
         setActiveSearchOption(searchOption);
+        setPage(1);
     };
 
     const handleClearSearch = () => {
@@ -134,10 +146,14 @@ export default function RetiradasPage() {
         setActiveSearchTerm('');
         setActiveSearchOption('paciente');
         setSearchOption('paciente');
+        setPage(1);
     };
 
-    const handleGeneratePDF = () => {
+    const handleGeneratePDF = async () => {
         try {
+            const pdfRes = await api.get('/retiradas', { params: { page: 1, pageSize: 200 } });
+            const rows = pdfRes.data.data as Retirada[];
+
             const doc = new jsPDF('landscape', 'mm', 'a4');
             const pageWidth = doc.internal.pageSize.getWidth();
             const pageHeight = doc.internal.pageSize.getHeight();
@@ -195,7 +211,7 @@ export default function RetiradasPage() {
             doc.setFontSize(8);
             doc.setFont('helvetica', 'normal');
             
-            filteredRetiradas.forEach((retirada) => {
+            rows.forEach((retirada) => {
                 if (y > pageHeight - 20) {
                     doc.addPage();
                     y = startY;
@@ -239,7 +255,7 @@ export default function RetiradasPage() {
                 doc.setFontSize(8);
                 doc.setFont('helvetica', 'normal');
                 doc.text(
-                    `Página ${i} de ${totalPages} - Total de retiradas: ${filteredRetiradas.length}`,
+                    `Página ${i} de ${totalPages} - Total no PDF: ${rows.length}`,
                     pageWidth / 2,
                     pageHeight - 5,
                     { align: 'center' }
@@ -413,7 +429,7 @@ export default function RetiradasPage() {
                                     {activeSearchTerm && (
                                         <div className={styles.searchResults}>
                                             {filteredRetiradas.length > 0 ? (
-                                                <span>{filteredRetiradas.length} resultado(s) encontrado(s)</span>
+                                                <span>{pagination?.total ?? filteredRetiradas.length} resultado(s) na lista</span>
                                             ) : (
                                                 <span>Nenhum resultado encontrado</span>
                                             )}
@@ -441,6 +457,7 @@ export default function RetiradasPage() {
                                 )}
                             </div>
                         ) : (
+                            <>
                             <div className={styles.grid}>
                                 {filteredRetiradas.map((retirada) => (
                                     <div key={retirada.id} className={styles.card}>
@@ -508,6 +525,16 @@ export default function RetiradasPage() {
                                     </div>
                                 ))}
                             </div>
+                            {pagination && (
+                                <PaginationBar
+                                    page={pagination.page}
+                                    totalPages={pagination.totalPages}
+                                    total={pagination.total}
+                                    onPageChange={setPage}
+                                    disabled={loading}
+                                />
+                            )}
+                            </>
                         )}
                     </div>
                 </div>

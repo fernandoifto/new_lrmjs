@@ -38,9 +38,9 @@ export default function NovoUserPage() {
     const loadGrupos = async () => {
         try {
             setLoadingGrupos(true);
-const response = await api.get('/roles', {});
+const response = await api.get('/roles', { params: { page: 1, pageSize: 200 } });
 
-            setGrupos(response.data);
+            setGrupos(response.data.data);
         } catch (error: any) {
             console.error('Erro ao carregar grupos:', error);
         } finally {

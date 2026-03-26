@@ -1,4 +1,29 @@
 import prismaClient from "../tools/prisma";
+import type { ParsedPagination } from "../utils/pagination";
+
+export interface ListLotesFilter {
+    q?: string;
+    campo?: string;
+    /** Restringe lotes a um medicamento (ex.: tela de detalhe). */
+    idMedicamento?: number;
+}
+
+function parseBrDateDayRange(q: string): { gte: Date; lt: Date } | null {
+    const m = q.trim().match(/^(\d{1,2})\/(\d{1,2})\/(\d{4})$/);
+    if (!m) {
+        return null;
+    }
+    const d = parseInt(m[1], 10);
+    const mo = parseInt(m[2], 10) - 1;
+    const y = parseInt(m[3], 10);
+    const start = new Date(y, mo, d);
+    if (start.getFullYear() !== y || start.getMonth() !== mo || start.getDate() !== d) {
+        return null;
+    }
+    const lt = new Date(start);
+    lt.setDate(lt.getDate() + 1);
+    return { gte: start, lt };
+}
 
 interface ILote {
     numero: string;
@@ -114,46 +139,113 @@ class CreateLoteModel {
 
 //Modelo de listar lotes
 class ListLotesModel {
-    async execute() {
-        const lotes = await prismaClient.lotes.findMany({
+    async execute(p: ParsedPagination, opts?: ListLotesFilter) {
+        const base = {
             include: {
                 medicamento: true,
                 formaFarmaceutica: true,
                 tipoMedicamento: true
             },
             orderBy: {
-                created: 'desc'
+                created: 'desc' as const
             }
-        });
-        return lotes;
+        };
+
+        const and: object[] = [];
+        if (opts?.idMedicamento != null && !Number.isNaN(opts.idMedicamento)) {
+            and.push({ id_medicamento: opts.idMedicamento });
+        }
+
+        const q = opts?.q?.trim();
+        const campo = (opts?.campo || "numero").toLowerCase();
+        if (q) {
+            switch (campo) {
+                case "medicamento":
+                    and.push({ medicamento: { descricao: { contains: q, mode: "insensitive" as const } } });
+                    break;
+                case "principioativo":
+                    and.push({ medicamento: { principioativo: { contains: q, mode: "insensitive" as const } } });
+                    break;
+                case "formafarmaceutica":
+                    and.push({ formaFarmaceutica: { descricao: { contains: q, mode: "insensitive" as const } } });
+                    break;
+                case "tipomedicamento":
+                    and.push({ tipoMedicamento: { descricao: { contains: q, mode: "insensitive" as const } } });
+                    break;
+                case "quantidade": {
+                    const n = parseInt(String(q).replace(/\D/g, ""), 10);
+                    if (!Number.isNaN(n)) {
+                        and.push({ qtde: n });
+                    }
+                    break;
+                }
+                case "datafabricacao": {
+                    const dr = parseBrDateDayRange(q);
+                    if (dr) {
+                        and.push({ datafabricacao: { gte: dr.gte, lt: dr.lt } });
+                    }
+                    break;
+                }
+                case "datavencimento": {
+                    const dr = parseBrDateDayRange(q);
+                    if (dr) {
+                        and.push({ datavencimento: { gte: dr.gte, lt: dr.lt } });
+                    }
+                    break;
+                }
+                case "numero":
+                default:
+                    and.push({ numero: { contains: q, mode: "insensitive" as const } });
+            }
+        }
+
+        const where = and.length ? { AND: and } : {};
+        const [total, items] = await Promise.all([
+            prismaClient.lotes.count({ where }),
+            prismaClient.lotes.findMany({
+                ...base,
+                where,
+                skip: p.skip,
+                take: p.take,
+            }),
+        ]);
+        return { items, total };
     }
 }
 
 //Modelo de listar lotes disponíveis (público - apenas não vencidos e com estoque)
 class ListLotesDisponiveisModel {
-    async execute() {
+    async execute(p: ParsedPagination) {
         const hoje = new Date();
         hoje.setHours(0, 0, 0, 0);
-
-        const lotes = await prismaClient.lotes.findMany({
-            where: {
-                qtde: {
-                    gt: 0
-                },
-                datavencimento: {
-                    gte: hoje
-                }
+        const where = {
+            qtde: {
+                gt: 0
             },
+            datavencimento: {
+                gte: hoje
+            }
+        };
+        const base = {
+            where,
             include: {
                 medicamento: true,
                 formaFarmaceutica: true,
                 tipoMedicamento: true
             },
             orderBy: {
-                datavencimento: 'asc' // Ordenar por data de vencimento (mais próximo primeiro)
+                datavencimento: 'asc' as const
             }
-        });
-        return lotes;
+        };
+        const [total, items] = await Promise.all([
+            prismaClient.lotes.count({ where }),
+            prismaClient.lotes.findMany({
+                ...base,
+                skip: p.skip,
+                take: p.take,
+            }),
+        ]);
+        return { items, total };
     }
 }
 

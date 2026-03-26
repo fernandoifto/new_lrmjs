@@ -1,5 +1,6 @@
 import { CreatePermissaoModel, ListPermissoesModel, GetPermissaoModel, UpdatePermissaoModel, DeletePermissaoModel } from "../models/permissoesModels";
 import { Request, Response } from "express";
+import { parsePaginationParams, paginatedResponse } from "../utils/pagination";
 
 export class CreatePermissaoController {
     async handle(request: Request, response: Response) {
@@ -17,9 +18,10 @@ export class CreatePermissaoController {
 export class ListPermissoesController {
     async handle(request: Request, response: Response) {
         try {
+            const p = parsePaginationParams(request.query);
             const listPermissoes = new ListPermissoesModel();
-            const permissoes = await listPermissoes.execute();
-            return response.json(permissoes);
+            const { items, total } = await listPermissoes.execute(p);
+            return response.json(paginatedResponse(items, total, p.page, p.pageSize));
         } catch (error: any) {
             return response.status(400).json({ error: error.message });
         }

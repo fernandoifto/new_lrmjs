@@ -12,6 +12,9 @@ import { FaHandHoldingHeart, FaCheckCircle, FaTimesCircle, FaClock, FaEye, FaSea
 import styles from './page.module.css';
 import Link from 'next/link';
 import jsPDF from 'jspdf';
+import { LIST_PAGE_SIZE } from '@/lib/pagedApi';
+import type { PaginationMeta } from '@/lib/pagedApi';
+import { PaginationBar } from '@/components/PaginationBar';
 
 interface Solicitacao {
     id: number;
@@ -51,9 +54,10 @@ export default function SolicitacoesPage() {
     const router = useRouter();
     const { hasPermission, isAdmin } = usePermissions();
     const [solicitacoes, setSolicitacoes] = useState<Solicitacao[]>([]);
-    const [filteredSolicitacoes, setFilteredSolicitacoes] = useState<Solicitacao[]>([]);
     const [loading, setLoading] = useState(true);
     const [mounted, setMounted] = useState(false);
+    const [page, setPage] = useState(1);
+    const [pagination, setPagination] = useState<PaginationMeta | null>(null);
     const [filter, setFilter] = useState<'todas' | 'pendentes' | 'aprovadas' | 'concluidas' | 'recusadas'>('pendentes');
     const [searchTerm, setSearchTerm] = useState('');
     const [searchOption, setSearchOption] = useState('paciente');
@@ -64,12 +68,16 @@ export default function SolicitacoesPage() {
 
     useEffect(() => {
         setMounted(true);
-        loadSolicitacoes();
+    }, []);
+
+    useEffect(() => {
+        setPage(1);
     }, [filter]);
 
     useEffect(() => {
-        filterSolicitacoes();
-    }, [solicitacoes, activeSearchTerm, activeSearchOption]);
+        if (!mounted) return;
+        loadSolicitacoes();
+    }, [mounted, filter, page, activeSearchTerm]);
 
     const loadSolicitacoes = async () => {
         try {
@@ -80,12 +88,18 @@ export default function SolicitacoesPage() {
                 filter === 'aprovadas' ? 'aprovado_para_retirada' : 
                 filter === 'concluidas' ? 'retirada_concluida' : 
                 'recusada';
-            const url = statusParam ? `/solicitacoes?status=${statusParam}` : '/solicitacoes';
 
-            const response = await api.get(url, {});
+            const response = await api.get('/solicitacoes', {
+                params: {
+                    page,
+                    pageSize: LIST_PAGE_SIZE,
+                    ...(statusParam ? { status: statusParam } : {}),
+                    ...(activeSearchTerm.trim() ? { search: activeSearchTerm.trim() } : {}),
+                },
+            });
 
-            setSolicitacoes(response.data);
-            setFilteredSolicitacoes(response.data);
+            setSolicitacoes(response.data.data);
+            setPagination(response.data.pagination);
         } catch (error: any) {
             console.error('Erro ao carregar solicitações:', error);
             if (error.response?.status === 401) {
@@ -184,37 +198,10 @@ export default function SolicitacoesPage() {
         return date.toLocaleDateString('pt-BR');
     };
 
-    const filterSolicitacoes = () => {
-        let filtered = [...solicitacoes];
-        
-        if (activeSearchTerm.trim() !== '') {
-            const searchLower = activeSearchTerm.toLowerCase().trim();
-            filtered = filtered.filter(solicitacao => {
-                switch (activeSearchOption) {
-                    case 'paciente':
-                        return solicitacao.paciente.nome.toLowerCase().includes(searchLower);
-                    case 'cpf':
-                        return solicitacao.paciente.cpf.replace(/\D/g, '').includes(searchLower.replace(/\D/g, ''));
-                    case 'medicamento':
-                        return solicitacao.lotes.medicamento.descricao.toLowerCase().includes(searchLower);
-                    case 'lote':
-                        return solicitacao.lotes.numero.toLowerCase().includes(searchLower);
-                    case 'status':
-                        return getStatusLabel(solicitacao.status).toLowerCase().includes(searchLower);
-                    case 'data':
-                        return formatDate(solicitacao.created).toLowerCase().includes(searchLower);
-                    default:
-                        return true;
-                }
-            });
-        }
-        
-        setFilteredSolicitacoes(filtered);
-    };
-
     const handleSearch = () => {
         setActiveSearchTerm(searchTerm);
         setActiveSearchOption(searchOption);
+        setPage(1);
     };
 
     const handleClearSearch = () => {
@@ -222,10 +209,26 @@ export default function SolicitacoesPage() {
         setActiveSearchTerm('');
         setActiveSearchOption('paciente');
         setSearchOption('paciente');
+        setPage(1);
     };
 
-    const handleGeneratePDF = () => {
+    const handleGeneratePDF = async () => {
         try {
+            const statusParam = filter === 'todas' ? undefined : 
+                filter === 'pendentes' ? 'pendente_de_aprovacao' : 
+                filter === 'aprovadas' ? 'aprovado_para_retirada' : 
+                filter === 'concluidas' ? 'retirada_concluida' : 
+                'recusada';
+            const pdfRes = await api.get('/solicitacoes', {
+                params: {
+                    page: 1,
+                    pageSize: 200,
+                    ...(statusParam ? { status: statusParam } : {}),
+                    ...(activeSearchTerm.trim() ? { search: activeSearchTerm.trim() } : {}),
+                },
+            });
+            const rows = pdfRes.data.data as Solicitacao[];
+
             const doc = new jsPDF('landscape', 'mm', 'a4');
             const pageWidth = doc.internal.pageSize.getWidth();
             const pageHeight = doc.internal.pageSize.getHeight();
@@ -296,7 +299,7 @@ export default function SolicitacoesPage() {
             doc.setFontSize(7);
             doc.setFont('helvetica', 'normal');
             
-            filteredSolicitacoes.forEach((solicitacao) => {
+            rows.forEach((solicitacao) => {
                 if (y > pageHeight - 20) {
                     doc.addPage();
                     y = startY;
@@ -341,7 +344,7 @@ export default function SolicitacoesPage() {
                 doc.setFontSize(8);
                 doc.setFont('helvetica', 'normal');
                 doc.text(
-                    `Página ${i} de ${totalPages} - Total de solicitações: ${filteredSolicitacoes.length}`,
+                    `Página ${i} de ${totalPages} - Total no PDF: ${rows.length}`,
                     pageWidth / 2,
                     pageHeight - 5,
                     { align: 'center' }
@@ -450,7 +453,7 @@ export default function SolicitacoesPage() {
                                         Recusadas
                                     </button>
                                 </div>
-                                {filteredSolicitacoes.length > 0 && (
+                                {solicitacoes.length > 0 && (
                                     <button
                                         onClick={handleGeneratePDF}
                                         className={styles.btnPDF}
@@ -566,8 +569,8 @@ export default function SolicitacoesPage() {
                                     </button>
                                     {activeSearchTerm && (
                                         <div className={styles.searchResults}>
-                                            {filteredSolicitacoes.length > 0 ? (
-                                                <span>{filteredSolicitacoes.length} resultado(s) encontrado(s)</span>
+                                            {solicitacoes.length > 0 ? (
+                                                <span>{pagination?.total ?? solicitacoes.length} resultado(s) encontrado(s)</span>
                                             ) : (
                                                 <span>Nenhum resultado encontrado</span>
                                             )}
@@ -581,13 +584,14 @@ export default function SolicitacoesPage() {
                             <div className={styles.loadingContainer}>
                                 <p>Carregando solicitações...</p>
                             </div>
-                        ) : filteredSolicitacoes.length === 0 ? (
+                        ) : solicitacoes.length === 0 ? (
                             <div className={styles.emptyContainer}>
                                 <p>Nenhuma solicitação encontrada.</p>
                             </div>
                         ) : (
+                            <>
                             <div className={styles.solicitacoesList}>
-                                {filteredSolicitacoes.map((solicitacao) => (
+                                {solicitacoes.map((solicitacao) => (
                                     <div key={solicitacao.id} className={styles.solicitacaoCard}>
                                         <div className={styles.solicitacaoHeader}>
                                             <div className={styles.solicitacaoStatus}>
@@ -721,6 +725,16 @@ export default function SolicitacoesPage() {
                                     </div>
                                 ))}
                             </div>
+                            {pagination && (
+                                <PaginationBar
+                                    page={pagination.page}
+                                    totalPages={pagination.totalPages}
+                                    total={pagination.total}
+                                    onPageChange={setPage}
+                                    disabled={loading}
+                                />
+                            )}
+                            </>
                         )}
                     </div>
                 </div>

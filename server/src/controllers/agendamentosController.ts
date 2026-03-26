@@ -1,4 +1,5 @@
 import { Request, Response } from "express";
+import { parsePaginationParams, paginatedResponse } from "../utils/pagination";
 import { CreateAgendamentosModel, ListAgendamentosModel, GetAgendamentoModel, UpdateAgendamentoModel, MarcarVisitadoModel, DeleteAgendamentoModel } from "../models/agendamentosModels";
 import { uploadMultiple } from "../middlewares/upload";
 import { attachUploadTokensToAgendamentoFotos, attachUploadTokensToAgendamentos } from "../utils/responseTransforms";
@@ -54,9 +55,14 @@ class CreateAgendamentosController{
 class ListAgendamentosController {
     async handle(request: Request, response: Response) {
         try {
+            const p = parsePaginationParams(request.query);
+            const q = request.query.q ? String(request.query.q) : undefined;
+            const filtro = request.query.filtro ? String(request.query.filtro) : "todos";
+            const visitado = filtro === "todos" ? undefined : filtro;
             const listAgendamentos = new ListAgendamentosModel();
-            const agendamentos = await listAgendamentos.execute();
-            return response.json(attachUploadTokensToAgendamentos(agendamentos));
+            const { items, total } = await listAgendamentos.execute(p, { q, visitado });
+            const data = attachUploadTokensToAgendamentos(items);
+            return response.json(paginatedResponse(data, total, p.page, p.pageSize));
         } catch (error: any) {
             return response.status(400).json({ error: error.message });
         }

@@ -8,6 +8,7 @@ import {
     GetUserPermissoesModel
 } from "../models/rolesModels";
 import { Request, Response } from "express";
+import { parsePaginationParams, paginatedResponse } from "../utils/pagination";
 
 export class CreateRoleController {
     async handle(request: Request, response: Response) {
@@ -25,9 +26,10 @@ export class CreateRoleController {
 export class ListRolesController {
     async handle(request: Request, response: Response) {
         try {
+            const p = parsePaginationParams(request.query);
             const listRoles = new ListRolesModel();
-            const roles = await listRoles.execute();
-            return response.json(roles);
+            const { items, total } = await listRoles.execute(p);
+            return response.json(paginatedResponse(items, total, p.page, p.pageSize));
         } catch (error: any) {
             return response.status(400).json({ error: error.message });
         }

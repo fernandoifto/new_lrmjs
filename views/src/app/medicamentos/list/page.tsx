@@ -11,6 +11,9 @@ import { usePermissions } from '@/hooks/usePermissions';
 import { FaPills, FaPlus, FaSearch, FaTimes, FaEye, FaEdit, FaTrash } from 'react-icons/fa';
 import styles from './page.module.css';
 import Link from 'next/link';
+import { LIST_PAGE_SIZE } from '@/lib/pagedApi';
+import type { PaginationMeta } from '@/lib/pagedApi';
+import { PaginationBar } from '@/components/PaginationBar';
 
 interface Medicamento {
     id: number;
@@ -24,7 +27,8 @@ export default function MedicamentosListPage() {
     const router = useRouter();
     const { hasPermission } = usePermissions();
     const [medicamentos, setMedicamentos] = useState<Medicamento[]>([]);
-    const [filteredMedicamentos, setFilteredMedicamentos] = useState<Medicamento[]>([]);
+    const [page, setPage] = useState(1);
+    const [pagination, setPagination] = useState<PaginationMeta | null>(null);
     const [loading, setLoading] = useState(true);
     const [mounted, setMounted] = useState(false);
     const [searchTerm, setSearchTerm] = useState('');
@@ -34,21 +38,30 @@ export default function MedicamentosListPage() {
 
     useEffect(() => {
         setMounted(true);
-        loadMedicamentos();
     }, []);
 
     useEffect(() => {
-        filterMedicamentos();
-    }, [medicamentos, activeSearchTerm, activeSearchOption]);
+        if (!mounted) return;
+        loadMedicamentos();
+    }, [mounted, page, activeSearchTerm, activeSearchOption]);
 
     const loadMedicamentos = async () => {
         try {
             setLoading(true);
 
-            const response = await api.get('/medicamentos', {});
+            const params: Record<string, string | number> = {
+                page,
+                pageSize: LIST_PAGE_SIZE,
+            };
+            if (activeSearchTerm.trim()) {
+                params.q = activeSearchTerm.trim();
+                params.campo = activeSearchOption;
+            }
 
-            setMedicamentos(response.data);
-            setFilteredMedicamentos(response.data);
+            const response = await api.get('/medicamentos', { params });
+
+            setMedicamentos(response.data.data);
+            setPagination(response.data.pagination);
         } catch (error: any) {
             console.error('Erro ao carregar medicamentos:', error);
             if (error.response?.status === 401) {
@@ -93,29 +106,10 @@ export default function MedicamentosListPage() {
         });
     };
 
-    const filterMedicamentos = () => {
-        let filtered = [...medicamentos];
-        
-        if (activeSearchTerm.trim() !== '') {
-            const searchLower = activeSearchTerm.toLowerCase().trim();
-            filtered = filtered.filter(medicamento => {
-                switch (activeSearchOption) {
-                    case 'descricao':
-                        return medicamento.descricao.toLowerCase().includes(searchLower);
-                    case 'principioativo':
-                        return medicamento.principioativo.toLowerCase().includes(searchLower);
-                    default:
-                        return true;
-                }
-            });
-        }
-        
-        setFilteredMedicamentos(filtered);
-    };
-
     const handleSearch = () => {
         setActiveSearchTerm(searchTerm);
         setActiveSearchOption(searchOption);
+        setPage(1);
     };
 
     const handleClearSearch = () => {
@@ -123,6 +117,7 @@ export default function MedicamentosListPage() {
         setActiveSearchTerm('');
         setActiveSearchOption('descricao');
         setSearchOption('descricao');
+        setPage(1);
     };
 
     if (!mounted) {
@@ -215,10 +210,10 @@ export default function MedicamentosListPage() {
                                         <FaSearch size={20} />
                                         Buscar
                                     </button>
-                                    {activeSearchTerm && (
+                                    {activeSearchTerm && pagination != null && (
                                         <div className={styles.searchResults}>
-                                            {filteredMedicamentos.length > 0 ? (
-                                                <span>{filteredMedicamentos.length} resultado(s) encontrado(s)</span>
+                                            {pagination.total > 0 ? (
+                                                <span>{pagination.total} resultado(s) encontrado(s)</span>
                                             ) : (
                                                 <span>Nenhum resultado encontrado</span>
                                             )}
@@ -232,7 +227,7 @@ export default function MedicamentosListPage() {
                             <div className={styles.loadingContainer}>
                                 <p>Carregando...</p>
                             </div>
-                        ) : filteredMedicamentos.length === 0 ? (
+                        ) : medicamentos.length === 0 ? (
                             <div className={styles.emptyState}>
                                 <p>
                                     {activeSearchTerm 
@@ -246,8 +241,9 @@ export default function MedicamentosListPage() {
                                 )}
                             </div>
                         ) : (
+                            <>
                             <div className={styles.grid}>
-                                {filteredMedicamentos.map((medicamento) => (
+                                {medicamentos.map((medicamento) => (
                                     <div key={medicamento.id} className={styles.card}>
                                         <div className={styles.cardHeader}>
                                             <div className={styles.cardIcon}>
@@ -293,6 +289,16 @@ export default function MedicamentosListPage() {
                                     </div>
                                 ))}
                             </div>
+                            {pagination != null && (
+                                <PaginationBar
+                                    page={pagination.page}
+                                    totalPages={pagination.totalPages}
+                                    total={pagination.total}
+                                    disabled={loading}
+                                    onPageChange={setPage}
+                                />
+                            )}
+                            </>
                         )}
                     </div>
                 </div>

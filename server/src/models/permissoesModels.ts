@@ -1,4 +1,5 @@
 import prismaClient from "../tools/prisma";
+import type { ParsedPagination } from "../utils/pagination";
 
 interface IPermissao {
     nome: string;
@@ -44,13 +45,17 @@ class CreatePermissaoModel {
 }
 
 class ListPermissoesModel {
-    async execute() {
-        const permissoes = await prismaClient.permissoes.findMany({
-            orderBy: {
-                nome: 'asc'
-            }
-        });
-        return permissoes;
+    async execute(p: ParsedPagination) {
+        const orderBy = { nome: 'asc' as const };
+        const [total, items] = await Promise.all([
+            prismaClient.permissoes.count(),
+            prismaClient.permissoes.findMany({
+                orderBy,
+                skip: p.skip,
+                take: p.take,
+            }),
+        ]);
+        return { items, total };
     }
 }
 

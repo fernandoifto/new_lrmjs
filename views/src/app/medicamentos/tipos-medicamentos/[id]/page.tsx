@@ -38,7 +38,7 @@ export default function MedicamentoViewPage() {
         try {
             setLoading(true);
 
-            const response = await api.get(`/medicamento/${id}`, {});
+            const response = await api.get(`/tipo-medicamento/${id}`, {});
 
             setMedicamento(response.data);
         } catch (error: any) {
@@ -48,7 +48,7 @@ export default function MedicamentoViewPage() {
                 router.push('/login');
             } else if (error.response?.status === 404) {
                 toast.error('Tipo de medicamento não encontrado');
-                router.push('/medicamentos');
+                router.push('/medicamentos/tipos-medicamentos');
             } else {
                 toast.error('Erro ao carregar medicamento');
             }

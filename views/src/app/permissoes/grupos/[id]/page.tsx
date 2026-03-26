@@ -57,11 +57,11 @@ export default function GrupoPermissoesPage() {
             setLoading(true);
 const [grupoRes, permissoesRes] = await Promise.all([
                 api.get(`/role/${grupoId}`, {}),
-                api.get('/permissoes', {})
+                api.get('/permissoes', { params: { page: 1, pageSize: 200 } })
             ]);
 
             setGrupo(grupoRes.data);
-            setPermissoes(permissoesRes.data);
+            setPermissoes(permissoesRes.data.data);
             
             // Marcar permissões já atribuídas
             const permissoesIds = grupoRes.data.rolePermissoes.map((rp: any) => rp.permissao.id);

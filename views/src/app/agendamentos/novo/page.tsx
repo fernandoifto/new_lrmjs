@@ -2,7 +2,7 @@
 
 import { useEffect, useState, useRef } from 'react';
 import { api } from '@/api/api';
-import { useRouter, AppRouterInstance } from 'next/navigation';
+import { useRouter } from 'next/navigation';
 import { toast } from 'react-toastify';
 import Header from '../../home/components/header';
 import Menu from '../../components/menu';
@@ -12,11 +12,6 @@ import { maskPhone, maskCEP } from '@/app/agendar/utils/masks';
 import { FaCamera, FaTimes, FaUpload, FaMapMarkerAlt } from 'react-icons/fa';
 import styles from './page.module.css';
 import formStyles from '@/app/agendar/forms/style/styles.module.css';
-
-interface ITurno {
-    id: number;
-    descricao: string;
-}
 
 export default function NovoAgendamentoPage() {
     const router = useRouter();
@@ -32,8 +27,8 @@ export default function NovoAgendamentoPage() {
     const loadTurnos = async () => {
         try {
 
-            const response = await api.get('/turnos');
-            setTurnos(response.data);
+            const response = await api.get('/turnos', { params: { page: 1, pageSize: 100 } });
+            setTurnos(response.data.data);
         } catch (error: any) {
             console.error('Erro ao carregar turnos:', error);
             if (error.response?.status === 401) {
@@ -77,7 +72,7 @@ export default function NovoAgendamentoPage() {
     );
 }
 
-function NovoAgendamentoForm({ turnos, router }: { turnos: ITurno[]; router: AppRouterInstance }) {
+function NovoAgendamentoForm({ turnos, router }: { turnos: ITurno[]; router: ReturnType<typeof useRouter> }) {
     const formRef = useRef<HTMLFormElement>(null);
     const fileInputRef = useRef<HTMLInputElement>(null);
     const { handleCreateAgendamento } = hooksAgendamentoForm(turnos);
@@ -209,7 +204,7 @@ function NovoAgendamentoForm({ turnos, router }: { turnos: ITurno[]; router: App
         );
     };
 
-    const handleSubmit = async (e: React.FormEvent) => {
+    const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
         e.preventDefault();
         const formData = new FormData(e.currentTarget);
         formData.set('telefone', phoneValue.replace(/\D/g, ''));
