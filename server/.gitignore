@@ -1,7 +1,6 @@
 node_modules/
 .env
 *.log
-backup/
 
 # Ignora tudo dentro das pastas, mas mantém os diretórios
 uploads/agendamentos/*

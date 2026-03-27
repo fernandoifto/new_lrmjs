@@ -1,0 +1,52 @@
+# =============================================================================
+# .dockerignore — raiz do repositório (contexto do docker build: .)
+#
+# Objetivos:
+#   - Não enviar lixo gigante pro daemon (build mais rápido)
+#   - Nunca embutir node_modules ou builds no contexto (use volumes no compose)
+#   - Não copiar segredos se no futuro você adicionar COPY . no Dockerfile
+# =============================================================================
+
+# Git e IDE
+.git
+.github
+.cursor
+.vscode
+.idea
+*.md
+!README.md
+
+# Dependências e artefatos (reinstalados dentro da imagem / volume)
+**/node_modules
+**/npm-debug.log*
+**/yarn-error.log*
+**/pnpm-debug.log*
+
+# Next.js
+**/.next
+**/out
+**/.turbo
+
+# Testes e cobertura
+**/coverage
+**/.nyc_output
+
+# Ambiente e segredos (o compose monta server/.env em runtime; não precisa no contexto)
+**/.env
+**/.env.*
+!**/.env.example
+
+# Prisma — client gerado localmente; no container roda prisma generate
+**/src/tools/generated/prisma
+
+# Uploads locais (grandes / opcionais no build; em dev o bind mount já expõe server/uploads)
+**/uploads
+
+# Misc
+**/*.log
+**/dist
+**/build
+.DS_Store
+
+# Legado de migrations arquivadas (opcional: reduz contexto)
+# server/prisma/migrations_archived_legado

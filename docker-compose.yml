@@ -1,0 +1,99 @@
+# =============================================================================
+# Desenvolvimento local — um comando: docker compose up
+#
+# Stack:
+#   - api: Express + Prisma (porta host 3333 → container 3333)
+#   - web: Next.js (porta host 3000 → container 3000)
+#
+# Banco: NÃO há serviço PostgreSQL aqui — use Supabase (DATABASE_URL no .env).
+#
+# Pré-requisito: arquivo ./server/.env com pelo menos JWT_SECRET e DATABASE_URL
+# (veja server/src/config/validateEnv.ts).
+#
+# Primeira vez ou após mudar dependências:
+#   docker compose build --no-cache
+#   docker compose up
+#
+# Migrações Prisma no banco remoto:
+#   docker compose exec api npx prisma migrate deploy
+#
+# Se a API logar "Can't reach database server" ao Supabase:
+#   - Confirme que o projeto não está pausado no painel Supabase
+#   - Em Linux, a API usa network_mode: host para usar a mesma rota de rede do seu PC (bridge
+#     do Docker costuma falhar em saída direta 5432 para o Supabase).
+#   - Docker Desktop (Mac/Windows): remova "network_mode: host" do serviço api e descomente
+#     "ports: 3333:3333"; altere web para API_INTERNAL_URL: http://api:3333 e use a URL de
+#     Connection Pooling do Supabase (porta 6543) no DATABASE_URL, se necessário.
+#   - Senha na DATABASE_URL: use caracteres especiais codificados (* → %2A , → %2C).
+# =============================================================================
+
+services:
+  # ---------------------------------------------------------------------------
+  # API — Node 22, Express, Prisma
+  # ---------------------------------------------------------------------------
+  api:
+    build:
+      context: .
+      dockerfile: Dockerfile
+      target: server-dev
+    container_name: lrm-api-dev
+    # Linux: mesma rede do host → Prisma/Supabase na 5432 funciona como fora do Docker.
+    # Em Mac/Windows com Docker Desktop, comente a linha abaixo e descomente ports.
+    network_mode: host
+    # ports:
+    #   - "3333:3333"
+    # Variáveis do Supabase, JWT, SMTP, etc.
+    env_file:
+      - ./server/.env
+    environment:
+      NODE_ENV: development
+      # Garante polling de FS se o watch não detectar saves (comum em Docker Desktop macOS/Windows)
+      CHOKIDAR_USEPOLLING: "true"
+    volumes:
+      # Código no host → reflete saves imediatamente no container
+      - ./server:/app
+      # Dependências só dentro do container (não usa node_modules do host)
+      - server_node_modules:/app/node_modules
+    # Sincroniza lock com package.json montado + gera Prisma Client + sobe o servidor
+    command: >
+      sh -c "npm install &&
+      npx prisma generate &&
+      npm run dev"
+    restart: unless-stopped
+
+  # ---------------------------------------------------------------------------
+  # Frontend — Next.js 16 (no Docker usamos dev:docker = Webpack; Turbopack falha com
+  # bind mount + volume node_modules — erro "Next.js package not found" / crash no browser)
+  # ---------------------------------------------------------------------------
+  web:
+    build:
+      context: .
+      dockerfile: Dockerfile
+      target: views-dev
+    container_name: lrm-web-dev
+    environment:
+      NODE_ENV: development
+      # Com api em network_mode: host, o nome "api" não resolve — use o gateway para o host.
+      API_INTERNAL_URL: http://host.docker.internal:3333
+      CHOKIDAR_USEPOLLING: "true"
+      WATCHPACK_POLLING: "true"
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
+    ports:
+      - "3000:3000"
+    volumes:
+      - ./views:/app
+      - views_node_modules:/app/node_modules
+      # Cache de build isolado do host (evita .next quebrado entre SO e container)
+      - views_next_cache:/app/.next
+    command: >
+      sh -c "npm install &&
+      npm run dev:docker"
+    depends_on:
+      - api
+    restart: unless-stopped
+
+volumes:
+  server_node_modules:
+  views_node_modules:
+  views_next_cache:
