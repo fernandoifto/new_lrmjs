@@ -3,6 +3,16 @@
 import { useState, useEffect } from 'react';
 import { api } from '@/api/api';
 
+type PermissionCache = {
+    isAdmin: boolean;
+    permissoes: string[];
+    expiresAt: number;
+};
+
+const PERMISSION_CACHE_TTL_MS = 60_000;
+let permissionCache: PermissionCache | null = null;
+let inFlightPermissionRequest: Promise<PermissionCache> | null = null;
+
 export function usePermissions() {
     const [permissoes, setPermissoes] = useState<string[]>([]);
     const [loading, setLoading] = useState(true);
@@ -14,24 +24,13 @@ export function usePermissions() {
 
     const loadPermissions = async () => {
         try {
-            // Verificar se o usuário é admin primeiro
-            const userDetail = await api.get('/detail', {});
-
-            setIsAdmin(userDetail.data.is_admin || false);
-
-            // Se for admin, não precisa buscar permissões (tem todas)
-            if (userDetail.data.is_admin) {
-                setPermissoes([]); // Admin tem todas as permissões
-                setLoading(false);
-                return;
-            }
-
-            const response = await api.get('/user-permissoes', {});
-
-            setPermissoes(response.data.permissoes || []);
+            const cache = await fetchPermissionsWithCache();
+            setIsAdmin(cache.isAdmin);
+            setPermissoes(cache.permissoes);
         } catch (error) {
             console.error('Erro ao carregar permissões:', error);
             setPermissoes([]);
+            setIsAdmin(false);
         } finally {
             setLoading(false);
         }
@@ -61,5 +60,46 @@ export function usePermissions() {
         hasAllPermissions,
         reloadPermissions: loadPermissions
     };
+}
+
+async function fetchPermissionsWithCache(): Promise<PermissionCache> {
+    const now = Date.now();
+    if (permissionCache && permissionCache.expiresAt > now) {
+        return permissionCache;
+    }
+
+    if (inFlightPermissionRequest) {
+        return inFlightPermissionRequest;
+    }
+
+    inFlightPermissionRequest = (async () => {
+        const userDetail = await api.get('/detail', {});
+        const isAdmin = Boolean(userDetail.data.is_admin);
+
+        if (isAdmin) {
+            const cached = {
+                isAdmin: true,
+                permissoes: [],
+                expiresAt: Date.now() + PERMISSION_CACHE_TTL_MS,
+            };
+            permissionCache = cached;
+            return cached;
+        }
+
+        const response = await api.get('/user-permissoes', {});
+        const cached = {
+            isAdmin: false,
+            permissoes: response.data.permissoes || [],
+            expiresAt: Date.now() + PERMISSION_CACHE_TTL_MS,
+        };
+        permissionCache = cached;
+        return cached;
+    })();
+
+    try {
+        return await inFlightPermissionRequest;
+    } finally {
+        inFlightPermissionRequest = null;
+    }
 }
 

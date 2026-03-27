@@ -28,6 +28,7 @@ model Agendamentos {
   google_maps_url String? @db.Text  // URL do Google Maps ou coordenadas
   id_turno    Int
   id_user     Int?
+  visitado    Boolean   @default(false)
   status      String    @db.VarChar(40) @default("AGUARDANDO_AGENDAMENTO")
   created     DateTime  @default(now())
   modified    DateTime  @updatedAt
@@ -97,6 +98,8 @@ model RolePermissoes {
   permissao  Permissoes @relation(fields: [id_permissao], references: [id], onDelete: Cascade)
 
   @@unique([id_role, id_permissao])
+  @@index([id_role])
+  @@index([id_permissao])
   @@map("role_permissoes")
 }
 
@@ -110,6 +113,8 @@ model UserRoles {
   role  Roles @relation(fields: [id_role], references: [id], onDelete: Cascade)
 
   @@unique([id_user, id_role])
+  @@index([id_user])
+  @@index([id_role])
   @@map("user_roles")
 }
 
@@ -146,6 +151,9 @@ model Retiradas {
   user        Users      @relation(fields: [id_users], references: [id])
   lotes       Lotes      @relation(fields: [id_lotes], references: [id])
   paciente     Pacientes  @relation(fields: [id_pacientes], references: [id])
+  @@index([id_users])
+  @@index([id_lotes])
+  @@index([id_pacientes])
   @@map("retiradas")
 }
 
@@ -209,5 +217,8 @@ model Solicitacoes {
 
   lotes         Lotes     @relation(fields: [id_lotes], references: [id])
   paciente      Pacientes @relation(fields: [id_pacientes], references: [id])
+  @@index([id_lotes])
+  @@index([id_pacientes])
+  @@index([status])
   @@map("solicitacoes")
 }

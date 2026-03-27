@@ -1,6 +1,5 @@
 import { NextResponse, NextRequest } from "next/server";
 import { getCookieServer } from "@/lib/cookieServer";
-import {api} from "@/api/api";
 
 export async function middleware(request: NextRequest) {
 
@@ -44,7 +43,7 @@ export async function middleware(request: NextRequest) {
         return NextResponse.redirect(new URL("/login", request.url));
     }
 
-    const isValid = await validateToken(token);
+    const isValid = validateToken(token);
 
     if(!isValid){
         return NextResponse.redirect(new URL("/login", request.url));
@@ -53,16 +52,29 @@ export async function middleware(request: NextRequest) {
     return NextResponse.next();
 }
 
-async function validateToken(token: string){
+function validateToken(token: string){
 
     if(!token) return false;
     
     try {
-        await api.get("/detail", {
-            headers: { Authorization: `Bearer ${token}` },
-        });
-        return true;
+        const payload = parseJwtPayload(token);
+        if (!payload) return false;
+        if (typeof payload.exp !== "number") return false;
+        const now = Math.floor(Date.now() / 1000);
+        return payload.exp > now;
     } catch (error) {
         return false;
     }     
+}
+
+function parseJwtPayload(token: string): Record<string, unknown> | null {
+    const tokenParts = token.split(".");
+    if (tokenParts.length < 2) return null;
+
+    const payloadBase64Url = tokenParts[1];
+    const base64 = payloadBase64Url.replace(/-/g, "+").replace(/_/g, "/");
+    const paddedBase64 = base64.padEnd(Math.ceil(base64.length / 4) * 4, "=");
+    const json = atob(paddedBase64);
+
+    return JSON.parse(json) as Record<string, unknown>;
 }

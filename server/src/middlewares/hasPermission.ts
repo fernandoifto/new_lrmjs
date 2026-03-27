@@ -1,66 +1,67 @@
 import { Request, Response, NextFunction } from "express";
-import { verify } from "jsonwebtoken";
 import prismaClient from "../tools/prisma";
-import { JWT_VERIFY_OPTIONS } from "../config/jwtOptions";
-import { getAuthTokenFromRequest } from "./getAuthToken";
 
-interface IPayload {
-    sub: string;
+const PERMISSION_CACHE_TTL_MS = 60_000;
+const permissionCache = new Map<number, { expiresAt: number; permissions: Set<string> }>();
+
+async function getPermissionsForUser(userId: number): Promise<Set<string>> {
+    const now = Date.now();
+    const cached = permissionCache.get(userId);
+    if (cached && cached.expiresAt > now) {
+        return cached.permissions;
+    }
+
+    const userRoles = await prismaClient.userRoles.findMany({
+        where: { id_user: userId },
+        select: {
+            role: {
+                select: {
+                    rolePermissoes: {
+                        select: {
+                            permissao: {
+                                select: { nome: true }
+                            }
+                        }
+                    }
+                }
+            }
+        }
+    });
+
+    const permissions = new Set<string>();
+    for (const userRole of userRoles) {
+        for (const rolePermissao of userRole.role.rolePermissoes) {
+            permissions.add(rolePermissao.permissao.nome);
+        }
+    }
+
+    permissionCache.set(userId, { permissions, expiresAt: now + PERMISSION_CACHE_TTL_MS });
+    return permissions;
 }
 
 export function hasPermission(permissionName: string) {
     return async (request: Request, response: Response, next: NextFunction) => {
         try {
-            const token = getAuthTokenFromRequest(request);
-
-            if (!token) {
-                return response.status(401).json({ error: "Token não fornecido" });
-            }
-            const { sub } = verify(token, process.env.JWT_SECRET as string, JWT_VERIFY_OPTIONS) as IPayload;
-            const userId = Number(sub);
-
-            // Buscar usuário
-            const user = await prismaClient.users.findUnique({
-                where: { id: userId },
-                include: {
-                    userRoles: {
-                        include: {
-                            role: {
-                                include: {
-                                    rolePermissoes: {
-                                        include: {
-                                            permissao: true
-                                        }
-                                    }
-                                }
-                            }
-                        }
-                    }
-                }
-            });
-
-            if (!user) {
-                return response.status(401).json({ error: "Usuário não encontrado" });
+            const authenticatedUser = request.user;
+            if (!authenticatedUser) {
+                return response.status(401).json({ error: "Usuário não autenticado" });
             }
 
             // Se for admin, permite tudo
-            if (user.is_admin) {
-                request.query.userId = sub;
+            if (authenticatedUser.is_admin) {
+                request.query.userId = String(authenticatedUser.id);
                 return next();
             }
 
             // Verificar se o usuário tem a permissão necessária
-            const hasPermission = user.userRoles.some((userRole: { role: { rolePermissoes: Array<{ permissao: { nome: string } }> } }) => 
-                userRole.role.rolePermissoes.some((rp: { permissao: { nome: string } }) => 
-                    rp.permissao.nome === permissionName
-                )
-            );
+            const permissions = await getPermissionsForUser(authenticatedUser.id);
+            const hasPermission = permissions.has(permissionName);
 
             if (!hasPermission) {
                 return response.status(403).json({ error: "Acesso negado. Permissão necessária: " + permissionName });
             }
 
-            request.query.userId = sub;
+            request.query.userId = String(authenticatedUser.id);
             return next();
         } catch (error) {
             return response.status(401).json({ error: "Token inválido" });

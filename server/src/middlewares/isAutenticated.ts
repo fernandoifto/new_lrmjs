@@ -29,8 +29,8 @@ export async function isAuthenticated(request: Request, response: Response, next
         }
 
         request.query.userId = sub;
-        // Adicionar informações do usuário ao request para uso posterior
-        (request as any).user = {
+        // Reuse user info in downstream middlewares/controllers.
+        request.user = {
             id: user.id,
             is_admin: user.is_admin
         };
