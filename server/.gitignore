@@ -1,4 +1,10 @@
 node_modules/
 .env
-uploads/
 *.log
+
+# Ignora tudo dentro das pastas, mas mantém os diretórios
+uploads/agendamentos/*
+!uploads/agendamentos/.gitkeep
+
+uploads/receitas/*
+!uploads/receitas/.gitkeep
