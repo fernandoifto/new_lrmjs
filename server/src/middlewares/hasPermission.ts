@@ -1,3 +1,4 @@
+import "../types/express-augment";
 import { Request, Response, NextFunction } from "express";
 import prismaClient from "../tools/prisma";
 

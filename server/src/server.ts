@@ -1,4 +1,5 @@
 import "dotenv/config";
+import "./types/express-augment";
 import { validateRequiredEnv } from "./config/validateEnv";
 import { buildApp } from "./app";
 

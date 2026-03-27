@@ -1,5 +1,3 @@
-import { Multer } from 'multer';
-
 declare global {
     namespace Express {
         interface AuthenticatedUser {
@@ -8,8 +6,9 @@ declare global {
         }
 
         interface Request {
-            files?: Express.Multer.File[];
             user?: AuthenticatedUser;
         }
     }
 }
+
+export {};

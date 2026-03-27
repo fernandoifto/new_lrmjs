@@ -1,7 +1,7 @@
 import { NextResponse, NextRequest } from "next/server";
 import { getCookieServer } from "@/lib/cookieServer";
 
-export async function middleware(request: NextRequest) {
+export async function proxy(request: NextRequest) {
 
     const {pathname} = request.nextUrl;
 
