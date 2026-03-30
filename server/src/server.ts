@@ -5,8 +5,8 @@ import { buildApp } from "./app";
 
 validateRequiredEnv();
 
-// Inicialização opcional do WhatsApp (apenas para desenvolvimento)
-// Para produção com Business API, não é necessário inicializar aqui
+// Inicialização opcional do WhatsApp (ambiente de desenvolvimento)
+// Em produção com Business API, não é necessário inicializar aqui
 if (process.env.AUTO_INIT_WHATSAPP === "true" && process.env.USE_WHATSAPP_BUSINESS_API !== "true") {
     import("./services/whatsapp/whatsappService").then(({ whatsappService }) => {
         console.log("🔄 Inicializando WhatsApp automaticamente...");
