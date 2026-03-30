@@ -45,3 +45,6 @@ npm install @types/bcryptjs -D
 //Instalar JWT
 npm install jsonwebtoken
 npm install @types/jsonwebtoken -D
+
+docker compose down
+docker compose up --build
