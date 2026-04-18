@@ -1,0 +1,11 @@
+# Override para Linux nativo (daemon Docker no mesmo kernel).
+# API em host network evita problemas comuns de saída para Supabase (5432) a partir da bridge.
+services:
+  api:
+    network_mode: host
+
+  web:
+    environment:
+      API_INTERNAL_URL: http://host.docker.internal:3333
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
