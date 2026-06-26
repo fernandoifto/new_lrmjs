@@ -1,0 +1,234 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+// Looking for ways to speed up your queries, or scale easily with your serverless or edge functions?
+// Try Prisma Accelerate: https://pris.ly/cli/accelerate-init
+
+generator client {
+  provider = "prisma-client-js"
+  output   = "../src/tools/generated/prisma"
+}
+
+datasource db {
+  provider  = "postgresql"
+  url       = env("DATABASE_URL")
+  directUrl = env("DIRECT_URL")
+}
+
+model Agendamentos {
+  id              Int      @id @default(autoincrement())
+  nome            String   @db.VarChar(200)
+  endereco        String   @db.VarChar(200)
+  numero          String   @db.VarChar(20)
+  setor           String   @db.VarChar(100)
+  cep             String   @db.VarChar(9)
+  telefone        String   @db.VarChar(50)
+  datavisita      String?  @db.Text
+  fotos           String?  @db.Text // JSON array com URLs das fotos
+  google_maps_url String?  @db.Text // URL do Google Maps ou coordenadas
+  id_turno        Int
+  id_user         Int?
+  visitado        Boolean  @default(false)
+  status          String   @default("AGUARDANDO_AGENDAMENTO") @db.VarChar(40)
+  created         DateTime @default(now())
+  modified        DateTime @updatedAt
+
+  turno Turnos @relation(fields: [id_turno], references: [id])
+  user  Users? @relation(fields: [id_user], references: [id])
+
+  @@map("agendamentos")
+}
+
+model Turnos {
+  id        Int      @id @default(autoincrement())
+  descricao String   @db.VarChar(50)
+  created   DateTime @default(now())
+  modified  DateTime @updatedAt
+
+  agendamentos Agendamentos[]
+
+  @@map("turnos")
+}
+
+model Users {
+  id       Int      @id @default(autoincrement())
+  username String   @db.VarChar(255)
+  email    String   @db.VarChar(255)
+  password String   @db.VarChar(100)
+  is_admin Boolean  @default(false)
+  created  DateTime @default(now())
+  modified DateTime @updatedAt
+
+  agendamentos Agendamentos[]
+  retiradas    Retiradas[]
+  userRoles    UserRoles[]
+
+  @@map("users")
+}
+
+model Roles {
+  id        Int      @id @default(autoincrement())
+  nome      String   @db.VarChar(100)
+  descricao String?  @db.VarChar(500)
+  created   DateTime @default(now())
+  modified  DateTime @updatedAt
+
+  rolePermissoes RolePermissoes[]
+  userRoles      UserRoles[]
+
+  @@map("roles")
+}
+
+model Permissoes {
+  id        Int      @id @default(autoincrement())
+  nome      String   @db.VarChar(100)
+  descricao String?  @db.VarChar(500)
+  pagina    String?  @db.VarChar(200)
+  acao      String?  @db.VarChar(100)
+  created   DateTime @default(now())
+  modified  DateTime @updatedAt
+
+  rolePermissoes RolePermissoes[]
+
+  @@map("permissoes")
+}
+
+model RolePermissoes {
+  id           Int      @id @default(autoincrement())
+  id_role      Int
+  id_permissao Int
+  created      DateTime @default(now())
+
+  role      Roles      @relation(fields: [id_role], references: [id], onDelete: Cascade)
+  permissao Permissoes @relation(fields: [id_permissao], references: [id], onDelete: Cascade)
+
+  @@unique([id_role, id_permissao])
+  @@index([id_role])
+  @@index([id_permissao])
+  @@map("role_permissoes")
+}
+
+model UserRoles {
+  id      Int      @id @default(autoincrement())
+  id_user Int
+  id_role Int
+  created DateTime @default(now())
+
+  user Users @relation(fields: [id_user], references: [id], onDelete: Cascade)
+  role Roles @relation(fields: [id_role], references: [id], onDelete: Cascade)
+
+  @@unique([id_user, id_role])
+  @@index([id_user])
+  @@index([id_role])
+  @@map("user_roles")
+}
+
+model Lotes {
+  id                    Int      @id @default(autoincrement())
+  numero                String   @db.VarChar(50)
+  datavencimento        DateTime
+  datafabricacao        DateTime
+  qtde                  Int
+  id_medicamento        Int
+  id_forma_farmaceutica Int
+  id_tipo_medicamento   Int
+  created               DateTime @default(now())
+  modified              DateTime @updatedAt
+
+  formaFarmaceutica FormasFarmaceuticas @relation(fields: [id_forma_farmaceutica], references: [id])
+  medicamento       Medicamentos        @relation(fields: [id_medicamento], references: [id])
+  tipoMedicamento   TiposMedicamentos   @relation(fields: [id_tipo_medicamento], references: [id])
+
+  retiradas    Retiradas[]
+  solicitacoes Solicitacoes[]
+
+  @@map("lotes")
+}
+
+model Retiradas {
+  id           Int       @id @default(autoincrement())
+  qtde         Int
+  id_users     Int
+  id_lotes     Int
+  id_pacientes Int
+  created      DateTime?
+  modified     DateTime?
+
+  user     Users     @relation(fields: [id_users], references: [id])
+  lotes    Lotes     @relation(fields: [id_lotes], references: [id])
+  paciente Pacientes @relation(fields: [id_pacientes], references: [id])
+
+  @@index([id_users])
+  @@index([id_lotes])
+  @@index([id_pacientes])
+  @@map("retiradas")
+}
+
+model FormasFarmaceuticas {
+  id        Int      @id @default(autoincrement())
+  descricao String   @db.VarChar(200)
+  created   DateTime @default(now())
+  modified  DateTime @updatedAt
+
+  lotes Lotes[]
+
+  @@map("formas_farmaceuticas")
+}
+
+model Medicamentos {
+  id             Int      @id @default(autoincrement())
+  descricao      String   @db.VarChar(300)
+  principioativo String   @db.VarChar(300)
+  created        DateTime @default(now())
+  modified       DateTime @updatedAt
+
+  lotes Lotes[]
+
+  @@map("medicamentos")
+}
+
+model TiposMedicamentos {
+  id        Int      @id @default(autoincrement())
+  descricao String   @db.VarChar(200)
+  created   DateTime @default(now())
+  modified  DateTime @updatedAt
+
+  lotes Lotes[]
+
+  @@map("tipos_medicamentos")
+}
+
+model Pacientes {
+  id             Int      @id @default(autoincrement())
+  nome           String   @db.VarChar(200)
+  cpf            String   @db.VarChar(14)
+  datanascimento DateTime
+  telefone       String   @db.VarChar(20)
+  cartaosus      String   @db.VarChar(20)
+  created        DateTime @default(now())
+  modified       DateTime @updatedAt
+
+  retiradas    Retiradas[]
+  solicitacoes Solicitacoes[]
+
+  @@map("pacientes")
+}
+
+model Solicitacoes {
+  id           Int      @id @default(autoincrement())
+  qtde         Int
+  id_lotes     Int
+  id_pacientes Int
+  status       String   @default("pendente_de_aprovacao") @db.VarChar(30)
+  foto_receita String?  @db.Text // URL da foto da receita médica
+  created      DateTime @default(now())
+  modified     DateTime @updatedAt
+
+  lotes    Lotes     @relation(fields: [id_lotes], references: [id])
+  paciente Pacientes @relation(fields: [id_pacientes], references: [id])
+
+  @@index([id_lotes])
+  @@index([id_pacientes])
+  @@index([status])
+  @@map("solicitacoes")
+}

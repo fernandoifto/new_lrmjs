@@ -1,5 +1,6 @@
 node_modules/
 .env
+.envproducao
 *.log
 
 # Ignora tudo dentro das pastas, mas mantém os diretórios
