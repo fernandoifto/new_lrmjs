@@ -175,7 +175,7 @@ A cada push em `main` / `develop`:
 
 | Problema | Solução |
 |----------|---------|
-| `/agendar` sem turnos | Verifique `API_INTERNAL_URL` e se a API está no ar |
+| `/agendar` sem turnos | Verifique `API_INTERNAL_URL` no **views** (Runtime) e redeploy. Use `https://api.giftmed.org` ou URL interna Coolify (`http://<servico-api>:3333`) |
 | CORS bloqueado | `FRONTEND_ORIGIN=https://app.giftmed.org` (sem `/` no final) |
 | Uploads sumindo | Volume em `/app/uploads` no serviço API |
 | Build falha Prisma | `DATABASE_URL` acessível no build/deploy |

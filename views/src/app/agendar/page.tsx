@@ -26,7 +26,12 @@ export default async function Agendar() {
     } catch (e) {
         if (isUnreachableApiError(e)) {
             apiMessage =
-                "Não foi possível conectar ao servidor da API. Inicie o backend (npm run dev na pasta server, porta 3333) ou ajuste API_INTERNAL_URL.";
+                "Não foi possível conectar ao servidor da API. Verifique API_INTERNAL_URL no serviço views (Coolify) e redeploy.";
+        } else if (axios.isAxiosError(e)) {
+            const status = e.response?.status;
+            apiMessage = status
+                ? `Não foi possível carregar os turnos (API respondeu ${status}). Tente novamente em instantes.`
+                : "Não foi possível carregar os turnos. Tente novamente em instantes.";
         } else {
             apiMessage = "Não foi possível carregar os turnos. Tente novamente em instantes.";
         }
