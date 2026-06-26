@@ -29,6 +29,10 @@ import { loginLimiter, passwordResetLimiter, publicDataLimiter } from "./middlew
 
 const router = Router();
 
+router.get("/health", (_req, res) => {
+    res.status(200).json({ status: "ok" });
+});
+
 //Rotas de agendamentos
 router.post("/agendamento", new CreateAgendamentosController().handle); // Rota pública para criação de agendamentos
 router.get("/agendamentos", isAuthenticated, hasPermission("agendamentos.ver"), new ListAgendamentosController().handle);

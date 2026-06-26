@@ -1,13 +1,8 @@
-# syntax=docker/dockerfile:1
-# -----------------------------------------------------------------------------
-# Dockerfile multi-target — focado em DESENVOLVIMENTO (não use em produção).
-# Targets disponíveis (via docker compose build target):
-#   - server-dev → API Express + TypeScript (ts-node-dev) + Prisma
-#   - views-dev  → Next.js (dev server com Turbopack)
-#
-# O código-fonte NÃO é copiado aqui: em runtime o docker-compose monta volumes
-# (bind mount). Só package.json + lock entram na imagem para cache de npm ci.
-# -----------------------------------------------------------------------------
+# =============================================================================
+# Dockerfile multi-target — DESENVOLVIMENTO local (docker compose).
+# Produção (Coolify): use server/Dockerfile e views/Dockerfile
+# Documentação: DEPLOY.md
+# =============================================================================
 
 # Imagem base: Node 22 (LTS atual; compatível com Next 16 e React 19)
 FROM node:22-bookworm-slim AS base

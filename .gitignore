@@ -18,6 +18,7 @@ docs/
 
 # Production
 /dist
+server/dist/
 
 # Misc
 .DS_Store

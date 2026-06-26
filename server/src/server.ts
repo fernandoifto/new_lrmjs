@@ -19,6 +19,9 @@ if (process.env.AUTO_INIT_WHATSAPP === "true" && process.env.USE_WHATSAPP_BUSINE
 
 const app = buildApp();
 
-app.listen(3333, () => {
-    console.log("Server is running on port 3333");
+const port = Number(process.env.PORT) || 3333;
+const host = process.env.HOST || "0.0.0.0";
+
+app.listen(port, host, () => {
+    console.log(`Server is running on ${host}:${port}`);
 });

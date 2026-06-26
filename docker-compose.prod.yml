@@ -1,0 +1,47 @@
+# Produção — referência para Coolify ou deploy manual com Docker Compose
+#
+# Uso:
+#   cp server/.env.example server/.env   # preencha os valores
+#   docker compose -f docker-compose.prod.yml up --build -d
+#
+# No Coolify, prefira dois serviços separados apontando para:
+#   - server/Dockerfile  (API)
+#   - views/Dockerfile   (frontend, domínio app.giftmed.org)
+
+services:
+  api:
+    build:
+      context: ./server
+      dockerfile: Dockerfile
+    container_name: giftmed-api
+    env_file:
+      - ./server/.env
+    environment:
+      NODE_ENV: production
+      PORT: 3333
+      HOST: 0.0.0.0
+    volumes:
+      - giftmed_uploads:/app/uploads
+    restart: unless-stopped
+    expose:
+      - "3333"
+
+  web:
+    build:
+      context: ./views
+      dockerfile: Dockerfile
+      args:
+        API_INTERNAL_URL: http://api:3333
+    container_name: giftmed-web
+    environment:
+      NODE_ENV: production
+      PORT: 3000
+      API_INTERNAL_URL: http://api:3333
+    ports:
+      - "3000:3000"
+    depends_on:
+      - api
+    restart: unless-stopped
+
+volumes:
+  giftmed_uploads:
