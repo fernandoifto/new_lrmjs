@@ -6,6 +6,9 @@ FROM node:22-bookworm-slim AS builder
 
 WORKDIR /app
 
+# Garante devDependencies (typescript) mesmo se Coolify injetar NODE_ENV=production no build
+ENV NODE_ENV=development
+
 RUN apt-get update \
     && apt-get install -y --no-install-recommends openssl ca-certificates \
     && rm -rf /var/lib/apt/lists/*
