@@ -271,7 +271,7 @@ const config = {
       "value": "prisma-client-js"
     },
     "output": {
-      "value": "/app/src/tools/generated/prisma",
+      "value": "/home/dti/www/new_lrmjs/server/src/tools/generated/prisma",
       "fromEnvVar": null
     },
     "config": {
@@ -285,7 +285,7 @@ const config = {
       }
     ],
     "previewFeatures": [],
-    "sourceFilePath": "/app/prisma/schema.prisma",
+    "sourceFilePath": "/home/dti/www/new_lrmjs/server/prisma/schema.prisma",
     "isCustomOutput": true
   },
   "relativeEnvPaths": {
