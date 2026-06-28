@@ -1,6 +1,6 @@
 /* Variáveis de cores */
 :root {
-  --cor-primaria: #3f81d0;
+  --cor-primaria: #059669;
   --cor-secundaria: #fff;
   --cor-texto: #333333;
   --cor-texto-claro: #666666;
@@ -60,12 +60,12 @@
   display: inline-flex;
   align-items: center;
   gap: 0.5rem;
-  background-color: rgba(63, 129, 208, 0.1);
+  background-color: rgba(5, 150, 105, 0.1);
   color: var(--cor-primaria);
 }
 
 .btnBack:hover {
-  background-color: rgba(63, 129, 208, 0.2);
+  background-color: rgba(5, 150, 105, 0.2);
 }
 
 .btnEdit {
@@ -82,7 +82,7 @@
 }
 
 .btnEdit:hover {
-  background-color: #2c6aa8;
+  background-color: #047857;
 }
 
 .btnSave {
@@ -130,7 +130,7 @@
 
 .cardHeader {
   padding: 2rem;
-  background-color: rgba(63, 129, 208, 0.05);
+  background-color: rgba(5, 150, 105, 0.05);
   border-bottom: 1px solid var(--cor-borda);
 }
 
@@ -190,7 +190,7 @@
 }
 
 .btnSelectAll:hover {
-  background-color: #2c6aa8;
+  background-color: #047857;
 }
 
 .btnDeselectAll {
@@ -215,7 +215,7 @@
 }
 
 .paginaGroup {
-  background-color: rgba(63, 129, 208, 0.02);
+  background-color: rgba(5, 150, 105, 0.02);
   border-radius: 8px;
   padding: 1.5rem;
   border: 1px solid var(--cor-borda);
@@ -250,12 +250,12 @@
 
 .permissaoItem:hover {
   border-color: var(--cor-primaria);
-  background-color: rgba(63, 129, 208, 0.02);
+  background-color: rgba(5, 150, 105, 0.02);
 }
 
 .permissaoItem.selected {
   border-color: var(--cor-primaria);
-  background-color: rgba(63, 129, 208, 0.05);
+  background-color: rgba(5, 150, 105, 0.05);
 }
 
 .permissaoItem input[type="checkbox"] {

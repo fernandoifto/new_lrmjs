@@ -1,6 +1,6 @@
 /* Variáveis de cores */
 :root {
-  --cor-primaria: #3f81d0;
+  --cor-primaria: #059669;
   --cor-secundaria: #fff;
   --cor-texto: #333333;
   --cor-texto-claro: #666666;
@@ -69,12 +69,12 @@
 }
 
 .btnBack {
-  background-color: rgba(63, 129, 208, 0.1);
+  background-color: rgba(5, 150, 105, 0.1);
   color: var(--cor-primaria);
 }
 
 .btnBack:hover {
-  background-color: rgba(63, 129, 208, 0.2);
+  background-color: rgba(5, 150, 105, 0.2);
 }
 
 .btnEdit {
@@ -83,7 +83,7 @@
 }
 
 .btnEdit:hover {
-  background-color: #2c6aa8;
+  background-color: #047857;
 }
 
 .btnDelete {
@@ -120,7 +120,7 @@
 
 .cardHeader {
   padding: 1.5rem 2rem;
-  background-color: rgba(63, 129, 208, 0.05);
+  background-color: rgba(5, 150, 105, 0.05);
   border-bottom: 1px solid var(--cor-borda);
   display: flex;
   align-items: center;
@@ -226,7 +226,7 @@
 
 .loteHeader {
   padding: 1rem 1.5rem;
-  background-color: rgba(63, 129, 208, 0.05);
+  background-color: rgba(5, 150, 105, 0.05);
   border-bottom: 1px solid var(--cor-borda);
   display: flex;
   justify-content: space-between;
@@ -273,7 +273,7 @@
 .loteFooter {
   padding: 1rem 1.5rem;
   border-top: 1px solid var(--cor-borda);
-  background-color: rgba(63, 129, 208, 0.02);
+  background-color: rgba(5, 150, 105, 0.02);
 }
 
 .btnViewLote {
@@ -285,13 +285,13 @@
   text-align: center;
   font-weight: 500;
   font-size: 0.9rem;
-  background-color: rgba(63, 129, 208, 0.1);
+  background-color: rgba(5, 150, 105, 0.1);
   color: var(--cor-primaria);
   transition: var(--transicao);
 }
 
 .btnViewLote:hover {
-  background-color: rgba(63, 129, 208, 0.2);
+  background-color: rgba(5, 150, 105, 0.2);
 }
 
 /* Cores para status de vencimento */

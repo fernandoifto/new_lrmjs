@@ -1,37 +1,63 @@
-'use client';
+"use client";
 
-import Link from 'next/link';
-import { FaCalendarAlt, FaHandHoldingHeart, FaSignInAlt } from 'react-icons/fa';
-import styles from './styles.module.css';
+import Link from "next/link";
+import {
+  FaCalendarAlt,
+  FaHandHoldingHeart,
+  FaSignInAlt,
+} from "react-icons/fa";
+
+const navLinks = [
+  {
+    href: "/agendar",
+    label: "Agendar Coleta",
+    icon: FaCalendarAlt,
+  },
+  {
+    href: "/solicitar-doacao",
+    label: "Solicitar Doação",
+    icon: FaHandHoldingHeart,
+  },
+  {
+    href: "/login",
+    label: "Login",
+    icon: FaSignInAlt,
+  },
+];
+
+const buttonClass =
+  "inline-flex items-center justify-center gap-2 rounded-md bg-emerald-600 px-5 py-3 text-sm font-semibold !text-white shadow-md shadow-emerald-600/20 transition-all hover:bg-emerald-700 hover:!text-white hover:shadow-lg [&_svg]:!text-white";
 
 export default function HeaderRight() {
   return (
-    <div>
-      <div className={styles.headerTitle}>
-        <div className={styles.titleContent}>
-          <div className={styles.iconWrapper}>
-            <FaHandHoldingHeart size={32} />
-          </div>
-          <div className={styles.titleText}>
-            <span className={styles.highlight}>REMED</span>
-            <span className={styles.subtitle}>Descarte consciente de medicamentos</span>
-          </div>
-        </div>
-      </div>
-      <nav className={styles.headerNav}>
-        <Link href="/agendar" className={styles.headerButton}>
-          <FaCalendarAlt size={16} />
-          Agendar Coleta
-        </Link>
-        <Link href="/solicitar-doacao" className={styles.headerButton}>
-          <FaHandHoldingHeart size={16} />
-          Solicitar Doação
-        </Link>
-        <Link href="/login" className={styles.headerButton}>
-          <FaSignInAlt size={16} />
-          Login
-        </Link>
+    <>
+      <nav
+        className="hidden items-center gap-3 lg:flex"
+        aria-label="Navegação principal"
+      >
+        {navLinks.map(({ href, label, icon: Icon }) => (
+          <Link key={href} href={href} className={buttonClass}>
+            <Icon size={16} aria-hidden />
+            {label}
+          </Link>
+        ))}
       </nav>
-    </div>
+
+      <nav
+        className="flex flex-col gap-3 lg:hidden"
+        aria-label="Navegação mobile"
+      >
+        {navLinks.map(({ href, label, icon: Icon }) => (
+          <Link
+            key={href}
+            href={href}
+            className={`${buttonClass} py-4 text-base`}
+          >
+            <Icon size={18} aria-hidden />
+            {label}
+          </Link>
+        ))}
+      </nav>
+    </>
   );
 }

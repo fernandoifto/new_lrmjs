@@ -1,6 +1,6 @@
 /* Variáveis de cores */
 :root {
-  --cor-primaria: #3f81d0;
+  --cor-primaria: #059669;
   --cor-secundaria: #fff;
   --cor-texto: #333333;
   --cor-texto-claro: #666666;
@@ -97,7 +97,7 @@
 }
 
 .btnNew:hover {
-  background-color: #2c6aa8;
+  background-color: #047857;
   transform: translateY(-2px);
 }
 
@@ -201,7 +201,7 @@
 .searchInput:focus {
   outline: none;
   border-color: var(--cor-primaria);
-  box-shadow: 0 0 0 3px rgba(63, 129, 208, 0.1);
+  box-shadow: 0 0 0 3px rgba(5, 150, 105, 0.1);
 }
 
 .searchInput::placeholder {
@@ -241,12 +241,12 @@
 }
 
 .searchButton:hover {
-  background-color: #2c6aa8;
+  background-color: #047857;
 }
 
 .searchResults {
   padding: 0.5rem 1rem;
-  background-color: rgba(63, 129, 208, 0.1);
+  background-color: rgba(5, 150, 105, 0.1);
   border-radius: 6px;
   font-size: 0.9rem;
   color: var(--cor-primaria);
@@ -304,7 +304,7 @@
 
 .cardHeader {
   padding: 1rem 1.5rem;
-  background-color: rgba(63, 129, 208, 0.05);
+  background-color: rgba(5, 150, 105, 0.05);
   border-bottom: 1px solid var(--cor-borda);
   display: flex;
   align-items: center;
@@ -404,12 +404,12 @@
 }
 
 .btnView {
-  background-color: rgba(63, 129, 208, 0.1);
+  background-color: rgba(5, 150, 105, 0.1);
   color: var(--cor-primaria);
 }
 
 .btnView:hover {
-  background-color: rgba(63, 129, 208, 0.2);
+  background-color: rgba(5, 150, 105, 0.2);
 }
 
 .btnEdit {
@@ -418,7 +418,7 @@
 }
 
 .btnEdit:hover {
-  background-color: #2c6aa8;
+  background-color: #047857;
 }
 
 .btnDelete {

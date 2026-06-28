@@ -1,6 +1,6 @@
 /* Variáveis de cores */
 :root {
-  --cor-primaria: #3f81d0;
+  --cor-primaria: #059669;
   --cor-secundaria: #fff;
   --cor-texto: #333333;
   --cor-texto-claro: #666666;
@@ -59,12 +59,12 @@
 }
 
 .btnBack {
-  background-color: rgba(63, 129, 208, 0.1);
+  background-color: rgba(5, 150, 105, 0.1);
   color: var(--cor-primaria);
 }
 
 .btnBack:hover {
-  background-color: rgba(63, 129, 208, 0.2);
+  background-color: rgba(5, 150, 105, 0.2);
 }
 
 .btnEdit {
@@ -73,7 +73,7 @@
 }
 
 .btnEdit:hover {
-  background-color: #2c6aa8;
+  background-color: #047857;
 }
 
 .loadingContainer,
@@ -101,7 +101,7 @@
 
 .cardHeader {
   padding: 1.5rem 2rem;
-  background-color: rgba(63, 129, 208, 0.05);
+  background-color: rgba(5, 150, 105, 0.05);
   border-bottom: 1px solid var(--cor-borda);
   display: flex;
   align-items: center;
@@ -191,17 +191,17 @@
 .grupoBadge {
   display: inline-block;
   padding: 0.5rem 1rem;
-  background-color: rgba(63, 129, 208, 0.1);
+  background-color: rgba(5, 150, 105, 0.1);
   color: var(--cor-primaria);
   border-radius: 8px;
   text-decoration: none;
   font-weight: 500;
   transition: var(--transicao);
-  border: 1px solid rgba(63, 129, 208, 0.2);
+  border: 1px solid rgba(5, 150, 105, 0.2);
 }
 
 .grupoBadge:hover {
-  background-color: rgba(63, 129, 208, 0.2);
+  background-color: rgba(5, 150, 105, 0.2);
   transform: translateY(-2px);
 }
 

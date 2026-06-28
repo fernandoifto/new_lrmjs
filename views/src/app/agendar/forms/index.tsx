@@ -139,7 +139,7 @@ export function AgendarForm({ turnos }: { turnos: ITurno[] }) {
     };
 
     return (
-        <main className={styles.main}>
+        <div className={styles.main}>
             <div className={styles.container}>
                 <div className={styles.contentWrapper}>
                     <form 
@@ -420,6 +420,6 @@ export function AgendarForm({ turnos }: { turnos: ITurno[] }) {
                     </form>
                 </div>
             </div>
-        </main>
+        </div>
     );
 }

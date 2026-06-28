@@ -8,8 +8,9 @@ import VLibrasComponent from "./home/components/vlibras";
 const inter = Inter({ subsets: ["latin"] });
 
 export const metadata: Metadata = {
-  title: "LRM - Sistema de Gestão",
-  description: "Sistema de gestão de medicamentos e agendamentos",
+  title: "GiftMed — Conectando Saúde e Solidariedade",
+  description:
+    "Plataforma GiftMed para doação e descarte consciente de medicamentos.",
 };
 
 export default function RootLayout({

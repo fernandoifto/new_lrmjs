@@ -12,15 +12,15 @@
     "lint": "next lint"
   },
   "dependencies": {
+    "@tailwindcss/postcss": "^4.3.1",
     "axios": "^1.18.1",
-    "bootstrap": "^5.3.8",
-    "cookies-next": "^6.1.1",
     "jspdf": "^4.2.1",
     "next": "^16.2.9",
     "react": "^19.2.3",
     "react-dom": "^19.2.3",
     "react-icons": "^5.5.0",
     "react-toastify": "^11.0.5",
+    "tailwindcss": "^4.3.1",
     "vlibras-nextjs": "^1.1.2"
   },
   "devDependencies": {

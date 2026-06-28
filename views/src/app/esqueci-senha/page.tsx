@@ -1,32 +1,29 @@
 'use client';
-import 'bootstrap/dist/css/bootstrap.min.css';
-import styles from './page.module.css';
+
 import Link from 'next/link';
 import { useState } from 'react';
+import { FaArrowLeft, FaKey } from 'react-icons/fa';
 import { api } from '@/api/api';
 import { toast } from 'react-toastify';
+
+const inputClass =
+  'w-full rounded-lg border border-slate-200 px-4 py-3 text-slate-700 placeholder:text-slate-400 focus:border-emerald-600 focus:outline-none focus:ring-2 focus:ring-emerald-600/20 disabled:bg-slate-100';
 
 export default function EsqueciSenha() {
   const [loading, setLoading] = useState(false);
   const [email, setEmail] = useState('');
   const [emailSent, setEmailSent] = useState(false);
 
-  const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    setEmail(e.target.value);
-  };
-
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setLoading(true);
 
-    // Validações
     if (!email) {
       toast.error('Por favor, informe seu e-mail!');
       setLoading(false);
       return;
     }
 
-    // Validação básica de email
     const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
     if (!emailRegex.test(email)) {
       toast.error('Por favor, insira um e-mail válido!');
@@ -35,97 +32,117 @@ export default function EsqueciSenha() {
     }
 
     try {
-      const response = await api.post('/forgot-password', {
-        email: email
-      });
+      const response = await api.post('/forgot-password', { email });
 
       if (response.data) {
-        toast.success('Se o e-mail estiver cadastrado, você receberá um link para redefinir sua senha!');
+        toast.success(
+          'Se o e-mail estiver cadastrado, você receberá um link para redefinir sua senha!'
+        );
         setEmailSent(true);
       }
-    } catch (error: any) {
+    } catch (error: unknown) {
       console.error('Erro ao solicitar recuperação:', error);
-      const errorMessage = error.response?.data?.error || error.message || 'Erro ao solicitar recuperação. Tente novamente.';
-      toast.error(errorMessage);
+      toast.error('Erro ao solicitar recuperação. Tente novamente.');
     } finally {
       setLoading(false);
     }
   };
 
   return (
-    <main className={styles.page}>
-      <div className={styles.loginContainer}>
-        <div className={styles.loginCard}>
-          <div className={styles.cardHeader}>
-            <div className={styles.cardIcon}>
-              <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" className="bi bi-key-fill" viewBox="0 0 16 16">
-                <path d="M3.5 11.5a3.5 3.5 0 1 1 3.163-5H14L15.5 8 14 9.5l-1-1-1 1-1-1-1 1-1-1-1 1H6.663a3.5 3.5 0 0 1-3.163 2zM2.5 9a1 1 0 1 0 0-2 1 1 0 0 0 0 2z"/>
-              </svg>
+    <main className="flex min-h-screen items-center justify-center bg-slate-50 p-6">
+      <div className="w-full max-w-md">
+        <Link
+          href="/login"
+          className="mb-5 inline-flex items-center gap-2 rounded-lg px-3 py-2 text-sm font-medium text-slate-500 transition hover:bg-emerald-50 hover:text-emerald-600"
+        >
+          <FaArrowLeft size={14} aria-hidden />
+          Voltar para o login
+        </Link>
+
+        <div className="overflow-hidden rounded-lg border border-slate-200 bg-white shadow-sm">
+          <div className="flex items-start gap-4 border-b border-slate-200 bg-emerald-50/60 p-6">
+            <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-emerald-600 text-white">
+              <FaKey size={18} aria-hidden />
             </div>
-            <h2>Recuperar Senha</h2>
+            <div>
+              <h1 className="text-xl font-semibold text-[#1e3a5f]">
+                Recuperar Senha
+              </h1>
+              <p className="mt-1 text-sm text-slate-500">
+                Enviaremos um link para redefinir sua senha
+              </p>
+            </div>
           </div>
-          
-          <div className={styles.cardBody}>
+
+          <div className="p-6">
             {!emailSent ? (
               <>
-                <p className={styles.description}>
-                  Digite seu e-mail cadastrado e enviaremos um link para redefinir sua senha.
+                <p className="mb-5 text-center text-sm text-slate-500">
+                  Digite seu e-mail cadastrado e enviaremos um link para
+                  redefinir sua senha.
                 </p>
-                <form onSubmit={handleSubmit} className={styles.loginForm}>
-                  <div className="mb-3">
-                    <label htmlFor="email" className="form-label">E-mail</label>
-                    <input 
-                      type="email" 
-                      className="form-control" 
-                      id="email" 
+                <form onSubmit={handleSubmit} className="flex flex-col gap-4">
+                  <div>
+                    <label
+                      htmlFor="email"
+                      className="mb-2 block text-sm font-medium text-slate-700"
+                    >
+                      E-mail
+                    </label>
+                    <input
+                      type="email"
+                      id="email"
                       name="email"
-                      placeholder="Digite seu e-mail" 
+                      className={inputClass}
+                      placeholder="Digite seu e-mail"
                       value={email}
-                      onChange={handleChange}
-                      required 
+                      onChange={(e) => setEmail(e.target.value)}
+                      required
+                      disabled={loading}
                     />
                   </div>
-                  
-                  <div className="d-grid gap-2">
-                    <button 
-                      type="submit" 
-                      className="btn btn-primary"
-                      disabled={loading}
-                    >
-                      {loading ? 'Enviando...' : 'Enviar Link de Recuperação'}
-                    </button>
-                  </div>
+
+                  <button
+                    type="submit"
+                    className="w-full rounded-lg bg-emerald-600 px-4 py-3 font-semibold text-white shadow-md shadow-emerald-600/20 transition hover:bg-emerald-700 disabled:cursor-not-allowed disabled:opacity-60"
+                    disabled={loading}
+                  >
+                    {loading ? 'Enviando...' : 'Enviar Link de Recuperação'}
+                  </button>
                 </form>
               </>
             ) : (
-              <div className={styles.successMessage}>
-                <div className={styles.successIcon}>
-                  <svg xmlns="http://www.w3.org/2000/svg" width="48" height="48" fill="currentColor" className="bi bi-check-circle-fill" viewBox="0 0 16 16">
-                    <path d="M16 8A8 8 0 1 1 0 8a8 8 0 0 1 16 0zm-3.97-3.03a.75.75 0 0 0-1.08.022L7.477 9.417 5.384 7.323a.75.75 0 0 0-1.06 1.061l2.5 2.5a.75.75 0 0 0 1.137-.089l4-5.5a.75.75 0 0 0-.022-1.08z"/>
+              <div className="text-center">
+                <div className="mb-4 flex justify-center text-emerald-600">
+                  <svg
+                    xmlns="http://www.w3.org/2000/svg"
+                    width="48"
+                    height="48"
+                    fill="currentColor"
+                    viewBox="0 0 16 16"
+                    aria-hidden
+                  >
+                    <path d="M16 8A8 8 0 1 1 0 8a8 8 0 0 1 16 0zm-3.97-3.03a.75.75 0 0 0-1.08.022L7.477 9.417 5.384 7.323a.75.75 0 0 0-1.06 1.061l2.5 2.5a.75.75 0 0 0 1.137-.089l4-5.5a.75.75 0 0 0-.022-1.08z" />
                   </svg>
                 </div>
-                <h3>E-mail Enviado!</h3>
-                <p>
-                  Se o e-mail <strong>{email}</strong> estiver cadastrado, você receberá um link para redefinir sua senha.
+                <h2 className="mb-3 text-lg font-semibold text-[#1e3a5f]">
+                  E-mail Enviado!
+                </h2>
+                <p className="mb-2 text-sm text-slate-600">
+                  Se o e-mail <strong>{email}</strong> estiver cadastrado, você
+                  receberá um link para redefinir sua senha.
                 </p>
-                <p className={styles.smallText}>
+                <p className="text-sm text-slate-500">
                   Verifique sua caixa de entrada e também a pasta de spam.
                 </p>
-                <p className={styles.smallText}>
+                <p className="mt-1 text-sm text-slate-500">
                   O link expira em 1 hora.
                 </p>
               </div>
             )}
-            
-            <div className="text-center mt-3">
-              <Link href="/login" className="text-decoration-none">
-                ← Voltar para o login
-              </Link>
-            </div>
           </div>
         </div>
       </div>
     </main>
   );
 }
-

@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from 'react';
 import Link from 'next/link';
-import { useRouter, usePathname, useSearchParams } from 'next/navigation';
+import { useRouter, usePathname } from 'next/navigation';
 import { api } from '@/api/api';
 import { toast } from 'react-toastify';
 import { usePermissions } from '@/hooks/usePermissions';

@@ -1,8 +1,5 @@
 'use client';
 
-import { useEffect } from 'react';
-import { useRouter } from 'next/navigation';
-import { toast } from 'react-toastify';
 import Header from '../home/components/header';
 import Menu from '../components/menu';
 import WithPermission from '@/components/withPermission';
@@ -11,11 +8,6 @@ import Link from 'next/link';
 import { FaUsers, FaUsersCog, FaShieldAlt } from 'react-icons/fa';
 
 export default function PermissoesPage() {
-    const router = useRouter();
-
-    useEffect(() => {
-    }, [router]);
-
     return (
         <WithPermission requiredPermission="admin">
             <Header />

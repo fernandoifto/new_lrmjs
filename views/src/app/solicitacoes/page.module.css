@@ -1,6 +1,6 @@
 /* Variáveis de cores */
 :root {
-  --cor-primaria: #3f81d0;
+  --cor-primaria: #059669;
   --cor-secundaria: #fff;
   --cor-texto: #333333;
   --cor-texto-claro: #666666;
@@ -96,14 +96,14 @@
   font-size: 0.9rem;
   font-weight: 500;
   transition: var(--transicao);
-  background-color: rgba(63, 129, 208, 0.1);
+  background-color: rgba(5, 150, 105, 0.1);
   color: var(--cor-primaria);
-  border: 1px solid rgba(63, 129, 208, 0.2);
+  border: 1px solid rgba(5, 150, 105, 0.2);
   cursor: pointer;
 }
 
 .filterBtn:hover {
-  background-color: rgba(63, 129, 208, 0.2);
+  background-color: rgba(5, 150, 105, 0.2);
 }
 
 .filterBtnActive {
@@ -113,7 +113,7 @@
 }
 
 .filterBtnActive:hover {
-  background-color: #2c6aa8;
+  background-color: #047857;
 }
 
 .btnPDF {
@@ -216,7 +216,7 @@
 .searchInput:focus {
   outline: none;
   border-color: var(--cor-primaria);
-  box-shadow: 0 0 0 3px rgba(63, 129, 208, 0.1);
+  box-shadow: 0 0 0 3px rgba(5, 150, 105, 0.1);
 }
 
 .searchInput::placeholder {
@@ -256,12 +256,12 @@
 }
 
 .searchButton:hover {
-  background-color: #2c6aa8;
+  background-color: #047857;
 }
 
 .searchResults {
   padding: 0.5rem 1rem;
-  background-color: rgba(63, 129, 208, 0.1);
+  background-color: rgba(5, 150, 105, 0.1);
   border-radius: 6px;
   font-size: 0.9rem;
   color: var(--cor-primaria);
@@ -295,7 +295,7 @@
 
 .solicitacaoHeader {
   padding: 1rem 1.5rem;
-  background-color: rgba(63, 129, 208, 0.05);
+  background-color: rgba(5, 150, 105, 0.05);
   border-bottom: 1px solid var(--cor-borda);
   display: flex;
   justify-content: space-between;
@@ -398,7 +398,7 @@
 
 .solicitacaoFooter {
   padding: 1rem 1.5rem;
-  background-color: rgba(63, 129, 208, 0.02);
+  background-color: rgba(5, 150, 105, 0.02);
   border-top: 1px solid var(--cor-borda);
   display: flex;
   gap: 0.75rem;
@@ -544,7 +544,7 @@
 }
 
 .btnVerFoto:hover {
-  background-color: #2c6aa8;
+  background-color: #047857;
 }
 
 .modalOverlay {

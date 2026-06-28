@@ -1,6 +1,6 @@
 /* Variáveis de cores */
 :root {
-  --cor-primaria: #3f81d0;
+  --cor-primaria: #059669;
   --cor-secundaria: #fff;
   --cor-texto: #333333;
   --cor-texto-claro: #666666;
@@ -71,12 +71,12 @@
 }
 
 .menuItem:hover {
-  background-color: rgba(63, 129, 208, 0.1);
+  background-color: rgba(5, 150, 105, 0.1);
   color: var(--cor-primaria);
 }
 
 .menuItem.active {
-  background-color: rgba(63, 129, 208, 0.15);
+  background-color: rgba(5, 150, 105, 0.15);
   color: var(--cor-primaria);
 }
 
@@ -145,12 +145,12 @@
 }
 
 .submenuItem:hover {
-  background-color: rgba(63, 129, 208, 0.1);
+  background-color: rgba(5, 150, 105, 0.1);
   color: var(--cor-primaria);
 }
 
 .submenuItem.submenuActive {
-  background-color: rgba(63, 129, 208, 0.15);
+  background-color: rgba(5, 150, 105, 0.15);
   color: var(--cor-primaria);
   font-weight: 600;
 }
@@ -174,7 +174,7 @@
   justify-content: center;
   width: 40px;
   height: 40px;
-  background-color: rgba(63, 129, 208, 0.1);
+  background-color: rgba(5, 150, 105, 0.1);
   border-radius: 50%;
   color: var(--cor-primaria);
 }
@@ -297,7 +297,7 @@
     width: 100%;
     justify-content: space-between;
     padding: 0.75rem;
-    background-color: rgba(63, 129, 208, 0.05);
+    background-color: rgba(5, 150, 105, 0.05);
     border-radius: 8px;
   }
 

@@ -1,6 +1,6 @@
 /* Variáveis de cores */
 :root {
-  --cor-primaria: #3f81d0;
+  --cor-primaria: #059669;
   --cor-secundaria: #fff;
   --cor-texto: #333333;
   --cor-texto-claro: #666666;
@@ -52,13 +52,13 @@
   display: inline-flex;
   align-items: center;
   gap: 0.5rem;
-  background-color: rgba(63, 129, 208, 0.1);
+  background-color: rgba(5, 150, 105, 0.1);
   color: var(--cor-primaria);
   width: fit-content;
 }
 
 .btnBack:hover {
-  background-color: rgba(63, 129, 208, 0.2);
+  background-color: rgba(5, 150, 105, 0.2);
 }
 
 .header h1 {
@@ -101,7 +101,7 @@
 }
 
 .btnQuickAdd:hover {
-  background-color: #2c6aa8;
+  background-color: #047857;
   transform: scale(1.05);
 }
 
@@ -212,7 +212,7 @@
 .modalInputGroup input:focus {
   outline: none;
   border-color: var(--cor-primaria);
-  box-shadow: 0 0 0 3px rgba(63, 129, 208, 0.1);
+  box-shadow: 0 0 0 3px rgba(5, 150, 105, 0.1);
 }
 
 .modalFooter {
@@ -249,7 +249,7 @@
 }
 
 .modalBtnSave:hover {
-  background-color: #2c6aa8;
+  background-color: #047857;
 }
 
 .modalBtnSave:disabled {

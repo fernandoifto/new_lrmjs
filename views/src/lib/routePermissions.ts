@@ -55,7 +55,6 @@ export const routePermissions: Record<string, string> = {
     '/solicitacoes': 'retiradas.ver',
     
     // Usuários e Grupos (apenas admin)
-    '/users': 'admin', // Requer isAdmin
     '/users/list': 'admin',
     '/users/novo': 'admin',
     '/users/[id]': 'admin',

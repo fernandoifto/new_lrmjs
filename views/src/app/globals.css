@@ -1,13 +1,17 @@
-:root {
-  --background: #ffffff;
-  --foreground: #000000;
-}
+@import "tailwindcss";
 
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #ffffff;
-    --foreground: #000000;
-  }
+:root {
+  --color-gift-slate: #1e293b;
+  --cor-primaria: #059669;
+  --cor-primaria-hover: #047857;
+  --cor-primaria-dark: #065f46;
+  --cor-primaria-rgb: 5, 150, 105;
+  --cor-titulo: #1e3a5f;
+  --cor-texto: #334155;
+  --cor-texto-claro: #64748b;
+  --cor-borda: #e2e8f0;
+  --cor-fundo: #f8fafc;
+  --cor-fundo-card: #ffffff;
 }
 
 html,
@@ -17,27 +21,16 @@ body {
 }
 
 body {
-  color: var(--foreground);
-  background: var(--background);
-  font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-  color: #333;
+  color: var(--color-gift-slate);
+  background: #ffffff;
   line-height: 1.6;
 }
 
 * {
   box-sizing: border-box;
-  padding: 0;
-  margin: 0;
 }
 
 a {
   color: inherit;
   text-decoration: none;
 }
-
-@media (prefers-color-scheme: dark) {
-  html {
-    color-scheme: dark;
-  }
-}
-
