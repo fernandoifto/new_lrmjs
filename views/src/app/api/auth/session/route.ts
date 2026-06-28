@@ -1,13 +1,10 @@
 import { NextRequest, NextResponse } from "next/server";
 import { cookies } from "next/headers";
-
-function internalApiBase(): string {
-    return process.env.API_INTERNAL_URL?.replace(/\/$/, "") || "http://127.0.0.1:3333";
-}
+import { resolveApiInternalUrl } from "@/lib/apiInternalUrl";
 
 export async function POST(req: NextRequest) {
     const body = await req.text();
-    const res = await fetch(`${internalApiBase()}/auth`, {
+    const res = await fetch(`${resolveApiInternalUrl()}/auth`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body,

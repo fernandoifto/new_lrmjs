@@ -1,11 +1,8 @@
 import { NextRequest, NextResponse } from "next/server";
 import { cookies } from "next/headers";
+import { resolveApiInternalUrl } from "@/lib/apiInternalUrl";
 
 export const runtime = "nodejs";
-
-function internalApiBase(): string {
-    return process.env.API_INTERNAL_URL?.replace(/\/$/, "") || "http://127.0.0.1:3333";
-}
 
 const SKIP_HEADER = new Set([
     "host",
@@ -19,7 +16,7 @@ async function proxy(req: NextRequest, ctx: { params: Promise<{ path: string[] }
     const { path } = await ctx.params;
     const pathStr = path.join("/");
     const u = new URL(req.url);
-    const target = `${internalApiBase()}/${pathStr}${u.search}`;
+    const target = `${resolveApiInternalUrl()}/${pathStr}${u.search}`;
 
     const cookieStore = await cookies();
     const session = cookieStore.get("session")?.value ?? "";
