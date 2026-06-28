@@ -1,0 +1,13 @@
+# Coolify/Nixpacks — use apenas se NÃO estiver usando views/Dockerfile.
+# Recomendado: Build Pack = Dockerfile, Base Directory = /views
+
+[variables]
+NODE_ENV = "production"
+HOSTNAME = "0.0.0.0"
+PORT = "3000"
+
+[phases.build]
+cmds = ["npm run build"]
+
+[start]
+cmd = "node .next/standalone/server.js"
