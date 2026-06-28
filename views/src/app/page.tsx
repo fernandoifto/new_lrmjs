@@ -5,6 +5,7 @@ import HeaderRight from "./home/components/headerRight";
 import Hero from "./home/components/hero";
 import Footer from "./home/components/footer";
 import HowToDonate from "./home/components/howToDonate";
+import Partners from "./home/components/partners";
 
 export default function Home() {
   return (
@@ -14,6 +15,7 @@ export default function Home() {
       </Header>
       <Hero />
       <HowToDonate />
+      <Partners />
       <Footer />
     </main>
   );

@@ -55,22 +55,6 @@ export default function Hero() {
                 </div>
               ))}
             </div>
-
-            <div className="flex flex-col gap-3 sm:flex-row sm:gap-4">
-              <Link
-                href="/agendar"
-                className="inline-flex items-center justify-center gap-2 rounded-md bg-emerald-600 px-5 py-3 text-sm font-semibold !text-white shadow-md shadow-emerald-600/20 transition-all hover:bg-emerald-700 hover:!text-white hover:shadow-lg [&_svg]:!text-white sm:px-6 sm:py-3.5 sm:text-base"
-              >
-                <FaCalendarAlt size={16} aria-hidden />
-                Agendar Coleta
-              </Link>
-              <Link
-                href="#como-descartar"
-                className="inline-flex items-center justify-center rounded-md border border-slate-200 bg-white px-6 py-3.5 text-base font-semibold text-[#1e3a5f] shadow-sm transition-all hover:border-slate-300 hover:bg-slate-50"
-              >
-                Conhecer a Plataforma
-              </Link>
-            </div>
           </div>
 
           <div className="lg:min-h-full">

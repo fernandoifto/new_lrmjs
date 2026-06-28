@@ -103,8 +103,7 @@ export default function Header({ children }: HeaderProps) {
             <div className="min-w-0 flex-1 border-teal-100 sm:border-l sm:pl-6">
               <p className="max-w-lg text-sm leading-relaxed text-slate-600 sm:text-base">
                 Plataforma para doação de medicamentos em boas
-                condições e descarte ambientalmente correto de resíduos
-                farmacêuticos.
+                condições e descarte ambientalmente correto de resíduos farmacêuticos.
               </p>
             </div>
           </Link>
@@ -158,10 +157,6 @@ export default function Header({ children }: HeaderProps) {
         aria-hidden={!menuOpen}
       >
         <div className="max-h-[calc(100dvh-6rem)] overflow-y-auto px-4 py-6 sm:px-6">
-          <p className="mb-4 text-sm leading-relaxed text-slate-600">
-            Plataforma municipal para doação de medicamentos e descarte
-            consciente de resíduos farmacêuticos.
-          </p>
 
           <div className="mb-6 space-y-2">
             {highlights.map(({ icon: Icon, title, text }) => (

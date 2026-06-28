@@ -1,37 +1,34 @@
 import Image from "next/image";
 import Link from "next/link";
 import {
+  FaArrowRight,
   FaEnvelope,
   FaInstagram,
+  FaLeaf,
   FaMapMarkerAlt,
   FaPhoneAlt,
+  FaRecycle,
+  FaTruck,
   FaYoutube,
 } from "react-icons/fa";
 import { FaTiktok } from "react-icons/fa6";
-
-const partners = [
-  {
-    src: "/parceiros/fapt-1.png",
-    alt: "FAPT — Fundo de Apoio à Pesquisa e Tecnologia",
-  },
-  {
-    src: "/parceiros/rede-deser.png",
-    alt: "Rede DESER",
-  },
-  {
-    src: "/parceiros/araguaina.png",
-    alt: "Prefeitura de Araguaína",
-  },
-  {
-    src: "/parceiros/ifto.png",
-    alt: "IFTO — Instituto Federal do Tocantins",
-  }
-];
 
 const socialLinks = [
   { href: "#", label: "TikTok", icon: FaTiktok },
   { href: "#", label: "Instagram", icon: FaInstagram },
   { href: "#", label: "YouTube", icon: FaYoutube },
+];
+
+const brandPillars = [
+  { icon: FaLeaf, label: "Saúde solidária" },
+  { icon: FaRecycle, label: "Descarte consciente" },
+  { icon: FaTruck, label: "Coleta gratuita" },
+];
+
+const brandLinks = [
+  { href: "/agendar", label: "Agendar coleta" },
+  { href: "#doe-medicamentos", label: "Como doar" },
+  { href: "#contato", label: "Fale conosco" },
 ];
 
 const contactItems = [
@@ -65,53 +62,10 @@ export default function Footer() {
 
       <div className="bg-[#1e3a5f] text-white">
         <div className="mx-auto max-w-7xl px-4 py-12 sm:px-6 lg:px-8 lg:py-14">
-          <div className="grid gap-10 md:grid-cols-3">
-            {/* Marca — esquerda */}
-            <div className="md:order-1">
-              <Link href="/" className="inline-block">
-                <Image
-                  src="/giftmedquadrado.png"
-                  alt="GiftMed - Conectando Saúde e Solidariedade"
-                  width={200}
-                  height={200}
-                  className="mb-4 h-auto w-36 max-w-full rounded-md bg-white/95 p-2 sm:w-40"
-                />
-              </Link>
-              <p className="mb-2 text-sm font-medium italic text-emerald-300">
-                Conectando Saúde e Solidariedade
-              </p>
-              <p className="max-w-sm text-sm leading-relaxed text-slate-300">
-                Plataforma para doação e descarte consciente de medicamentos em
-                Araguaína — TO.
-              </p>
-            </div>
+          <div className="grid gap-10 md:grid-cols-2 lg:gap-14">
 
-            {/* Parceiros — centro */}
-            <div className="text-center md:order-2">
-              <h3 className="mb-5 text-sm font-semibold uppercase tracking-wider text-emerald-400">
-                Parceiros
-              </h3>
-              <div className="mx-auto grid max-w-sm grid-cols-2 gap-3">
-                {partners.map((partner) => (
-                  <div
-                    key={partner.src}
-                    className="flex items-center justify-center rounded-md bg-white p-3 shadow-sm transition-transform hover:scale-[1.02]"
-                  >
-                    <Image
-                      src={partner.src}
-                      alt={partner.alt}
-                      width={160}
-                      height={80}
-                      className="h-12 w-full object-contain sm:h-14"
-                      loading="lazy"
-                    />
-                  </div>
-                ))}
-              </div>
-            </div>
-
-            {/* Contato e redes — direita */}
-            <div className="md:order-3">
+            {/* Contato e redes — esquerda */}
+            <div>
               <div className="rounded-md border border-white/10 bg-white/5 p-5 backdrop-blur-sm">
                 <h3 className="mb-4 text-sm font-semibold uppercase tracking-wider text-emerald-400">
                   Contato
@@ -168,6 +122,37 @@ export default function Footer() {
                 </div>
               </div>
             </div>
+
+            {/* Marca — direita */}
+            <div>
+              <div className="flex flex-col items-center rounded-md border border-white/10 bg-white/5 p-5 text-center backdrop-blur-sm">
+                <h3 className="mb-4 w-full text-sm font-semibold uppercase tracking-wider text-emerald-400">
+                  Sobre a GiftMed
+                </h3>
+
+                <Link
+                  href="/"
+                  className="group mb-4 inline-block transition-transform hover:scale-[1.02]"
+                >
+                  <Image
+                    src="/giftmedquadrado.png"
+                    alt="GiftMed - Conectando Saúde e Solidariedade"
+                    width={200}
+                    height={200}
+                    className="h-auto w-32 max-w-full rounded-md bg-white/95 p-2 shadow-sm transition-shadow group-hover:shadow-md sm:w-36"
+                  />
+                </Link>
+
+                <p className="mb-1 text-sm font-semibold italic text-emerald-300">
+                  Conectando Saúde e Solidariedade
+                </p>
+                <p className="mb-5 max-w-xs text-sm leading-relaxed text-slate-300">
+                  Tecnologia social para farmácia solidária — doação de
+                  medicamentos válidos e descarte ambientalmente correto de
+                  resíduos farmacêuticos.
+                </p>
+              </div>
+            </div>
           </div>
         </div>
 
@@ -175,11 +160,6 @@ export default function Footer() {
           <p className="text-xs text-slate-400 sm:text-sm">
             &copy; {new Date().getFullYear()} GiftMed. Todos os direitos
             reservados.
-          </p>
-          <p className="mx-auto mt-2 max-w-3xl text-xs leading-relaxed text-slate-400 sm:text-sm">
-            Este sistema foi desenvolvido com recursos obtidos por meio do
-            projeto aprovado no Edital nº 02/2024 – FAPT/SEPLAN, no âmbito do
-            Projeto Rede DESER.
           </p>
         </div>
       </div>
