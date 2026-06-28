@@ -175,6 +175,7 @@ A cada push em `main` / `develop`:
 
 | Problema | Solução |
 |----------|---------|
+| **Bad Gateway** em `app.giftmed.org` | O log mostra **Nixpacks** (`nixpacks build`). Troque para **Build Pack: Dockerfile**, Base Directory `/views`, Dockerfile `Dockerfile`, **Porta exposta: 3000**. Confira logs do container (`docker logs`). Se mantiver Nixpacks, o `postbuild` copia assets do standalone — faça redeploy após push. |
 | `/agendar` sem turnos | Verifique `API_INTERNAL_URL` no **views** (Runtime) e redeploy. Use `https://api.giftmed.org` ou URL interna Coolify (`http://<servico-api>:3333`) |
 | CORS bloqueado | `FRONTEND_ORIGIN=https://app.giftmed.org` (sem `/` no final) |
 | Uploads sumindo | Volume em `/app/uploads` no serviço API |
