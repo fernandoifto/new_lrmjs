@@ -1,7 +1,5 @@
 import Image from "next/image";
-import Link from "next/link";
 import {
-  FaCalendarAlt,
   FaHandHoldingHeart,
   FaPills,
   FaShieldAlt,
@@ -21,16 +19,16 @@ const cannotDonate = [
 
 export default function DonatePanel() {
   return (
-    <article className="relative flex h-full flex-col overflow-hidden rounded-md border border-emerald-200/80 bg-white shadow-lg">
+    <article className="hover-lift relative flex h-full flex-col overflow-hidden rounded-md border border-emerald-200/80 bg-white shadow-lg">
       <div className="relative bg-gradient-to-br from-emerald-600 via-emerald-700 to-[#1e3a5f] px-6 pb-8 pt-6 text-white sm:px-8 sm:pt-8">
         <div
-          className="pointer-events-none absolute -right-10 top-0 h-32 w-32 rounded-full bg-white/10 blur-2xl"
+          className="pointer-events-none absolute -right-10 top-0 h-32 w-32 rounded-full bg-white/10 blur-2xl animate-pulse-glow"
           aria-hidden
         />
 
         <div className="relative flex flex-col gap-5 sm:flex-row sm:items-center sm:gap-6">
           <div className="flex shrink-0 justify-center sm:justify-start">
-            <div className="rounded-md border border-white/20 bg-white/10 p-3">
+            <div className="rounded-md border border-white/20 bg-white/10 p-3 transition-transform duration-500 hover:scale-105">
               <Image
                 src="/doacao.png"
                 alt="Ilustração de doação de medicamentos"
@@ -60,7 +58,7 @@ export default function DonatePanel() {
 
       <div className="flex flex-1 flex-col p-6 sm:p-8">
         <div className="mb-6 grid gap-4 sm:grid-cols-2">
-          <div className="rounded-md border border-emerald-100 bg-emerald-50/60 p-4">
+          <div className="rounded-md border border-emerald-100 bg-emerald-50/60 p-4 transition-colors duration-300 hover:border-emerald-200 hover:bg-emerald-50">
             <h3 className="mb-3 flex items-center gap-2 text-sm font-semibold text-emerald-800">
               <FaPills size={14} className="text-emerald-600" aria-hidden />
               Pode doar
@@ -81,7 +79,7 @@ export default function DonatePanel() {
             </ul>
           </div>
 
-          <div className="rounded-md border border-red-100 bg-red-50/50 p-4">
+          <div className="rounded-md border border-red-100 bg-red-50/50 p-4 transition-colors duration-300 hover:border-red-200 hover:bg-red-50/80">
             <h3 className="mb-3 flex items-center gap-2 text-sm font-semibold text-red-900">
               <FaTimesCircle size={14} className="text-red-500" aria-hidden />
               Não aceitamos
@@ -103,7 +101,7 @@ export default function DonatePanel() {
           </div>
         </div>
 
-        <p className="mb-6 flex items-start gap-2 rounded-md border border-slate-200 bg-slate-50 px-4 py-3 text-sm text-slate-600">
+        <p className="flex items-start gap-2 rounded-md border border-slate-200 bg-slate-50 px-4 py-3 text-sm text-slate-600 transition-colors duration-300 hover:border-slate-300 hover:bg-white">
           <FaShieldAlt
             className="mt-0.5 shrink-0 text-emerald-600"
             size={15}

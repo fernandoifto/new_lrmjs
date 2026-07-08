@@ -26,7 +26,7 @@ const navLinks = [
 ];
 
 const buttonClass =
-  "inline-flex items-center justify-center gap-2 rounded-md bg-emerald-600 px-5 py-3 text-sm font-semibold !text-white shadow-md shadow-emerald-600/20 transition-all hover:bg-emerald-700 hover:!text-white hover:shadow-lg [&_svg]:!text-white";
+  "inline-flex items-center justify-center gap-2 rounded-md bg-emerald-600 px-5 py-3 text-sm font-semibold !text-white shadow-md shadow-emerald-600/20 transition-all duration-300 hover:-translate-y-0.5 hover:bg-emerald-700 hover:!text-white hover:shadow-lg hover:shadow-emerald-600/30 active:translate-y-0 [&_svg]:!text-white";
 
 export default function HeaderRight() {
   return (

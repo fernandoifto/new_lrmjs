@@ -49,6 +49,7 @@ const highlights = [
 
 export default function Header({ children }: HeaderProps) {
   const [menuOpen, setMenuOpen] = useState(false);
+  const [scrolled, setScrolled] = useState(false);
 
   useEffect(() => {
     document.body.style.overflow = menuOpen ? "hidden" : "";
@@ -57,8 +58,19 @@ export default function Header({ children }: HeaderProps) {
     };
   }, [menuOpen]);
 
+  useEffect(() => {
+    const onScroll = () => setScrolled(window.scrollY > 12);
+    onScroll();
+    window.addEventListener("scroll", onScroll, { passive: true });
+    return () => window.removeEventListener("scroll", onScroll);
+  }, []);
+
   return (
-    <header className="relative sticky top-0 z-50 bg-white shadow-sm">
+    <header
+      className={`relative sticky top-0 z-50 bg-white/95 backdrop-blur-md transition-all duration-300 ${
+        scrolled ? "shadow-md shadow-slate-900/5" : "shadow-sm"
+      }`}
+    >
       {/* Barra superior — contatos e localização */}
       <div className="border-b border-teal-900/10 bg-[#1e3a5f] text-white">
         <div className="mx-auto flex max-w-7xl flex-wrap items-center justify-center gap-x-6 gap-y-1 px-4 py-2 text-xs sm:justify-between sm:px-6 sm:text-sm lg:px-8">
@@ -125,10 +137,11 @@ export default function Header({ children }: HeaderProps) {
 
         {/* Destaques — desktop/tablet */}
         <div className="hidden border-t border-slate-100 pb-5 pt-4 md:grid md:grid-cols-3 md:gap-4">
-          {highlights.map(({ icon: Icon, title, text }) => (
+          {highlights.map(({ icon: Icon, title, text }, index) => (
             <div
               key={title}
-              className="flex items-start gap-3 rounded-md border border-slate-100 bg-slate-50/80 px-4 py-3"
+              className="hover-lift flex items-start gap-3 rounded-md border border-slate-100 bg-slate-50/80 px-4 py-3"
+              style={{ animationDelay: `${index * 100}ms` }}
             >
               <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-md bg-emerald-600 text-white">
                 <Icon size={16} aria-hidden />
@@ -143,7 +156,7 @@ export default function Header({ children }: HeaderProps) {
       </div>
 
       <div
-        className="h-1 w-full bg-gradient-to-r from-[#1e3a5f] via-emerald-500 to-teal-400"
+        className="animate-shimmer-line h-1 w-full bg-gradient-to-r from-[#1e3a5f] via-emerald-500 to-teal-400"
         aria-hidden
       />
 

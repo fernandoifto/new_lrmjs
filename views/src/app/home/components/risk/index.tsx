@@ -1,4 +1,5 @@
 import Image from "next/image";
+import Reveal from "../reveal";
 
 const risks = [
   {
@@ -26,7 +27,7 @@ const risks = [
 
 export default function RiskPanel() {
   return (
-    <aside className="flex h-full flex-col rounded-md bg-gradient-to-br from-[#1e3a5f] via-teal-800 to-emerald-800 p-5 text-white shadow-xl sm:p-6 lg:p-7">
+    <aside className="flex h-full flex-col rounded-md bg-gradient-to-br from-[#1e3a5f] via-teal-800 to-emerald-800 p-5 text-white shadow-xl transition-shadow duration-500 hover:shadow-2xl sm:p-6 lg:p-7">
       <div className="mb-5 border-b border-white/15 pb-4">
         <p className="mb-1 text-xs font-semibold uppercase tracking-wider text-emerald-300">
           Atenção
@@ -37,30 +38,29 @@ export default function RiskPanel() {
       </div>
 
       <ul className="flex flex-1 flex-col gap-3">
-        {risks.map((risk) => (
-          <li
-            key={risk.title}
-            className="flex gap-3 rounded-md border border-white/10 bg-white/10 p-3 backdrop-blur-sm transition-colors hover:bg-white/15 sm:gap-4 sm:p-4"
-          >
-            <div className="flex h-14 w-14 shrink-0 items-center justify-center rounded-md bg-white/95 sm:h-16 sm:w-16">
-              <Image
-                src={risk.icon}
-                alt={risk.alt}
-                width={56}
-                height={56}
-                className="h-10 w-10 object-contain sm:h-12 sm:w-12"
-                loading="lazy"
-              />
-            </div>
-            <div className="min-w-0">
-              <h3 className="mb-1 text-sm font-semibold text-white sm:text-base">
-                {risk.title}
-              </h3>
-              <p className="text-xs leading-relaxed text-teal-100/90 sm:text-sm">
-                {risk.description}
-              </p>
-            </div>
-          </li>
+        {risks.map((risk, index) => (
+          <Reveal key={risk.title} delay={index * 120} direction="right">
+            <li className="group flex gap-3 rounded-md border border-white/10 bg-white/10 p-3 backdrop-blur-sm transition-all duration-300 hover:-translate-y-0.5 hover:border-white/20 hover:bg-white/15 sm:gap-4 sm:p-4">
+              <div className="flex h-14 w-14 shrink-0 items-center justify-center rounded-md bg-white/95 transition-transform duration-300 group-hover:scale-105 sm:h-16 sm:w-16">
+                <Image
+                  src={risk.icon}
+                  alt={risk.alt}
+                  width={56}
+                  height={56}
+                  className="h-10 w-10 object-contain sm:h-12 sm:w-12"
+                  loading="lazy"
+                />
+              </div>
+              <div className="min-w-0">
+                <h3 className="mb-1 text-sm font-semibold text-white sm:text-base">
+                  {risk.title}
+                </h3>
+                <p className="text-xs leading-relaxed text-teal-100/90 sm:text-sm">
+                  {risk.description}
+                </p>
+              </div>
+            </li>
+          </Reveal>
         ))}
       </ul>
     </aside>

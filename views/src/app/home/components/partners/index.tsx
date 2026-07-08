@@ -1,5 +1,6 @@
 import Image from "next/image";
 import { FaHandshake } from "react-icons/fa";
+import Reveal from "../reveal";
 
 type Partner = {
   src: string;
@@ -93,10 +94,8 @@ function PartnerLogo({
 }) {
   return (
     <div
-      className={`group flex h-full items-center justify-center rounded-lg border bg-white p-4 shadow-sm transition-all duration-200 hover:-translate-y-0.5 hover:shadow-md sm:p-5 ${
-        featured
-          ? "min-h-[112px] border-emerald-200/80 ring-1 ring-emerald-100 hover:border-emerald-300 sm:min-h-[128px]"
-          : "min-h-[88px] border-slate-100 hover:border-emerald-200 sm:min-h-[96px]"
+      className={`group flex h-full items-center justify-center rounded-lg border border-slate-200/80 bg-white p-4 shadow-sm transition-all duration-200 hover:-translate-y-0.5 hover:border-slate-300 hover:shadow-md sm:p-5 ${
+        featured ? "min-h-[112px] sm:min-h-[128px]" : "min-h-[88px] sm:min-h-[96px]"
       }`}
     >
       <Image
@@ -117,27 +116,20 @@ export default function Partners() {
   return (
     <section
       id="parceiros"
-      className="relative overflow-hidden bg-gradient-to-b from-slate-50 via-white to-slate-50 py-14 sm:py-20"
+      className="relative bg-white py-14 sm:py-20"
       aria-labelledby="partners-heading"
     >
       <div
-        className="absolute inset-x-0 top-0 h-1 bg-gradient-to-r from-[#1e3a5f] via-emerald-500 to-teal-400"
-        aria-hidden
-      />
-      <div
-        className="pointer-events-none absolute -right-24 top-12 h-64 w-64 rounded-full bg-emerald-100/50 blur-3xl"
-        aria-hidden
-      />
-      <div
-        className="pointer-events-none absolute -left-24 bottom-0 h-56 w-56 rounded-full bg-teal-100/40 blur-3xl"
+        className="animate-shimmer-line absolute inset-x-0 top-0 h-1 bg-gradient-to-r from-[#1e3a5f] via-emerald-500 to-teal-400"
         aria-hidden
       />
 
       <div className="relative mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
         <div className="grid items-start gap-10 lg:grid-cols-12 lg:gap-12 xl:gap-16">
           <div className="lg:col-span-4 lg:sticky lg:top-24">
-            <div className="rounded-xl border border-slate-200/80 bg-white p-6 shadow-sm sm:p-8">
-              <p className="mb-4 inline-flex items-center gap-2 rounded-full border border-emerald-200 bg-emerald-50 px-4 py-1.5 text-xs font-semibold uppercase tracking-wider text-emerald-700">
+            <Reveal direction="left">
+              <div className="hover-lift rounded-xl border border-slate-200/80 bg-slate-50 p-6 sm:p-8">
+              <p className="mb-4 inline-flex items-center gap-2 text-xs font-semibold uppercase tracking-wider text-slate-500">
                 <FaHandshake size={12} aria-hidden />
                 Rede de colaboração
               </p>
@@ -154,44 +146,42 @@ export default function Partners() {
                 públicos e acadêmicos comprometidos com saúde solidária e
                 descarte consciente.
               </p>
-            </div>
+              </div>
+            </Reveal>
           </div>
 
           <div className="space-y-8 lg:col-span-8 lg:space-y-10">
-            {partnerGroups.map((group) => (
-              <article
-                key={group.title}
-                className={
-                  group.featured
-                    ? "rounded-xl border border-emerald-200/60 bg-emerald-50/30 p-5 sm:p-6"
-                    : "rounded-xl border border-slate-200/80 bg-white p-5 shadow-sm sm:p-6"
-                }
-              >
-                <div className="mb-4 flex items-center gap-3">
+            {partnerGroups.map((group, groupIndex) => (
+              <Reveal key={group.title} delay={groupIndex * 100}>
+                <article>
+                <div className="mb-5 flex items-center gap-3">
                   <span
-                    className="h-px flex-1 bg-gradient-to-r from-emerald-200 to-transparent"
+                    className="h-px flex-1 bg-slate-200"
                     aria-hidden
                   />
-                  <h3 className="shrink-0 text-xs font-semibold uppercase tracking-wider text-emerald-700">
+                  <h3 className="shrink-0 text-xs font-semibold uppercase tracking-wider text-[#1e3a5f]">
                     {group.title}
                   </h3>
                   <span
-                    className="h-px flex-1 bg-gradient-to-l from-emerald-200 to-transparent"
+                    className="h-px flex-1 bg-slate-200"
                     aria-hidden
                   />
                 </div>
 
                 <ul className={`grid gap-4 sm:gap-5 ${getPartnerGridClass(group)}`}>
-                  {group.partners.map((partner) => (
-                    <li key={partner.src}>
-                      <PartnerLogo
-                        partner={partner}
-                        featured={group.featured}
-                      />
-                    </li>
+                  {group.partners.map((partner, index) => (
+                    <Reveal key={partner.src} delay={index * 80}>
+                      <li>
+                        <PartnerLogo
+                          partner={partner}
+                          featured={group.featured}
+                        />
+                      </li>
+                    </Reveal>
                   ))}
                 </ul>
-              </article>
+                </article>
+              </Reveal>
             ))}
           </div>
         </div>

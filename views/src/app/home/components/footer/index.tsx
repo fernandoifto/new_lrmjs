@@ -1,7 +1,6 @@
 import Image from "next/image";
 import Link from "next/link";
 import {
-  FaArrowRight,
   FaEnvelope,
   FaInstagram,
   FaLeaf,
@@ -12,23 +11,12 @@ import {
   FaYoutube,
 } from "react-icons/fa";
 import { FaTiktok } from "react-icons/fa6";
+import Reveal from "../reveal";
 
 const socialLinks = [
   { href: "#", label: "TikTok", icon: FaTiktok },
   { href: "#", label: "Instagram", icon: FaInstagram },
   { href: "#", label: "YouTube", icon: FaYoutube },
-];
-
-const brandPillars = [
-  { icon: FaLeaf, label: "Saúde solidária" },
-  { icon: FaRecycle, label: "Descarte consciente" },
-  { icon: FaTruck, label: "Coleta gratuita" },
-];
-
-const brandLinks = [
-  { href: "/agendar", label: "Agendar coleta" },
-  { href: "#doe-medicamentos", label: "Como doar" },
-  { href: "#contato", label: "Fale conosco" },
 ];
 
 const contactItems = [
@@ -56,25 +44,23 @@ export default function Footer() {
   return (
     <footer id="contato">
       <div
-        className="h-1 w-full bg-gradient-to-r from-[#1e3a5f] via-emerald-500 to-teal-400"
+        className="animate-shimmer-line h-1 w-full bg-gradient-to-r from-[#1e3a5f] via-emerald-500 to-teal-400"
         aria-hidden
       />
 
       <div className="bg-[#1e3a5f] text-white">
         <div className="mx-auto max-w-7xl px-4 py-12 sm:px-6 lg:px-8 lg:py-14">
           <div className="grid gap-10 md:grid-cols-2 lg:gap-14">
-
-            {/* Contato e redes — esquerda */}
-            <div>
-              <div className="rounded-md border border-white/10 bg-white/5 p-5 backdrop-blur-sm">
+            <Reveal direction="up">
+              <div className="hover-lift rounded-md border border-white/10 bg-white/5 p-5 backdrop-blur-sm transition-colors duration-300 hover:border-white/20 hover:bg-white/10">
                 <h3 className="mb-4 text-sm font-semibold uppercase tracking-wider text-emerald-400">
                   Contato
                 </h3>
                 <ul className="mb-6 space-y-3">
                   {contactItems.map(({ icon: Icon, label, value, href }) => (
                     <li key={label}>
-                      <div className="flex items-center gap-3">
-                        <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-md bg-emerald-600/80 text-white">
+                      <div className="group flex items-center gap-3">
+                        <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-md bg-emerald-600/80 text-white transition-transform duration-300 group-hover:scale-110">
                           <Icon size={14} aria-hidden />
                         </span>
                         <div className="min-w-0 text-left">
@@ -84,7 +70,7 @@ export default function Footer() {
                           {href ? (
                             <a
                               href={href}
-                              className="text-sm text-white transition-colors hover:text-emerald-200 hover:underline"
+                              className="text-sm text-white transition-colors duration-300 hover:text-emerald-200 hover:underline"
                             >
                               {value}
                             </a>
@@ -107,11 +93,11 @@ export default function Footer() {
                         key={label}
                         href={href}
                         aria-label={label}
-                        className="group flex items-center gap-2 rounded-md border border-white/10 bg-white/5 px-3 py-2 transition-all hover:border-emerald-500 hover:bg-emerald-600"
+                        className="group flex items-center gap-2 rounded-md border border-white/10 bg-white/5 px-3 py-2 transition-all duration-300 hover:-translate-y-0.5 hover:border-emerald-500 hover:bg-emerald-600"
                       >
                         <Icon
                           size={15}
-                          className="text-emerald-300 group-hover:text-white"
+                          className="text-emerald-300 transition-transform duration-300 group-hover:scale-110 group-hover:text-white"
                         />
                         <span className="text-xs font-medium text-slate-200 group-hover:text-white">
                           {label}
@@ -121,25 +107,24 @@ export default function Footer() {
                   </div>
                 </div>
               </div>
-            </div>
+            </Reveal>
 
-            {/* Marca — direita */}
-            <div>
-              <div className="flex flex-col items-center rounded-md border border-white/10 bg-white/5 p-5 text-center backdrop-blur-sm">
+            <Reveal direction="up" delay={150}>
+              <div className="hover-lift flex flex-col items-center rounded-md border border-white/10 bg-white/5 p-5 text-center backdrop-blur-sm transition-colors duration-300 hover:border-white/20 hover:bg-white/10">
                 <h3 className="mb-4 w-full text-sm font-semibold uppercase tracking-wider text-emerald-400">
                   Sobre a GiftMed
                 </h3>
 
                 <Link
                   href="/"
-                  className="group mb-4 inline-block transition-transform hover:scale-[1.02]"
+                  className="group mb-4 inline-block transition-transform duration-300 hover:scale-[1.03]"
                 >
                   <Image
                     src="/giftmedquadrado.png"
                     alt="GiftMed - Conectando Saúde e Solidariedade"
                     width={200}
                     height={200}
-                    className="h-auto w-32 max-w-full rounded-md bg-white/95 p-2 shadow-sm transition-shadow group-hover:shadow-md sm:w-36"
+                    className="h-auto w-32 max-w-full rounded-md bg-white/95 p-2 shadow-sm transition-shadow duration-300 group-hover:shadow-lg sm:w-36"
                   />
                 </Link>
 
@@ -152,7 +137,7 @@ export default function Footer() {
                   resíduos farmacêuticos.
                 </p>
               </div>
-            </div>
+            </Reveal>
           </div>
         </div>
 
