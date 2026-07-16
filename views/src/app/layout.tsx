@@ -4,6 +4,7 @@ import "./globals.css";
 import { ToastContainer } from "react-toastify";
 import "react-toastify/dist/ReactToastify.css";
 import VLibrasComponent from "./home/components/vlibras";
+import ChatWidget from "./components/chat-widget";
 
 const inter = Inter({ subsets: ["latin"] });
 
@@ -35,6 +36,7 @@ export default function RootLayout({
           theme="light"
         />
         <VLibrasComponent />
+        <ChatWidget />
       </body>
     </html>
   );
