@@ -35,24 +35,19 @@ const contactItems = [
   {
     icon: FaPhoneAlt,
     label: "Telefone",
-    value: "(XX) XXXX-XXXX",
-    href: null,
+    value: "(63) 98122-1957",
+    href: "tel:+5563981221957",
   },
 ];
 
 export default function Footer() {
   return (
     <footer id="contato">
-      <div
-        className="animate-shimmer-line h-1 w-full bg-gradient-to-r from-[#1e3a5f] via-emerald-500 to-teal-400"
-        aria-hidden
-      />
-
       <div className="bg-[#1e3a5f] text-white">
         <div className="mx-auto max-w-7xl px-4 py-12 sm:px-6 lg:px-8 lg:py-14">
           <div className="grid gap-10 md:grid-cols-2 lg:gap-14">
             <Reveal direction="up">
-              <div className="hover-lift rounded-md border border-white/10 bg-white/5 p-5 backdrop-blur-sm transition-colors duration-300 hover:border-white/20 hover:bg-white/10">
+              <div>
                 <h3 className="mb-4 text-sm font-semibold uppercase tracking-wider text-emerald-400">
                   Contato
                 </h3>
@@ -110,8 +105,8 @@ export default function Footer() {
             </Reveal>
 
             <Reveal direction="up" delay={150}>
-              <div className="hover-lift flex flex-col items-center rounded-md border border-white/10 bg-white/5 p-5 text-center backdrop-blur-sm transition-colors duration-300 hover:border-white/20 hover:bg-white/10">
-                <h3 className="mb-4 w-full text-sm font-semibold uppercase tracking-wider text-emerald-400">
+              <div className="flex flex-col items-start text-left md:ml-10 lg:ml-20">
+                <h3 className="mb-4 text-sm font-semibold uppercase tracking-wider text-emerald-400">
                   Sobre a GiftMed
                 </h3>
 
@@ -120,18 +115,15 @@ export default function Footer() {
                   className="group mb-4 inline-block transition-transform duration-300 hover:scale-[1.03]"
                 >
                   <Image
-                    src="/giftmedquadrado.png"
+                    src="/giftmedretangular.png"
                     alt="GiftMed - Conectando Saúde e Solidariedade"
-                    width={200}
-                    height={200}
-                    className="h-auto w-32 max-w-full rounded-md bg-white/95 p-2 shadow-sm transition-shadow duration-300 group-hover:shadow-lg sm:w-36"
+                    width={480}
+                    height={160}
+                    className="h-auto w-44 max-w-full sm:w-48"
                   />
                 </Link>
 
-                <p className="mb-1 text-sm font-semibold italic text-emerald-300">
-                  Conectando Saúde e Solidariedade
-                </p>
-                <p className="mb-5 max-w-xs text-sm leading-relaxed text-slate-300">
+                <p className="max-w-xs text-sm leading-relaxed text-slate-300">
                   Tecnologia social para farmácia solidária — doação de
                   medicamentos válidos e descarte ambientalmente correto de
                   resíduos farmacêuticos.

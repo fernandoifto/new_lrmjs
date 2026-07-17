@@ -2,6 +2,7 @@
 
 import Header from "./home/components/header";
 import HeaderRight from "./home/components/headerRight";
+import Banner from "./home/components/banner";
 import Hero from "./home/components/hero";
 import Footer from "./home/components/footer";
 import HowToDonate from "./home/components/howToDonate";
@@ -13,6 +14,7 @@ export default function Home() {
       <Header>
         <HeaderRight />
       </Header>
+      <Banner />
       <Hero />
       <HowToDonate />
       <Partners />

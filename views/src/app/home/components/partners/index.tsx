@@ -119,11 +119,6 @@ export default function Partners() {
       className="relative bg-white py-14 sm:py-20"
       aria-labelledby="partners-heading"
     >
-      <div
-        className="animate-shimmer-line absolute inset-x-0 top-0 h-1 bg-gradient-to-r from-[#1e3a5f] via-emerald-500 to-teal-400"
-        aria-hidden
-      />
-
       <div className="relative mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
         <div className="grid items-start gap-10 lg:grid-cols-12 lg:gap-12 xl:gap-16">
           <div className="lg:col-span-4 lg:sticky lg:top-24">

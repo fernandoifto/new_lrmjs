@@ -3,15 +3,7 @@
 import Image from "next/image";
 import Link from "next/link";
 import { ReactNode, useEffect, useState } from "react";
-import {
-  FaBars,
-  FaEnvelope,
-  FaLeaf,
-  FaMapMarkerAlt,
-  FaRecycle,
-  FaTimes,
-  FaTruck,
-} from "react-icons/fa";
+import { FaBars, FaEnvelope, FaMapMarkerAlt, FaTimes } from "react-icons/fa";
 
 type HeaderProps = {
   children?: ReactNode;
@@ -26,24 +18,6 @@ const infoBar = [
     icon: FaEnvelope,
     label: "contato@giftmed.org",
     href: "mailto:contato@giftmed.org",
-  },
-];
-
-const highlights = [
-  {
-    icon: FaTruck,
-    title: "Coleta domiciliar",
-    text: "Agende a retirada gratuita dos medicamentos",
-  },
-  {
-    icon: FaRecycle,
-    title: "Descarte consciente",
-    text: "Evite contaminação do solo e da água",
-  },
-  {
-    icon: FaLeaf,
-    title: "Doação solidária",
-    text: "Medicamentos válidos vão para quem precisa",
   },
 ];
 
@@ -96,11 +70,11 @@ export default function Header({ children }: HeaderProps) {
 
       {/* Área principal */}
       <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
-        <div className="flex items-start justify-between gap-4 py-5 lg:items-center lg:gap-8 lg:py-6">
-          {/* Logo + informações complementares */}
+        <div className="flex items-center justify-between gap-4 py-6 lg:gap-8 lg:py-8">
+          {/* Logo */}
           <Link
             href="/"
-            className="group flex min-w-0 flex-1 flex-col items-start gap-3 sm:flex-row sm:items-center sm:gap-6"
+            className="group flex min-w-0 shrink-0 items-center"
             onClick={() => setMenuOpen(false)}
           >
             <Image
@@ -109,56 +83,25 @@ export default function Header({ children }: HeaderProps) {
               width={480}
               height={160}
               priority
-              className="h-auto w-52 max-w-full object-contain transition-opacity group-hover:opacity-90 sm:w-60 md:w-72 lg:w-80 xl:w-[22rem]"
+              className="h-auto w-44 max-w-full object-contain transition-opacity group-hover:opacity-90 sm:w-52 md:w-60"
             />
-
-            <div className="min-w-0 flex-1 border-teal-100 sm:border-l sm:pl-6">
-              <p className="max-w-lg text-sm leading-relaxed text-slate-600 sm:text-base">
-                Plataforma para doação de medicamentos em boas
-                condições e descarte ambientalmente correto de resíduos farmacêuticos.
-              </p>
-            </div>
           </Link>
 
           {/* Nav desktop */}
-          <div className="hidden shrink-0 pt-2 lg:block">{children}</div>
+          <div className="hidden shrink-0 lg:block">{children}</div>
 
           {/* Menu mobile */}
           <button
             type="button"
             onClick={() => setMenuOpen((v) => !v)}
-            className="mt-1 flex h-11 w-11 shrink-0 items-center justify-center rounded-md border border-teal-200 bg-teal-50 text-teal-800 transition-colors hover:bg-teal-100 lg:hidden"
+            className="flex h-11 w-11 shrink-0 items-center justify-center rounded-md border border-teal-200 bg-teal-50 text-teal-800 transition-colors hover:bg-teal-100 lg:hidden"
             aria-expanded={menuOpen}
             aria-label={menuOpen ? "Fechar menu" : "Abrir menu"}
           >
             {menuOpen ? <FaTimes size={18} /> : <FaBars size={18} />}
           </button>
         </div>
-
-        {/* Destaques — desktop/tablet */}
-        <div className="hidden border-t border-slate-100 pb-5 pt-4 md:grid md:grid-cols-3 md:gap-4">
-          {highlights.map(({ icon: Icon, title, text }, index) => (
-            <div
-              key={title}
-              className="hover-lift flex items-start gap-3 rounded-md border border-slate-100 bg-slate-50/80 px-4 py-3"
-              style={{ animationDelay: `${index * 100}ms` }}
-            >
-              <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-md bg-emerald-600 text-white">
-                <Icon size={16} aria-hidden />
-              </span>
-              <div>
-                <p className="text-sm font-semibold text-[#1e3a5f]">{title}</p>
-                <p className="text-xs leading-relaxed text-slate-600">{text}</p>
-              </div>
-            </div>
-          ))}
-        </div>
       </div>
-
-      <div
-        className="animate-shimmer-line h-1 w-full bg-gradient-to-r from-[#1e3a5f] via-emerald-500 to-teal-400"
-        aria-hidden
-      />
 
       {/* Painel mobile */}
       <div
@@ -170,26 +113,6 @@ export default function Header({ children }: HeaderProps) {
         aria-hidden={!menuOpen}
       >
         <div className="max-h-[calc(100dvh-6rem)] overflow-y-auto px-4 py-6 sm:px-6">
-
-          <div className="mb-6 space-y-2">
-            {highlights.map(({ icon: Icon, title, text }) => (
-              <div
-                key={title}
-                className="flex items-start gap-3 rounded-md border border-slate-100 bg-slate-50 px-3 py-2.5"
-              >
-                <Icon
-                  size={16}
-                  className="mt-0.5 shrink-0 text-emerald-600"
-                  aria-hidden
-                />
-                <div>
-                  <p className="text-sm font-semibold text-[#1e3a5f]">{title}</p>
-                  <p className="text-xs text-slate-600">{text}</p>
-                </div>
-              </div>
-            ))}
-          </div>
-
           <div onClick={() => setMenuOpen(false)}>{children}</div>
         </div>
       </div>

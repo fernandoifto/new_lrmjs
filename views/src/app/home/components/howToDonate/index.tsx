@@ -30,9 +30,11 @@ const steps = [
 
 export default function HowToDonate() {
   return (
-    <section className="relative bg-slate-50 py-14 sm:py-20" id="doe-medicamentos">
-      <div className="animate-shimmer-line absolute inset-x-0 top-0 h-1 bg-gradient-to-r from-[#1e3a5f] via-emerald-500 to-teal-400" />
-
+    <section
+      className="relative py-14 sm:py-20"
+      style={{ backgroundColor: "#EEF2F7" }}
+      id="doe-medicamentos"
+    >
       <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
         <div className="grid items-stretch gap-8 lg:grid-cols-2 lg:gap-10">
           <Reveal direction="left">
