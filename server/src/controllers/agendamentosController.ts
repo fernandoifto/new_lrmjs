@@ -3,12 +3,14 @@ import { parsePaginationParams, paginatedResponse } from "../utils/pagination";
 import {
     CreateAgendamentosModel,
     ListAgendamentosModel,
+    AgendamentosStatsModel,
     GetAgendamentoModel,
     UpdateAgendamentoModel,
     MarcarVisitadoModel,
     AtualizarStatusAgendamentoModel,
     DeleteAgendamentoModel,
-    AgendamentoStatus
+    AgendamentoStatus,
+    AgendamentoSortField,
 } from "../models/agendamentosModels";
 import { uploadMultiple } from "../middlewares/upload";
 import { attachUploadTokensToAgendamentoFotos, attachUploadTokensToAgendamentos } from "../utils/responseTransforms";
@@ -96,6 +98,17 @@ class CreateAgendamentosController{
     }
 }
 
+function parseSortField(raw?: string): AgendamentoSortField {
+    if (raw === "nome" || raw === "setor" || raw === "datavisita" || raw === "created") {
+        return raw;
+    }
+    return "created";
+}
+
+function parseSortOrder(raw?: string): "asc" | "desc" {
+    return raw === "asc" ? "asc" : "desc";
+}
+
 class ListAgendamentosController {
     async handle(request: Request, response: Response) {
         try {
@@ -103,10 +116,35 @@ class ListAgendamentosController {
             const q = request.query.q ? String(request.query.q) : undefined;
             const filtro = request.query.filtro ? String(request.query.filtro) : "todos";
             const status = parseStatusFilter(filtro);
+            const idTurnoRaw = request.query.id_turno ? String(request.query.id_turno) : undefined;
+            const id_turno = idTurnoRaw ? parseInt(idTurnoRaw, 10) : undefined;
+            const setor = request.query.setor ? String(request.query.setor) : undefined;
+            const sortBy = parseSortField(request.query.sortBy ? String(request.query.sortBy) : undefined);
+            const sortOrder = parseSortOrder(request.query.sortOrder ? String(request.query.sortOrder) : undefined);
+
             const listAgendamentos = new ListAgendamentosModel();
-            const { items, total } = await listAgendamentos.execute(p, { q, status });
+            const { items, total } = await listAgendamentos.execute(p, {
+                q,
+                status,
+                id_turno: id_turno && !Number.isNaN(id_turno) ? id_turno : undefined,
+                setor,
+                sortBy,
+                sortOrder,
+            });
             const data = attachUploadTokensToAgendamentos(items);
             return response.json(paginatedResponse(data, total, p.page, p.pageSize));
+        } catch (error: any) {
+            return response.status(400).json({ error: error.message });
+        }
+    }
+}
+
+class AgendamentosStatsController {
+    async handle(_request: Request, response: Response) {
+        try {
+            const stats = new AgendamentosStatsModel();
+            const data = await stats.execute();
+            return response.json(data);
         } catch (error: any) {
             return response.status(400).json({ error: error.message });
         }
@@ -157,6 +195,27 @@ class UpdateAgendamentoController {
                 await notifyVisitaMarcadaHoje(agendamento);
             }
             
+            return response.json(attachUploadTokensToAgendamentoFotos(agendamento));
+        } catch (error: any) {
+            return response.status(400).json({ error: error.message });
+        }
+    }
+}
+
+class DesmarcarAgendamentoController {
+    async handle(request: Request, response: Response) {
+        try {
+            const { id } = request.params;
+            const getAgendamento = new GetAgendamentoModel();
+            const existing = await getAgendamento.execute(parseInt(id));
+
+            if (existing.status !== "VISITA_MARCADA_PARA_HOJE") {
+                return response.status(400).json({ error: "Agendamento não está marcado para hoje" });
+            }
+
+            const atualizarStatus = new AtualizarStatusAgendamentoModel();
+            const agendamento = await atualizarStatus.execute(parseInt(id), "AGUARDANDO_AGENDAMENTO");
+
             return response.json(attachUploadTokensToAgendamentoFotos(agendamento));
         } catch (error: any) {
             return response.status(400).json({ error: error.message });
@@ -229,9 +288,11 @@ class DeleteAgendamentoController {
 export {
     CreateAgendamentosController,
     ListAgendamentosController,
+    AgendamentosStatsController,
     GetAgendamentoController,
     UpdateAgendamentoController,
     MarcarVisitadoController,
+    DesmarcarAgendamentoController,
     AtualizarStatusAgendamentoController,
     DeleteAgendamentoController
 }

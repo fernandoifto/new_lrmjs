@@ -55,6 +55,7 @@
 .btnBack,
 .btnEdit,
 .btnVisitar,
+.btnDesmarcar,
 .btnDelete {
   padding: 0.75rem 1.5rem;
   border-radius: 8px;
@@ -93,6 +94,15 @@
 
 .btnVisitar:hover {
   background-color: rgba(40, 167, 69, 0.2);
+}
+
+.btnDesmarcar {
+  background-color: rgba(255, 193, 7, 0.15);
+  color: #b8860b;
+}
+
+.btnDesmarcar:hover {
+  background-color: rgba(255, 193, 7, 0.25);
 }
 
 .btnDelete {

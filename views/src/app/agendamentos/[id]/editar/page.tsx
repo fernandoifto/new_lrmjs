@@ -88,7 +88,7 @@ export default function EditarAgendamentoPage() {
                 router.push('/login');
             } else if (error.response?.status === 404) {
                 toast.error('Agendamento não encontrado');
-                router.push('/agendamentos/list');
+                router.push('/agendamentos');
             } else {
                 toast.error('Erro ao carregar dados');
             }
@@ -203,7 +203,7 @@ export default function EditarAgendamentoPage() {
                     <div className={styles.contentWrapper}>
                         <div className={styles.header}>
                             <Link 
-                                href={agendamento ? `/agendamentos/${agendamento.id}` : '/agendamentos/list'} 
+                                href={agendamento ? `/agendamentos/${agendamento.id}` : '/agendamentos'} 
                                 className={styles.btnBack}
                             >
                                 ← Voltar
@@ -218,7 +218,7 @@ export default function EditarAgendamentoPage() {
                         ) : !agendamento ? (
                             <div className={styles.errorContainer}>
                                 <p>Agendamento não encontrado</p>
-                                <Link href="/agendamentos/list" className={styles.btnBack}>
+                                <Link href="/agendamentos" className={styles.btnBack}>
                                     Voltar para lista
                                 </Link>
                             </div>

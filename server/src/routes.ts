@@ -2,9 +2,11 @@ import { Router } from "express";
 import {
     CreateAgendamentosController,
     ListAgendamentosController,
+    AgendamentosStatsController,
     GetAgendamentoController,
     UpdateAgendamentoController,
     MarcarVisitadoController,
+    DesmarcarAgendamentoController,
     AtualizarStatusAgendamentoController,
     DeleteAgendamentoController
 } from "./controllers/agendamentosController";
@@ -35,11 +37,13 @@ router.get("/health", (_req, res) => {
 
 //Rotas de agendamentos
 router.post("/agendamento", new CreateAgendamentosController().handle); // Rota pública para criação de agendamentos
+router.get("/agendamentos/stats", isAuthenticated, hasPermission("agendamentos.ver"), new AgendamentosStatsController().handle);
 router.get("/agendamentos", isAuthenticated, hasPermission("agendamentos.ver"), new ListAgendamentosController().handle);
 router.get("/agendamento/:id", isAuthenticated, hasPermission("agendamentos.ver"), new GetAgendamentoController().handle);
 router.put("/agendamento/:id", isAuthenticated, hasPermission("agendamentos.editar"), new UpdateAgendamentoController().handle);
 router.patch("/agendamento/:id/status", isAuthenticated, hasPermission("agendamentos.editar"), new AtualizarStatusAgendamentoController().handle);
 router.patch("/agendamento/:id/visitar", isAuthenticated, hasPermission("agendamentos.visitar"), new MarcarVisitadoController().handle);
+router.patch("/agendamento/:id/desmarcar", isAuthenticated, hasPermission("agendamentos.visitar"), new DesmarcarAgendamentoController().handle);
 router.delete("/agendamento/:id", isAuthenticated, hasPermission("agendamentos.excluir"), new DeleteAgendamentoController().handle);
 
 //Rotas de turnos

@@ -7,7 +7,7 @@ import Header from '../../home/components/header';
 import Menu from '../../components/menu';
 import WithPermission from '@/components/withPermission';
 import { usePermissions } from '@/hooks/usePermissions';
-import { FaHandHoldingMedical, FaClipboardCheck, FaEdit, FaTrash, FaUserCircle, FaArrowLeft, FaCamera, FaTimes, FaChevronLeft, FaChevronRight } from 'react-icons/fa';
+import { FaHandHoldingMedical, FaClipboardCheck, FaEdit, FaTrash, FaUserCircle, FaArrowLeft, FaCamera, FaTimes, FaChevronLeft, FaChevronRight, FaUndo } from 'react-icons/fa';
 import styles from './page.module.css';
 import Link from 'next/link';
 
@@ -36,11 +36,7 @@ interface Agendamento {
     status: 'AGUARDANDO_AGENDAMENTO' | 'VISITA_MARCADA_PARA_HOJE' | 'VISITADO';
 }
 
-const statusLabel: Record<Agendamento['status'], string> = {
-    AGUARDANDO_AGENDAMENTO: 'Aguardando agendamento',
-    VISITA_MARCADA_PARA_HOJE: 'Visita marcada para hoje',
-    VISITADO: 'Concluída',
-};
+import { statusLabel } from '../lib/status';
 
 export default function AgendamentoViewPage() {
     const router = useRouter();
@@ -72,7 +68,7 @@ export default function AgendamentoViewPage() {
                 router.push('/login');
             } else if (error.response?.status === 404) {
                 toast.error('Agendamento não encontrado');
-                router.push('/agendamentos/list');
+                router.push('/agendamentos');
             } else {
                 toast.error('Erro ao carregar agendamento');
             }
@@ -198,6 +194,26 @@ export default function AgendamentoViewPage() {
         }
     };
 
+    const handleDesmarcar = async (id: number) => {
+        if (!confirm('Desmarcar coleta? O agendamento voltará para Aguardando.')) {
+            return;
+        }
+
+        try {
+            await api.patch(`/agendamento/${id}/desmarcar`, {}, {});
+            toast.success('Agendamento desmarcado. Status: Aguardando.');
+            loadAgendamento(id);
+        } catch (error: any) {
+            console.error('Erro ao desmarcar agendamento:', error);
+            if (error.response?.status === 401) {
+                toast.error('Sessão expirada. Faça login novamente.');
+                router.push('/login');
+            } else {
+                toast.error(error.response?.data?.error || 'Erro ao desmarcar agendamento');
+            }
+        }
+    };
+
     const handleDelete = async (id: number) => {
         if (!confirm('Tem certeza que deseja excluir este agendamento? Esta ação não pode ser desfeita.')) {
             return;
@@ -208,7 +224,7 @@ export default function AgendamentoViewPage() {
             await api.delete(`/agendamento/${id}`, {});
 
             toast.success('Agendamento excluído com sucesso!');
-            router.push('/agendamentos/list');
+            router.push('/agendamentos');
         } catch (error: any) {
             console.error('Erro ao excluir agendamento:', error);
             if (error.response?.status === 401) {
@@ -231,7 +247,7 @@ export default function AgendamentoViewPage() {
                 <div className={styles.container}>
                     <div className={styles.contentWrapper}>
                         <div className={styles.header}>
-                            <Link href="/agendamentos/list" className={styles.btnBack}>
+                            <Link href="/agendamentos" className={styles.btnBack}>
                                 <FaArrowLeft size={16} /> Voltar
                             </Link>
                             <div className={styles.headerActions}>
@@ -239,21 +255,31 @@ export default function AgendamentoViewPage() {
                                     <button
                                         onClick={() => handleMarcarHoje(agendamento.id)}
                                         className={styles.btnVisitar}
-                                        title="Coletar"
+                                        title="Marcar para hoje"
                                     >
                                         <FaHandHoldingMedical size={18} />
-                                        Coletar
+                                        Marcar para hoje
                                     </button>
                                 )}
                                 {agendamento && agendamento.status === 'VISITA_MARCADA_PARA_HOJE' && hasPermission('agendamentos.visitar') && (
-                                    <button
-                                        onClick={() => handleVisitar(agendamento.id)}
-                                        className={styles.btnVisitar}
-                                        title="Concluir"
-                                    >
-                                        <FaClipboardCheck size={18} />
-                                        Concluir
-                                    </button>
+                                    <>
+                                        <button
+                                            onClick={() => handleDesmarcar(agendamento.id)}
+                                            className={styles.btnDesmarcar}
+                                            title="Desmarcar coleta"
+                                        >
+                                            <FaUndo size={16} />
+                                            Desmarcar coleta
+                                        </button>
+                                        <button
+                                            onClick={() => handleVisitar(agendamento.id)}
+                                            className={styles.btnVisitar}
+                                            title="Concluir"
+                                        >
+                                            <FaClipboardCheck size={18} />
+                                            Concluir
+                                        </button>
+                                    </>
                                 )}
                                 {agendamento && agendamento.status === 'VISITADO' && (
                                     <span className={styles.visitadoBadge}>
@@ -293,7 +319,7 @@ export default function AgendamentoViewPage() {
                         ) : !agendamento ? (
                             <div className={styles.errorContainer}>
                                 <p>Agendamento não encontrado</p>
-                                <Link href="/agendamentos/list" className={styles.btnBack}>
+                                <Link href="/agendamentos" className={styles.btnBack}>
                                     Voltar para lista
                                 </Link>
                             </div>
@@ -395,7 +421,7 @@ export default function AgendamentoViewPage() {
                                 <h3>Informações do Sistema</h3>
                                 <div className={styles.infoGrid}>
                                     <div className={styles.infoItem}>
-                                        <span className={styles.label}>Status da coleta:</span>
+                                        <span className={styles.label}>Status do agendamento:</span>
                                         <span
                                             className={
                                                 agendamento.status === 'VISITADO'

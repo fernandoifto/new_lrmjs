@@ -35,6 +35,41 @@ interface IUpdateAgendamento {
 
 export type AgendamentoStatus = "AGUARDANDO_AGENDAMENTO" | "VISITA_MARCADA_PARA_HOJE" | "VISITADO";
 
+export type AgendamentoSortField = "created" | "nome" | "setor" | "datavisita";
+
+export interface ListAgendamentosOptions {
+    q?: string;
+    status?: AgendamentoStatus;
+    id_turno?: number;
+    setor?: string;
+    sortBy?: AgendamentoSortField;
+    sortOrder?: "asc" | "desc";
+}
+
+function buildSearchWhere(term: string) {
+    const digits = term.replace(/\D/g, "");
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const OR: any[] = [
+        { nome: { contains: term, mode: "insensitive" } },
+        { endereco: { contains: term, mode: "insensitive" } },
+        { setor: { contains: term, mode: "insensitive" } },
+        { datavisita: { contains: term, mode: "insensitive" } },
+        { turno: { descricao: { contains: term, mode: "insensitive" } } },
+    ];
+    if (digits.length > 0) {
+        OR.push({ telefone: { contains: digits } });
+        OR.push({ cep: { contains: digits } });
+    }
+    return { OR };
+}
+
+function buildOrderBy(sortBy: AgendamentoSortField, sortOrder: "asc" | "desc") {
+    if (sortBy === "nome" || sortBy === "setor" || sortBy === "datavisita") {
+        return { [sortBy]: sortOrder };
+    }
+    return { created: sortOrder };
+}
+
 function isAgendamentoStatus(value: unknown): value is AgendamentoStatus {
     return value === "AGUARDANDO_AGENDAMENTO" || value === "VISITA_MARCADA_PARA_HOJE" || value === "VISITADO";
 }
@@ -46,7 +81,7 @@ function validateStatusTransition(current: AgendamentoStatus, next: AgendamentoS
 
     const allowedForward: Record<AgendamentoStatus, AgendamentoStatus[]> = {
         AGUARDANDO_AGENDAMENTO: ["VISITA_MARCADA_PARA_HOJE"],
-        VISITA_MARCADA_PARA_HOJE: ["VISITADO"],
+        VISITA_MARCADA_PARA_HOJE: ["VISITADO", "AGUARDANDO_AGENDAMENTO"],
         VISITADO: [],
     };
 
@@ -91,26 +126,24 @@ class CreateAgendamentosModel{
 
 //Modelo de listar agendamentos
 class ListAgendamentosModel {
-    async execute(p: ParsedPagination, opts?: { q?: string; status?: AgendamentoStatus }) {
+    async execute(p: ParsedPagination, opts?: ListAgendamentosOptions) {
         const t = opts?.q?.trim();
         const filtroStatus = opts?.status;
+        const sortBy = opts?.sortBy ?? "created";
+        const sortOrder = opts?.sortOrder ?? "desc";
         // eslint-disable-next-line @typescript-eslint/no-explicit-any
         const andParts: any[] = [];
         if (filtroStatus) {
             andParts.push({ status: filtroStatus });
         }
+        if (opts?.id_turno) {
+            andParts.push({ id_turno: opts.id_turno });
+        }
+        if (opts?.setor?.trim()) {
+            andParts.push({ setor: { equals: opts.setor.trim(), mode: "insensitive" } });
+        }
         if (t) {
-            const digits = t.replace(/\D/g, "");
-            // eslint-disable-next-line @typescript-eslint/no-explicit-any
-            const OR: any[] = [
-                { nome: { contains: t, mode: "insensitive" } },
-                { endereco: { contains: t, mode: "insensitive" } },
-                { setor: { contains: t, mode: "insensitive" } },
-            ];
-            if (digits.length > 0) {
-                OR.push({ telefone: { contains: digits } });
-            }
-            andParts.push({ OR });
+            andParts.push(buildSearchWhere(t));
         }
         const where = andParts.length > 0 ? { AND: andParts } : {};
 
@@ -126,9 +159,7 @@ class ListAgendamentosModel {
                     }
                 }
             },
-            orderBy: {
-                created: 'desc' as const
-            }
+            orderBy: buildOrderBy(sortBy, sortOrder),
         };
         const [total, items] = await Promise.all([
             prismaClient.agendamentos.count({ where }),
@@ -139,6 +170,30 @@ class ListAgendamentosModel {
             }),
         ]);
         return { items, total };
+    }
+}
+
+class AgendamentosStatsModel {
+    async execute() {
+        const [total, aguardando, visitaHoje, visitado, setoresRows] = await Promise.all([
+            prismaClient.agendamentos.count(),
+            prismaClient.agendamentos.count({ where: { status: "AGUARDANDO_AGENDAMENTO" } }),
+            prismaClient.agendamentos.count({ where: { status: "VISITA_MARCADA_PARA_HOJE" } }),
+            prismaClient.agendamentos.count({ where: { status: "VISITADO" } }),
+            prismaClient.agendamentos.findMany({
+                select: { setor: true },
+                distinct: ["setor"],
+                orderBy: { setor: "asc" },
+            }),
+        ]);
+
+        return {
+            total,
+            aguardando_agendamento: aguardando,
+            visita_marcada_hoje: visitaHoje,
+            visitado,
+            setores: setoresRows.map((row) => row.setor).filter(Boolean),
+        };
     }
 }
 
@@ -339,6 +394,7 @@ class DeleteAgendamentoModel {
 export {
     CreateAgendamentosModel,
     ListAgendamentosModel,
+    AgendamentosStatsModel,
     GetAgendamentoModel,
     UpdateAgendamentoModel,
     MarcarVisitadoModel,
