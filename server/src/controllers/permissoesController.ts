@@ -1,6 +1,7 @@
 import { CreatePermissaoModel, ListPermissoesModel, GetPermissaoModel, UpdatePermissaoModel, DeletePermissaoModel } from "../models/permissoesModels";
 import { Request, Response } from "express";
 import { parsePaginationParams, paginatedResponse } from "../utils/pagination";
+import { parseSortField, parseSortOrder } from "../utils/sorting";
 
 export class CreatePermissaoController {
     async handle(request: Request, response: Response) {
@@ -19,8 +20,15 @@ export class ListPermissoesController {
     async handle(request: Request, response: Response) {
         try {
             const p = parsePaginationParams(request.query);
+            const q = request.query.q ? String(request.query.q) : undefined;
+            const sortBy = parseSortField(
+                request.query.sortBy ? String(request.query.sortBy) : undefined,
+                ["nome", "pagina", "created"] as const,
+                "nome"
+            );
+            const sortOrder = parseSortOrder(request.query.sortOrder ? String(request.query.sortOrder) : undefined);
             const listPermissoes = new ListPermissoesModel();
-            const { items, total } = await listPermissoes.execute(p);
+            const { items, total } = await listPermissoes.execute(p, { q, sortBy, sortOrder });
             return response.json(paginatedResponse(items, total, p.page, p.pageSize));
         } catch (error: any) {
             return response.status(400).json({ error: error.message });

@@ -45,11 +45,28 @@ class CreatePermissaoModel {
 }
 
 class ListPermissoesModel {
-    async execute(p: ParsedPagination) {
-        const orderBy = { nome: 'asc' as const };
+    async execute(
+        p: ParsedPagination,
+        opts?: { q?: string; sortBy?: "nome" | "pagina" | "created"; sortOrder?: "asc" | "desc" }
+    ) {
+        const q = opts?.q?.trim();
+        const where = q
+            ? {
+                  OR: [
+                      { nome: { contains: q, mode: "insensitive" as const } },
+                      { descricao: { contains: q, mode: "insensitive" as const } },
+                      { pagina: { contains: q, mode: "insensitive" as const } },
+                      { acao: { contains: q, mode: "insensitive" as const } },
+                  ],
+              }
+            : {};
+        const sortBy = opts?.sortBy || "nome";
+        const sortOrder = opts?.sortOrder || "asc";
+        const orderBy = { [sortBy]: sortOrder } as Record<string, "asc" | "desc">;
         const [total, items] = await Promise.all([
-            prismaClient.permissoes.count(),
+            prismaClient.permissoes.count({ where }),
             prismaClient.permissoes.findMany({
+                where,
                 orderBy,
                 skip: p.skip,
                 take: p.take,

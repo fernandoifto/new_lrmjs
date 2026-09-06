@@ -9,11 +9,15 @@ import Menu from '../../../components/menu';
 import WithPermission from '@/components/withPermission';
 import { usePermissions } from '@/hooks/usePermissions';
 import { FaUsersCog, FaPlus, FaEye, FaEdit, FaTrash } from 'react-icons/fa';
-import styles from './page.module.css';
 import Link from 'next/link';
-import { LIST_PAGE_SIZE } from '@/lib/pagedApi';
 import type { PaginationMeta } from '@/lib/pagedApi';
-import { PaginationBar } from '@/components/PaginationBar';
+import {
+    ListPageHeader,
+    ListSearchToolbar,
+    ListFooter,
+    useDebouncedValue,
+    listStyles as styles,
+} from '@/components/list';
 
 interface Grupo {
     id: number;
@@ -26,6 +30,21 @@ interface Grupo {
     modified: string;
 }
 
+const SORT_OPTIONS = [
+    { value: 'nome', label: 'Nome' },
+    { value: 'created', label: 'Data de criação' },
+];
+
+function formatDate(dateString: string) {
+    return new Date(dateString).toLocaleDateString('pt-BR', {
+        day: '2-digit',
+        month: '2-digit',
+        year: 'numeric',
+        hour: '2-digit',
+        minute: '2-digit',
+    });
+}
+
 export default function GruposListPage() {
     const router = useRouter();
     const { isAdmin } = usePermissions();
@@ -33,25 +52,38 @@ export default function GruposListPage() {
     const [loading, setLoading] = useState(true);
     const [mounted, setMounted] = useState(false);
     const [page, setPage] = useState(1);
+    const [pageSize, setPageSize] = useState(20);
     const [pagination, setPagination] = useState<PaginationMeta | null>(null);
+    const [searchTerm, setSearchTerm] = useState('');
+    const [sortBy, setSortBy] = useState('nome');
+    const [sortOrder, setSortOrder] = useState<'asc' | 'desc'>('asc');
+    const activeSearchTerm = useDebouncedValue(searchTerm);
 
     useEffect(() => {
         setMounted(true);
     }, []);
 
     useEffect(() => {
+        setPage(1);
+    }, [activeSearchTerm, sortBy, sortOrder, pageSize]);
+
+    useEffect(() => {
         if (!mounted) return;
         loadGrupos();
-    }, [mounted, page]);
+    }, [mounted, page, activeSearchTerm, sortBy, sortOrder, pageSize]);
 
     const loadGrupos = async () => {
         try {
             setLoading(true);
-
             const response = await api.get('/roles', {
-                params: { page, pageSize: LIST_PAGE_SIZE },
+                params: {
+                    page,
+                    pageSize,
+                    sortBy,
+                    sortOrder,
+                    ...(activeSearchTerm.trim() ? { q: activeSearchTerm.trim() } : {}),
+                },
             });
-
             setGrupos(response.data.data);
             setPagination(response.data.pagination);
         } catch (error: any) {
@@ -68,14 +100,9 @@ export default function GruposListPage() {
     };
 
     const handleDelete = async (id: number, nome: string) => {
-        if (!confirm(`Tem certeza que deseja excluir o grupo "${nome}"?`)) {
-            return;
-        }
-
+        if (!confirm(`Tem certeza que deseja excluir o grupo "${nome}"?`)) return;
         try {
-
             await api.delete(`/role/${id}`, {});
-
             toast.success('Grupo excluído com sucesso!');
             loadGrupos();
         } catch (error: any) {
@@ -89,20 +116,34 @@ export default function GruposListPage() {
         }
     };
 
-    const formatDate = (dateString: string) => {
-        const date = new Date(dateString);
-        return date.toLocaleDateString('pt-BR', {
-            day: '2-digit',
-            month: '2-digit',
-            year: 'numeric',
-            hour: '2-digit',
-            minute: '2-digit'
-        });
-    };
+    const renderActions = (grupo: Grupo) => (
+        <div className={styles.actions} onClick={(e) => e.stopPropagation()}>
+            <Link href={`/permissoes/grupos/${grupo.id}`} className={styles.btnIcon} title="Ver detalhes">
+                <FaEye size={14} />
+            </Link>
+            {isAdmin && (
+                <Link
+                    href={`/permissoes/grupos/${grupo.id}/editar`}
+                    className={`${styles.btnIcon} ${styles.btnIconEdit}`}
+                    title="Editar"
+                >
+                    <FaEdit size={14} />
+                </Link>
+            )}
+            {isAdmin && (
+                <button
+                    type="button"
+                    onClick={() => handleDelete(grupo.id, grupo.nome)}
+                    className={`${styles.btnIcon} ${styles.btnIconDelete}`}
+                    title="Excluir grupo"
+                >
+                    <FaTrash size={14} />
+                </button>
+            )}
+        </div>
+    );
 
-    if (!mounted) {
-        return null;
-    }
+    if (!mounted) return null;
 
     return (
         <WithPermission requiredPermission="admin">
@@ -111,32 +152,43 @@ export default function GruposListPage() {
             <main className={styles.main}>
                 <div className={styles.container}>
                     <div className={styles.contentWrapper}>
-                        <div className={styles.header}>
-                            <div className={styles.headerContent}>
-                                <div className={styles.headerIcon}>
-                                    <FaUsersCog size={24} />
-                                </div>
-                                <div>
-                                    <h1>Grupos</h1>
-                                    <p>Lista de todos os grupos cadastrados</p>
-                                </div>
-                            </div>
-                            {isAdmin && (
-                                <Link href="/permissoes/grupos/novo" className={styles.btnNew}>
-                                    <FaPlus size={20} />
-                                    Novo Grupo
-                                </Link>
-                            )}
-                        </div>
+                        <ListPageHeader
+                            icon={<FaUsersCog size={24} />}
+                            title="Grupos"
+                            subtitle="Lista de todos os grupos cadastrados"
+                            actions={
+                                isAdmin ? (
+                                    <Link href="/permissoes/grupos/novo" className={styles.btnNew}>
+                                        <FaPlus size={16} />
+                                        Novo Grupo
+                                    </Link>
+                                ) : null
+                            }
+                        />
+
+                        <ListSearchToolbar
+                            value={searchTerm}
+                            onChange={setSearchTerm}
+                            placeholder="Buscar por nome ou descrição…"
+                            sortOptions={SORT_OPTIONS}
+                            sortBy={sortBy}
+                            sortOrder={sortOrder}
+                            onSortByChange={setSortBy}
+                            onSortOrderToggle={() => setSortOrder((o) => (o === 'asc' ? 'desc' : 'asc'))}
+                        />
 
                         {loading ? (
-                            <div className={styles.loadingContainer}>
-                                <p>Carregando grupos...</p>
+                            <div className={styles.loading}>
+                                <p>Carregando grupos…</p>
                             </div>
                         ) : grupos.length === 0 ? (
-                            <div className={styles.emptyState}>
-                                <p>Nenhum grupo encontrado</p>
-                                {isAdmin && (
+                            <div className={styles.empty}>
+                                <p>
+                                    {activeSearchTerm
+                                        ? 'Nenhum grupo encontrado com os critérios de busca'
+                                        : 'Nenhum grupo encontrado'}
+                                </p>
+                                {!activeSearchTerm && isAdmin && (
                                     <Link href="/permissoes/grupos/novo" className={styles.btnNew}>
                                         Criar primeiro grupo
                                     </Link>
@@ -144,74 +196,66 @@ export default function GruposListPage() {
                             </div>
                         ) : (
                             <>
-                            <div className={styles.grid}>
-                                {grupos.map((grupo) => (
-                                    <div key={grupo.id} className={styles.card}>
-                                        <div className={styles.cardHeader}>
-                                            <div className={styles.cardIcon}>
-                                                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                                                    <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2" />
-                                                    <circle cx="9" cy="7" r="4" />
-                                                    <path d="M23 21v-2a4 4 0 0 0-3-3.87M16 3.13a4 4 0 0 1 0 7.75" />
-                                                </svg>
-                                            </div>
-                                            <h3>{grupo.nome}</h3>
-                                        </div>
-                                        <div className={styles.cardBody}>
-                                            {grupo.descricao && (
-                                                <div className={styles.infoRow}>
-                                                    <span className={styles.label}>Descrição:</span>
-                                                    <span>{grupo.descricao}</span>
-                                                </div>
-                                            )}
-                                            <div className={styles.infoRow}>
-                                                <span className={styles.label}>Usuários:</span>
-                                                <span>{grupo._count?.userRoles || 0}</span>
-                                            </div>
-                                            <div className={styles.infoRow}>
-                                                <span className={styles.label}>Criado em:</span>
-                                                <span>{formatDate(grupo.created)}</span>
-                                            </div>
-                                        </div>
-                                        <div className={styles.cardFooter}>
-                                            <Link 
-                                                href={`/permissoes/grupos/${grupo.id}`}
-                                                className={styles.btnView}
-                                                title="Ver detalhes"
-                                            >
-                                                <FaEye size={16} />
-                                            </Link>
-                                            {isAdmin && (
-                                                <Link 
-                                                    href={`/permissoes/grupos/${grupo.id}/editar`}
-                                                    className={styles.btnEdit}
-                                                    title="Editar"
+                                <div className={styles.tableWrap}>
+                                    <table className={styles.table}>
+                                        <thead>
+                                            <tr>
+                                                <th>Nome</th>
+                                                <th>Descrição</th>
+                                                <th>Usuários</th>
+                                                <th>Criado em</th>
+                                                <th className={styles.actionsCol}>Ações</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody>
+                                            {grupos.map((grupo) => (
+                                                <tr
+                                                    key={grupo.id}
+                                                    className={styles.row}
+                                                    onClick={() => router.push(`/permissoes/grupos/${grupo.id}`)}
                                                 >
-                                                    <FaEdit size={16} />
-                                                </Link>
-                                            )}
-                                            {isAdmin && (
-                                                <button
-                                                    onClick={() => handleDelete(grupo.id, grupo.nome)}
-                                                    className={styles.btnDelete}
-                                                    title="Excluir grupo"
-                                                >
-                                                    <FaTrash size={18} />
-                                                </button>
-                                            )}
+                                                    <td>
+                                                        <strong className={styles.primaryText}>{grupo.nome}</strong>
+                                                    </td>
+                                                    <td>{grupo.descricao || '—'}</td>
+                                                    <td>{grupo._count?.userRoles || 0}</td>
+                                                    <td>{formatDate(grupo.created)}</td>
+                                                    <td className={styles.actionsCol}>{renderActions(grupo)}</td>
+                                                </tr>
+                                            ))}
+                                        </tbody>
+                                    </table>
+                                </div>
+
+                                <div className={styles.mobileList}>
+                                    {grupos.map((grupo) => (
+                                        <div
+                                            key={grupo.id}
+                                            className={`${styles.mobileCard} ${styles.mobileCardClickable}`}
+                                            onClick={() => router.push(`/permissoes/grupos/${grupo.id}`)}
+                                        >
+                                            <div className={styles.mobileCardHeader}>
+                                                <strong>{grupo.nome}</strong>
+                                                <span className={styles.subText}>
+                                                    {grupo._count?.userRoles || 0} usuário(s)
+                                                </span>
+                                            </div>
+                                            {grupo.descricao ? (
+                                                <p className={styles.mobileMeta}>{grupo.descricao}</p>
+                                            ) : null}
+                                            <p className={styles.mobileMeta}>{formatDate(grupo.created)}</p>
+                                            <div className={styles.mobileActions}>{renderActions(grupo)}</div>
                                         </div>
-                                    </div>
-                                ))}
-                            </div>
-                            {pagination != null && (
-                                <PaginationBar
-                                    page={pagination.page}
-                                    totalPages={pagination.totalPages}
-                                    total={pagination.total}
-                                    disabled={loading}
+                                    ))}
+                                </div>
+
+                                <ListFooter
+                                    pagination={pagination}
+                                    pageSize={pageSize}
                                     onPageChange={setPage}
+                                    onPageSizeChange={setPageSize}
+                                    disabled={loading}
                                 />
-                            )}
                             </>
                         )}
                     </div>

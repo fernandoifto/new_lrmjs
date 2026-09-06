@@ -8,12 +8,16 @@ import Header from '../../home/components/header';
 import Menu from '../../components/menu';
 import WithPermission from '@/components/withPermission';
 import { usePermissions } from '@/hooks/usePermissions';
-import { FaPills, FaPlus, FaSearch, FaTimes, FaEye, FaEdit, FaTrash } from 'react-icons/fa';
-import styles from './page.module.css';
+import { FaPills, FaPlus, FaEye, FaEdit, FaTrash } from 'react-icons/fa';
 import Link from 'next/link';
-import { LIST_PAGE_SIZE } from '@/lib/pagedApi';
 import type { PaginationMeta } from '@/lib/pagedApi';
-import { PaginationBar } from '@/components/PaginationBar';
+import {
+    ListPageHeader,
+    ListSearchToolbar,
+    ListFooter,
+    useDebouncedValue,
+    listStyles as styles,
+} from '@/components/list';
 
 interface Medicamento {
     id: number;
@@ -23,27 +27,46 @@ interface Medicamento {
     modified: string;
 }
 
+const SORT_OPTIONS = [
+    { value: 'descricao', label: 'Descrição' },
+    { value: 'principioativo', label: 'Princípio ativo' },
+    { value: 'created', label: 'Data de criação' },
+];
+
+function formatDate(dateString: string) {
+    return new Date(dateString).toLocaleDateString('pt-BR', {
+        day: '2-digit',
+        month: '2-digit',
+        year: 'numeric',
+    });
+}
+
 export default function MedicamentosListPage() {
     const router = useRouter();
     const { hasPermission } = usePermissions();
     const [medicamentos, setMedicamentos] = useState<Medicamento[]>([]);
-    const [page, setPage] = useState(1);
-    const [pagination, setPagination] = useState<PaginationMeta | null>(null);
     const [loading, setLoading] = useState(true);
     const [mounted, setMounted] = useState(false);
+    const [page, setPage] = useState(1);
+    const [pageSize, setPageSize] = useState(20);
+    const [pagination, setPagination] = useState<PaginationMeta | null>(null);
     const [searchTerm, setSearchTerm] = useState('');
-    const [searchOption, setSearchOption] = useState('descricao');
-    const [activeSearchTerm, setActiveSearchTerm] = useState('');
-    const [activeSearchOption, setActiveSearchOption] = useState('descricao');
+    const [sortBy, setSortBy] = useState('descricao');
+    const [sortOrder, setSortOrder] = useState<'asc' | 'desc'>('asc');
+    const activeSearchTerm = useDebouncedValue(searchTerm);
 
     useEffect(() => {
         setMounted(true);
     }, []);
 
     useEffect(() => {
+        setPage(1);
+    }, [activeSearchTerm, sortBy, sortOrder, pageSize]);
+
+    useEffect(() => {
         if (!mounted) return;
         loadMedicamentos();
-    }, [mounted, page, activeSearchTerm, activeSearchOption]);
+    }, [mounted, page, activeSearchTerm, sortBy, sortOrder, pageSize]);
 
     const loadMedicamentos = async () => {
         try {
@@ -51,11 +74,12 @@ export default function MedicamentosListPage() {
 
             const params: Record<string, string | number> = {
                 page,
-                pageSize: LIST_PAGE_SIZE,
+                pageSize,
+                sortBy,
+                sortOrder,
             };
             if (activeSearchTerm.trim()) {
                 params.q = activeSearchTerm.trim();
-                params.campo = activeSearchOption;
             }
 
             const response = await api.get('/medicamentos', { params });
@@ -81,7 +105,6 @@ export default function MedicamentosListPage() {
         }
 
         try {
-
             await api.delete(`/medicamento/${id}`, {});
 
             toast.success('Medicamento excluído com sucesso!');
@@ -97,28 +120,34 @@ export default function MedicamentosListPage() {
         }
     };
 
-    const formatDate = (dateString: string) => {
-        const date = new Date(dateString);
-        return date.toLocaleDateString('pt-BR', {
-            day: '2-digit',
-            month: '2-digit',
-            year: 'numeric'
-        });
-    };
-
-    const handleSearch = () => {
-        setActiveSearchTerm(searchTerm);
-        setActiveSearchOption(searchOption);
-        setPage(1);
-    };
-
-    const handleClearSearch = () => {
-        setSearchTerm('');
-        setActiveSearchTerm('');
-        setActiveSearchOption('descricao');
-        setSearchOption('descricao');
-        setPage(1);
-    };
+    const renderActions = (medicamento: Medicamento) => (
+        <div className={styles.actions} onClick={(e) => e.stopPropagation()}>
+            {hasPermission('medicamentos.ver') && (
+                <Link href={`/medicamentos/${medicamento.id}`} className={styles.btnIcon} title="Ver detalhes">
+                    <FaEye size={14} />
+                </Link>
+            )}
+            {hasPermission('medicamentos.editar') && (
+                <Link
+                    href={`/medicamentos/${medicamento.id}/editar`}
+                    className={`${styles.btnIcon} ${styles.btnIconEdit}`}
+                    title="Editar"
+                >
+                    <FaEdit size={14} />
+                </Link>
+            )}
+            {hasPermission('medicamentos.excluir') && (
+                <button
+                    type="button"
+                    onClick={() => handleDelete(medicamento.id, medicamento.descricao)}
+                    className={`${styles.btnIcon} ${styles.btnIconDelete}`}
+                    title="Excluir"
+                >
+                    <FaTrash size={14} />
+                </button>
+            )}
+        </div>
+    );
 
     if (!mounted) {
         return null;
@@ -131,107 +160,40 @@ export default function MedicamentosListPage() {
             <main className={styles.main}>
                 <div className={styles.container}>
                     <div className={styles.contentWrapper}>
-                        <div className={styles.header}>
-                            <div className={styles.headerContent}>
-                                <div className={styles.headerIcon}>
-                                    <FaPills size={24} />
-                                </div>
-                                <div>
-                                    <h1>Medicamentos</h1>
-                                    <p>Gerencie os medicamentos do sistema</p>
-                                </div>
-                            </div>
-                            {hasPermission('medicamentos.criar') && (
-                                <Link href="/medicamentos/novo" className={styles.btnNew}>
-                                    <FaPlus size={20} />
-                                    Novo Medicamento
-                                </Link>
-                            )}
-                        </div>
+                        <ListPageHeader
+                            icon={<FaPills size={24} />}
+                            title="Medicamentos"
+                            subtitle="Gerencie os medicamentos do sistema"
+                            actions={
+                                hasPermission('medicamentos.criar') ? (
+                                    <Link href="/medicamentos/novo" className={styles.btnNew}>
+                                        <FaPlus size={16} />
+                                        Novo Medicamento
+                                    </Link>
+                                ) : null
+                            }
+                        />
 
-                        {/* Campo de Busca */}
-                        <div className={styles.searchContainer}>
-                            <div className={styles.searchPanel}>
-                                <div className={styles.searchHeader}>
-                                    <b>Buscar por:</b>
-                                    <div className={styles.searchOptions}>
-                                        <label className={styles.radioOption}>
-                                            <input
-                                                type="radio"
-                                                name="searchOption"
-                                                value="descricao"
-                                                checked={searchOption === 'descricao'}
-                                                onChange={(e) => setSearchOption(e.target.value)}
-                                            />
-                                            <span>Descrição</span>
-                                        </label>
-                                        <label className={styles.radioOption}>
-                                            <input
-                                                type="radio"
-                                                name="searchOption"
-                                                value="principioativo"
-                                                checked={searchOption === 'principioativo'}
-                                                onChange={(e) => setSearchOption(e.target.value)}
-                                            />
-                                            <span>Princípio Ativo</span>
-                                        </label>
-                                    </div>
-                                </div>
-                                <div className={styles.searchBody}>
-                                    <div className={styles.searchBox}>
-                                        <FaSearch size={20} className={styles.searchIcon} />
-                                        <input
-                                            type="text"
-                                            placeholder="Digite aqui sua pesquisa"
-                                            value={searchTerm}
-                                            onChange={(e) => setSearchTerm(e.target.value)}
-                                            onKeyPress={(e) => {
-                                                if (e.key === 'Enter') {
-                                                    handleSearch();
-                                                }
-                                            }}
-                                            className={styles.searchInput}
-                                        />
-                                        {searchTerm && (
-                                            <button
-                                                onClick={handleClearSearch}
-                                                className={styles.clearButton}
-                                                title="Limpar busca"
-                                            >
-                                                <FaTimes size={18} />
-                                            </button>
-                                        )}
-                                    </div>
-                                    <button
-                                        onClick={handleSearch}
-                                        className={styles.searchButton}
-                                        title="Buscar"
-                                    >
-                                        <FaSearch size={20} />
-                                        Buscar
-                                    </button>
-                                    {activeSearchTerm && pagination != null && (
-                                        <div className={styles.searchResults}>
-                                            {pagination.total > 0 ? (
-                                                <span>{pagination.total} resultado(s) encontrado(s)</span>
-                                            ) : (
-                                                <span>Nenhum resultado encontrado</span>
-                                            )}
-                                        </div>
-                                    )}
-                                </div>
-                            </div>
-                        </div>
+                        <ListSearchToolbar
+                            value={searchTerm}
+                            onChange={setSearchTerm}
+                            placeholder="Buscar por descrição ou princípio ativo…"
+                            sortOptions={SORT_OPTIONS}
+                            sortBy={sortBy}
+                            sortOrder={sortOrder}
+                            onSortByChange={setSortBy}
+                            onSortOrderToggle={() => setSortOrder((o) => (o === 'asc' ? 'desc' : 'asc'))}
+                        />
 
                         {loading ? (
-                            <div className={styles.loadingContainer}>
-                                <p>Carregando...</p>
+                            <div className={styles.loading}>
+                                <p>Carregando medicamentos…</p>
                             </div>
                         ) : medicamentos.length === 0 ? (
-                            <div className={styles.emptyState}>
+                            <div className={styles.empty}>
                                 <p>
-                                    {activeSearchTerm 
-                                        ? 'Nenhum medicamento encontrado com os critérios de busca' 
+                                    {activeSearchTerm
+                                        ? 'Nenhum medicamento encontrado com os critérios de busca'
                                         : 'Nenhum medicamento cadastrado'}
                                 </p>
                                 {!activeSearchTerm && hasPermission('medicamentos.criar') && (
@@ -242,62 +204,71 @@ export default function MedicamentosListPage() {
                             </div>
                         ) : (
                             <>
-                            <div className={styles.grid}>
-                                {medicamentos.map((medicamento) => (
-                                    <div key={medicamento.id} className={styles.card}>
-                                        <div className={styles.cardHeader}>
-                                            <div className={styles.cardIcon}>
-                                                <FaPills size={20} />
-                                            </div>
-                                            <h3>{medicamento.descricao}</h3>
-                                        </div>
-                                        <div className={styles.cardBody}>
-                                            <div className={styles.infoRow}>
-                                                <span className={styles.label}>Princípio Ativo:</span>
-                                                <span>{medicamento.principioativo}</span>
-                                            </div>
-                                            <div className={styles.infoRow}>
-                                                <span className={styles.label}>Criado em:</span>
-                                                <span>{formatDate(medicamento.created)}</span>
-                                            </div>
-                                            <div className={styles.infoRow}>
-                                                <span className={styles.label}>Modificado em:</span>
-                                                <span>{formatDate(medicamento.modified)}</span>
-                                            </div>
-                                        </div>
-                                        <div className={styles.cardFooter}>
-                                            {hasPermission('medicamentos.ver') && (
-                                                <Link href={`/medicamentos/${medicamento.id}`} className={styles.btnView} title="Ver detalhes">
-                                                    <FaEye size={16} />
-                                                </Link>
-                                            )}
-                                            {hasPermission('medicamentos.editar') && (
-                                                <Link href={`/medicamentos/${medicamento.id}/editar`} className={styles.btnEdit} title="Editar">
-                                                    <FaEdit size={16} />
-                                                </Link>
-                                            )}
-                                            {hasPermission('medicamentos.excluir') && (
-                                                <button
-                                                    onClick={() => handleDelete(medicamento.id, medicamento.descricao)}
-                                                    className={styles.btnDelete}
-                                                    title="Excluir"
+                                <div className={styles.tableWrap}>
+                                    <table className={styles.table}>
+                                        <thead>
+                                            <tr>
+                                                <th>Descrição</th>
+                                                <th>Princípio ativo</th>
+                                                <th className={styles.hideTablet}>Criado em</th>
+                                                <th className={styles.actionsCol}>Ações</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody>
+                                            {medicamentos.map((medicamento) => (
+                                                <tr
+                                                    key={medicamento.id}
+                                                    className={styles.row}
+                                                    onClick={() => router.push(`/medicamentos/${medicamento.id}`)}
                                                 >
-                                                    <FaTrash size={16} />
-                                                </button>
-                                            )}
+                                                    <td>
+                                                        <strong className={styles.primaryText}>
+                                                            {medicamento.descricao}
+                                                        </strong>
+                                                    </td>
+                                                    <td>{medicamento.principioativo}</td>
+                                                    <td className={styles.hideTablet}>
+                                                        {formatDate(medicamento.created)}
+                                                    </td>
+                                                    <td className={styles.actionsCol}>
+                                                        {renderActions(medicamento)}
+                                                    </td>
+                                                </tr>
+                                            ))}
+                                        </tbody>
+                                    </table>
+                                </div>
+
+                                <div className={styles.mobileList}>
+                                    {medicamentos.map((medicamento) => (
+                                        <div
+                                            key={medicamento.id}
+                                            className={`${styles.mobileCard} ${styles.mobileCardClickable}`}
+                                            onClick={() => router.push(`/medicamentos/${medicamento.id}`)}
+                                        >
+                                            <div className={styles.mobileCardHeader}>
+                                                <strong>{medicamento.descricao}</strong>
+                                                <span className={styles.subText}>
+                                                    {medicamento.principioativo}
+                                                </span>
+                                            </div>
+                                            <p className={styles.mobileMeta}>
+                                                Criado em: {formatDate(medicamento.created)}
+                                            </p>
+                                            <div className={styles.mobileActions}>
+                                                {renderActions(medicamento)}
+                                            </div>
                                         </div>
-                                    </div>
-                                ))}
-                            </div>
-                            {pagination != null && (
-                                <PaginationBar
-                                    page={pagination.page}
-                                    totalPages={pagination.totalPages}
-                                    total={pagination.total}
-                                    disabled={loading}
+                                    ))}
+                                </div>
+
+                                <ListFooter
+                                    pagination={pagination}
+                                    pageSize={pageSize}
                                     onPageChange={setPage}
+                                    onPageSizeChange={setPageSize}
+                                    disabled={loading}
                                 />
-                            )}
                             </>
                         )}
                     </div>
@@ -306,4 +277,3 @@ export default function MedicamentosListPage() {
         </WithPermission>
     );
 }
-

@@ -1,5 +1,6 @@
 import { Request, Response } from "express";
 import { parsePaginationParams, paginatedResponse } from "../utils/pagination";
+import { parseSortField, parseSortOrder } from "../utils/sorting";
 import { CreateRetiradaModel, ListRetiradasModel, GetRetiradaModel, UpdateRetiradaModel, DeleteRetiradaModel } from "../models/retiradasModels";
 
 class CreateRetiradaController {
@@ -31,8 +32,15 @@ class ListRetiradasController {
     async handle(req: Request, res: Response) {
         try {
             const p = parsePaginationParams(req.query);
+            const q = req.query.q ? String(req.query.q) : undefined;
+            const sortBy = parseSortField(
+                req.query.sortBy ? String(req.query.sortBy) : undefined,
+                ["created", "qtde"] as const,
+                "created"
+            );
+            const sortOrder = parseSortOrder(req.query.sortOrder ? String(req.query.sortOrder) : undefined);
             const listRetiradasModel = new ListRetiradasModel();
-            const { items, total } = await listRetiradasModel.execute(p);
+            const { items, total } = await listRetiradasModel.execute(p, { q, sortBy, sortOrder });
 
             return res.status(200).json(paginatedResponse(items, total, p.page, p.pageSize));
         } catch (error: any) {

@@ -27,11 +27,19 @@ class CreateFormaFarmaceuticaModel {
 
 //Modelo de listar formas farmacêuticas
 class ListFormasFarmaceuticasModel {
-    async execute(p: ParsedPagination) {
-        const orderBy = { descricao: 'asc' as const };
+    async execute(
+        p: ParsedPagination,
+        opts?: { q?: string; sortBy?: "descricao" | "created"; sortOrder?: "asc" | "desc" }
+    ) {
+        const q = opts?.q?.trim();
+        const where = q ? { descricao: { contains: q, mode: "insensitive" as const } } : {};
+        const sortBy = opts?.sortBy || "descricao";
+        const sortOrder = opts?.sortOrder || "asc";
+        const orderBy = { [sortBy]: sortOrder } as Record<string, "asc" | "desc">;
         const [total, items] = await Promise.all([
-            prismaClient.formasFarmaceuticas.count(),
+            prismaClient.formasFarmaceuticas.count({ where }),
             prismaClient.formasFarmaceuticas.findMany({
+                where,
                 orderBy,
                 skip: p.skip,
                 take: p.take,

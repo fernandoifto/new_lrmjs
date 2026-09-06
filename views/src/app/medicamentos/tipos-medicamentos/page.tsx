@@ -9,17 +9,34 @@ import Menu from '../../components/menu';
 import WithPermission from '@/components/withPermission';
 import { usePermissions } from '@/hooks/usePermissions';
 import { FaTags, FaPlus, FaEye, FaEdit, FaTrash } from 'react-icons/fa';
-import styles from './page.module.css';
 import Link from 'next/link';
-import { LIST_PAGE_SIZE } from '@/lib/pagedApi';
 import type { PaginationMeta } from '@/lib/pagedApi';
-import { PaginationBar } from '@/components/PaginationBar';
+import {
+    ListPageHeader,
+    ListSearchToolbar,
+    ListFooter,
+    useDebouncedValue,
+    listStyles as styles,
+} from '@/components/list';
 
 interface TipoMedicamento {
     id: number;
     descricao: string;
     created: string;
     modified: string;
+}
+
+const SORT_OPTIONS = [
+    { value: 'descricao', label: 'Descrição' },
+    { value: 'created', label: 'Data de criação' },
+];
+
+function formatDate(dateString: string) {
+    return new Date(dateString).toLocaleDateString('pt-BR', {
+        day: '2-digit',
+        month: '2-digit',
+        year: 'numeric',
+    });
 }
 
 export default function TiposMedicamentosNestedListPage() {
@@ -29,25 +46,38 @@ export default function TiposMedicamentosNestedListPage() {
     const [loading, setLoading] = useState(true);
     const [mounted, setMounted] = useState(false);
     const [page, setPage] = useState(1);
+    const [pageSize, setPageSize] = useState(20);
     const [pagination, setPagination] = useState<PaginationMeta | null>(null);
+    const [searchTerm, setSearchTerm] = useState('');
+    const [sortBy, setSortBy] = useState('descricao');
+    const [sortOrder, setSortOrder] = useState<'asc' | 'desc'>('asc');
+    const activeSearchTerm = useDebouncedValue(searchTerm);
 
     useEffect(() => {
         setMounted(true);
     }, []);
 
     useEffect(() => {
+        setPage(1);
+    }, [activeSearchTerm, sortBy, sortOrder, pageSize]);
+
+    useEffect(() => {
         if (!mounted) return;
         loadTiposMedicamentos();
-    }, [mounted, page]);
+    }, [mounted, page, activeSearchTerm, sortBy, sortOrder, pageSize]);
 
     const loadTiposMedicamentos = async () => {
         try {
             setLoading(true);
-
             const response = await api.get('/tipos-medicamentos', {
-                params: { page, pageSize: LIST_PAGE_SIZE },
+                params: {
+                    page,
+                    pageSize,
+                    sortBy,
+                    sortOrder,
+                    ...(activeSearchTerm.trim() ? { q: activeSearchTerm.trim() } : {}),
+                },
             });
-
             setTiposMedicamentos(response.data.data);
             setPagination(response.data.pagination);
         } catch (error: any) {
@@ -64,13 +94,9 @@ export default function TiposMedicamentosNestedListPage() {
     };
 
     const handleDelete = async (id: number, descricao: string) => {
-        if (!confirm(`Tem certeza que deseja excluir o tipo "${descricao}"?`)) {
-            return;
-        }
-
+        if (!confirm(`Tem certeza que deseja excluir o tipo "${descricao}"?`)) return;
         try {
             await api.delete(`/tipo-medicamento/${id}`, {});
-
             toast.success('Tipo de medicamento excluído com sucesso!');
             loadTiposMedicamentos();
         } catch (error: any) {
@@ -84,18 +110,40 @@ export default function TiposMedicamentosNestedListPage() {
         }
     };
 
-    const formatDate = (dateString: string) => {
-        const date = new Date(dateString);
-        return date.toLocaleDateString('pt-BR', {
-            day: '2-digit',
-            month: '2-digit',
-            year: 'numeric'
-        });
-    };
+    const renderActions = (tipo: TipoMedicamento) => (
+        <div className={styles.actions} onClick={(e) => e.stopPropagation()}>
+            {hasPermission('tipos_medicamentos.ver') && (
+                <Link
+                    href={`/medicamentos/tipos-medicamentos/${tipo.id}`}
+                    className={styles.btnIcon}
+                    title="Ver detalhes"
+                >
+                    <FaEye size={14} />
+                </Link>
+            )}
+            {hasPermission('tipos_medicamentos.editar') && (
+                <Link
+                    href={`/medicamentos/tipos-medicamentos/${tipo.id}/editar`}
+                    className={`${styles.btnIcon} ${styles.btnIconEdit}`}
+                    title="Editar"
+                >
+                    <FaEdit size={14} />
+                </Link>
+            )}
+            {hasPermission('tipos_medicamentos.excluir') && (
+                <button
+                    type="button"
+                    onClick={() => handleDelete(tipo.id, tipo.descricao)}
+                    className={`${styles.btnIcon} ${styles.btnIconDelete}`}
+                    title="Excluir"
+                >
+                    <FaTrash size={14} />
+                </button>
+            )}
+        </div>
+    );
 
-    if (!mounted) {
-        return null;
-    }
+    if (!mounted) return null;
 
     return (
         <WithPermission requiredPermission="tipos_medicamentos.ver">
@@ -104,36 +152,43 @@ export default function TiposMedicamentosNestedListPage() {
             <main className={styles.main}>
                 <div className={styles.container}>
                     <div className={styles.contentWrapper}>
-                        <div className={styles.header}>
-                            <div className={styles.headerContent}>
-                                <div className={styles.headerIcon}>
-                                    <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                                        <path d="M19.5 14.25v-2.625a3.375 3.375 0 00-3.375-3.375h-1.5A1.125 1.125 0 0113.5 7.125v-1.5a3.375 3.375 0 00-3.375-3.375H8.25m0 12.75h7.5m-7.5 3H12M10.5 2.25H5.625c-.621 0-1.125.504-1.125 1.125v17.25c0 .621.504 1.125 1.125 1.125h12.75c.621 0 1.125-.504 1.125-1.125V11.25a9 9 0 00-9-9z" />
-                                    </svg>
-                                </div>
-                                <div>
-                                    <h1>Tipos de Medicamentos</h1>
-                                    <p>Gerencie os tipos de medicamentos do sistema</p>
-                                </div>
-                            </div>
-                            {hasPermission('tipos_medicamentos.criar') && (
-                                <Link href="/medicamentos/tipos-medicamentos/novo" className={styles.btnNew}>
-                                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                                        <path d="M12 5v14m7-7H5" />
-                                    </svg>
-                                    Novo Tipo
-                                </Link>
-                            )}
-                        </div>
+                        <ListPageHeader
+                            icon={<FaTags size={24} />}
+                            title="Tipos de Medicamentos"
+                            subtitle="Gerencie os tipos de medicamentos do sistema"
+                            actions={
+                                hasPermission('tipos_medicamentos.criar') ? (
+                                    <Link href="/medicamentos/tipos-medicamentos/novo" className={styles.btnNew}>
+                                        <FaPlus size={16} />
+                                        Novo Tipo
+                                    </Link>
+                                ) : null
+                            }
+                        />
+
+                        <ListSearchToolbar
+                            value={searchTerm}
+                            onChange={setSearchTerm}
+                            placeholder="Buscar por descrição…"
+                            sortOptions={SORT_OPTIONS}
+                            sortBy={sortBy}
+                            sortOrder={sortOrder}
+                            onSortByChange={setSortBy}
+                            onSortOrderToggle={() => setSortOrder((o) => (o === 'asc' ? 'desc' : 'asc'))}
+                        />
 
                         {loading ? (
-                            <div className={styles.loadingContainer}>
-                                <p>Carregando...</p>
+                            <div className={styles.loading}>
+                                <p>Carregando tipos de medicamentos…</p>
                             </div>
                         ) : tiposMedicamentos.length === 0 ? (
-                            <div className={styles.emptyState}>
-                                <p>Nenhum tipo cadastrado</p>
-                                {hasPermission('tipos_medicamentos.criar') && (
+                            <div className={styles.empty}>
+                                <p>
+                                    {activeSearchTerm
+                                        ? 'Nenhum tipo encontrado com os critérios de busca'
+                                        : 'Nenhum tipo cadastrado'}
+                                </p>
+                                {!activeSearchTerm && hasPermission('tipos_medicamentos.criar') && (
                                     <Link href="/medicamentos/tipos-medicamentos/novo" className={styles.btnNew}>
                                         Cadastrar primeiro tipo
                                     </Link>
@@ -141,60 +196,60 @@ export default function TiposMedicamentosNestedListPage() {
                             </div>
                         ) : (
                             <>
-                            <div className={styles.grid}>
-                                {tiposMedicamentos.map((tipo) => (
-                                    <div key={tipo.id} className={styles.card}>
-                                        <div className={styles.cardHeader}>
-                                            <div className={styles.cardIcon}>
-                                                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                                                    <path d="M19.5 14.25v-2.625a3.375 3.375 0 00-3.375-3.375h-1.5A1.125 1.125 0 0113.5 7.125v-1.5a3.375 3.375 0 00-3.375-3.375H8.25m0 12.75h7.5m-7.5 3H12M10.5 2.25H5.625c-.621 0-1.125.504-1.125 1.125v17.25c0 .621.504 1.125 1.125 1.125h12.75c.621 0 1.125-.504 1.125-1.125V11.25a9 9 0 00-9-9z" />
-                                                </svg>
-                                            </div>
-                                            <h3>{tipo.descricao}</h3>
-                                        </div>
-                                        <div className={styles.cardBody}>
-                                            <div className={styles.infoRow}>
-                                                <span className={styles.label}>Criado em:</span>
-                                                <span>{formatDate(tipo.created)}</span>
-                                            </div>
-                                            <div className={styles.infoRow}>
-                                                <span className={styles.label}>Modificado em:</span>
-                                                <span>{formatDate(tipo.modified)}</span>
-                                            </div>
-                                        </div>
-                                        <div className={styles.cardFooter}>
-                                            {hasPermission('tipos_medicamentos.ver') && (
-                                                <Link href={`/medicamentos/tipos-medicamentos/${tipo.id}`} className={styles.btnView} title="Ver detalhes">
-                                                    <FaEye size={16} />
-                                                </Link>
-                                            )}
-                                            {hasPermission('tipos_medicamentos.editar') && (
-                                                <Link href={`/medicamentos/tipos-medicamentos/${tipo.id}/editar`} className={styles.btnEdit} title="Editar">
-                                                    <FaEdit size={16} />
-                                                </Link>
-                                            )}
-                                            {hasPermission('tipos_medicamentos.excluir') && (
-                                                <button
-                                                    onClick={() => handleDelete(tipo.id, tipo.descricao)}
-                                                    className={styles.btnDelete}
-                                                    title="Excluir"
+                                <div className={styles.tableWrap}>
+                                    <table className={styles.table}>
+                                        <thead>
+                                            <tr>
+                                                <th>Descrição</th>
+                                                <th>Criado em</th>
+                                                <th className={styles.actionsCol}>Ações</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody>
+                                            {tiposMedicamentos.map((tipo) => (
+                                                <tr
+                                                    key={tipo.id}
+                                                    className={styles.row}
+                                                    onClick={() =>
+                                                        router.push(`/medicamentos/tipos-medicamentos/${tipo.id}`)
+                                                    }
                                                 >
-                                                    <FaTrash size={16} />
-                                                </button>
-                                            )}
+                                                    <td>
+                                                        <strong className={styles.primaryText}>{tipo.descricao}</strong>
+                                                    </td>
+                                                    <td>{formatDate(tipo.created)}</td>
+                                                    <td className={styles.actionsCol}>{renderActions(tipo)}</td>
+                                                </tr>
+                                            ))}
+                                        </tbody>
+                                    </table>
+                                </div>
+
+                                <div className={styles.mobileList}>
+                                    {tiposMedicamentos.map((tipo) => (
+                                        <div
+                                            key={tipo.id}
+                                            className={`${styles.mobileCard} ${styles.mobileCardClickable}`}
+                                            onClick={() =>
+                                                router.push(`/medicamentos/tipos-medicamentos/${tipo.id}`)
+                                            }
+                                        >
+                                            <div className={styles.mobileCardHeader}>
+                                                <strong>{tipo.descricao}</strong>
+                                                <span className={styles.subText}>{formatDate(tipo.created)}</span>
+                                            </div>
+                                            <div className={styles.mobileActions}>{renderActions(tipo)}</div>
                                         </div>
-                                    </div>
-                                ))}
-                            </div>
-                            {pagination != null && (
-                                <PaginationBar
-                                    page={pagination.page}
-                                    totalPages={pagination.totalPages}
-                                    total={pagination.total}
-                                    disabled={loading}
+                                    ))}
+                                </div>
+
+                                <ListFooter
+                                    pagination={pagination}
+                                    pageSize={pageSize}
                                     onPageChange={setPage}
+                                    onPageSizeChange={setPageSize}
+                                    disabled={loading}
                                 />
-                            )}
                             </>
                         )}
                     </div>

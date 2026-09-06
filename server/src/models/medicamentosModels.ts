@@ -3,7 +3,8 @@ import type { ParsedPagination } from "../utils/pagination";
 
 export interface ListMedicamentosFilter {
     q?: string;
-    campo?: string;
+    sortBy?: "descricao" | "principioativo" | "created";
+    sortOrder?: "asc" | "desc";
 }
 
 interface IMedicamento {
@@ -40,15 +41,18 @@ class CreateMedicamentoModel {
 //Modelo de listar medicamentos
 class ListMedicamentosModel {
     async execute(p: ParsedPagination, opts?: ListMedicamentosFilter) {
-        const orderBy = { descricao: 'asc' as const };
+        const sortBy = opts?.sortBy || "descricao";
+        const sortOrder = opts?.sortOrder || "asc";
+        const orderBy = { [sortBy]: sortOrder } as Record<string, "asc" | "desc">;
         const q = opts?.q?.trim();
-        const campo = opts?.campo === "principioativo" ? "principioativo" : "descricao";
-        const where =
-            q && campo === "principioativo"
-                ? { principioativo: { contains: q, mode: "insensitive" as const } }
-                : q
-                  ? { descricao: { contains: q, mode: "insensitive" as const } }
-                  : {};
+        const where = q
+            ? {
+                  OR: [
+                      { descricao: { contains: q, mode: "insensitive" as const } },
+                      { principioativo: { contains: q, mode: "insensitive" as const } },
+                  ],
+              }
+            : {};
         const [total, items] = await Promise.all([
             prismaClient.medicamentos.count({ where }),
             prismaClient.medicamentos.findMany({

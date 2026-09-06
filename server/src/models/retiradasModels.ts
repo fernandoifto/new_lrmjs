@@ -116,7 +116,14 @@ class CreateRetiradaModel {
 
 //Modelo de listar retiradas
 class ListRetiradasModel {
-    async execute(p: ParsedPagination) {
+    async execute(
+        p: ParsedPagination,
+        opts?: {
+            q?: string;
+            sortBy?: "created" | "qtde";
+            sortOrder?: "asc" | "desc";
+        }
+    ) {
         const base = {
             include: {
                 lotes: {
@@ -136,13 +143,33 @@ class ListRetiradasModel {
                 }
             },
             orderBy: {
-                created: 'desc' as const
-            }
+                [(opts?.sortBy || "created")]: (opts?.sortOrder || "desc")
+            } as Record<string, "asc" | "desc">
         };
+
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        let where: any = {};
+        const q = opts?.q?.trim();
+        if (q) {
+            const digits = q.replace(/\D/g, "");
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any
+            const OR: any[] = [
+                { paciente: { nome: { contains: q, mode: "insensitive" } } },
+                { lotes: { numero: { contains: q, mode: "insensitive" } } },
+                { lotes: { medicamento: { descricao: { contains: q, mode: "insensitive" } } } },
+                { user: { username: { contains: q, mode: "insensitive" } } },
+            ];
+            if (digits.length > 0) {
+                OR.push({ paciente: { cpf: { contains: digits } } });
+            }
+            where = { OR };
+        }
+
         const [total, items] = await Promise.all([
-            prismaClient.retiradas.count(),
+            prismaClient.retiradas.count({ where }),
             prismaClient.retiradas.findMany({
                 ...base,
+                where,
                 skip: p.skip,
                 take: p.take,
             }),

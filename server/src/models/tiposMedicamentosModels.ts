@@ -27,8 +27,13 @@ class CreateTipoMedicamentoModel {
 
 //Modelo de listar tipos de medicamentos
 class ListTiposMedicamentosModel {
-    async execute(p: ParsedPagination, opts?: { q?: string }) {
-        const orderBy = { descricao: 'asc' as const };
+    async execute(
+        p: ParsedPagination,
+        opts?: { q?: string; sortBy?: "descricao" | "created"; sortOrder?: "asc" | "desc" }
+    ) {
+        const sortBy = opts?.sortBy || "descricao";
+        const sortOrder = opts?.sortOrder || "asc";
+        const orderBy = { [sortBy]: sortOrder } as Record<string, "asc" | "desc">;
         const q = opts?.q?.trim();
         const where = q ? { descricao: { contains: q, mode: 'insensitive' as const } } : {};
         const [total, items] = await Promise.all([

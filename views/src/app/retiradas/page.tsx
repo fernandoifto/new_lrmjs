@@ -8,13 +8,17 @@ import Header from '../home/components/header';
 import Menu from '../components/menu';
 import WithPermission from '@/components/withPermission';
 import { usePermissions } from '@/hooks/usePermissions';
-import { FaHandHoldingHeart, FaFilePdf, FaPlus, FaSearch, FaTimes, FaEye, FaEdit, FaTrash } from 'react-icons/fa';
-import styles from './page.module.css';
+import { FaHandHoldingHeart, FaFilePdf, FaPlus, FaEye, FaEdit, FaTrash } from 'react-icons/fa';
 import Link from 'next/link';
 import jsPDF from 'jspdf';
-import { LIST_PAGE_SIZE } from '@/lib/pagedApi';
 import type { PaginationMeta } from '@/lib/pagedApi';
-import { PaginationBar } from '@/components/PaginationBar';
+import {
+    ListPageHeader,
+    ListSearchToolbar,
+    ListFooter,
+    useDebouncedValue,
+    listStyles as styles,
+} from '@/components/list';
 
 interface Retirada {
     id: number;
@@ -40,41 +44,68 @@ interface Retirada {
     };
 }
 
+const SORT_OPTIONS = [
+    { value: 'created', label: 'Data de criação' },
+    { value: 'qtde', label: 'Quantidade' },
+];
+
+function formatDate(dateString: string) {
+    return new Date(dateString).toLocaleDateString('pt-BR', {
+        day: '2-digit',
+        month: '2-digit',
+        year: 'numeric',
+        hour: '2-digit',
+        minute: '2-digit',
+    });
+}
+
+function formatCPF(cpf: string) {
+    const cleaned = cpf.replace(/\D/g, '');
+    if (cleaned.length === 11) {
+        return cleaned.replace(/(\d{3})(\d{3})(\d{3})(\d{2})/, '$1.$2.$3-$4');
+    }
+    return cpf;
+}
+
 export default function RetiradasPage() {
     const router = useRouter();
     const { hasPermission } = usePermissions();
     const [retiradas, setRetiradas] = useState<Retirada[]>([]);
-    const [filteredRetiradas, setFilteredRetiradas] = useState<Retirada[]>([]);
     const [loading, setLoading] = useState(true);
     const [mounted, setMounted] = useState(false);
     const [page, setPage] = useState(1);
+    const [pageSize, setPageSize] = useState(20);
     const [pagination, setPagination] = useState<PaginationMeta | null>(null);
     const [searchTerm, setSearchTerm] = useState('');
-    const [searchOption, setSearchOption] = useState('paciente');
-    const [activeSearchTerm, setActiveSearchTerm] = useState('');
-    const [activeSearchOption, setActiveSearchOption] = useState('paciente');
+    const [sortBy, setSortBy] = useState('created');
+    const [sortOrder, setSortOrder] = useState<'asc' | 'desc'>('desc');
+    const activeSearchTerm = useDebouncedValue(searchTerm);
 
     useEffect(() => {
         setMounted(true);
     }, []);
 
     useEffect(() => {
-        if (!mounted) return;
-        loadRetiradas();
-    }, [mounted, page]);
+        setPage(1);
+    }, [activeSearchTerm, sortBy, sortOrder, pageSize]);
 
     useEffect(() => {
-        filterRetiradas();
-    }, [retiradas, activeSearchTerm, activeSearchOption]);
+        if (!mounted) return;
+        loadRetiradas();
+    }, [mounted, page, activeSearchTerm, sortBy, sortOrder, pageSize]);
 
     const loadRetiradas = async () => {
         try {
             setLoading(true);
-
             const response = await api.get('/retiradas', {
-                params: { page, pageSize: LIST_PAGE_SIZE },
+                params: {
+                    page,
+                    pageSize,
+                    sortBy,
+                    sortOrder,
+                    ...(activeSearchTerm.trim() ? { q: activeSearchTerm.trim() } : {}),
+                },
             });
-
             setRetiradas(response.data.data);
             setPagination(response.data.pagination);
         } catch (error: any) {
@@ -90,68 +121,17 @@ export default function RetiradasPage() {
         }
     };
 
-    const formatDate = (dateString: string) => {
-        const date = new Date(dateString);
-        return date.toLocaleDateString('pt-BR', {
-            day: '2-digit',
-            month: '2-digit',
-            year: 'numeric',
-            hour: '2-digit',
-            minute: '2-digit'
-        });
-    };
-
-    const formatCPF = (cpf: string) => {
-        const cleaned = cpf.replace(/\D/g, '');
-        if (cleaned.length === 11) {
-            return cleaned.replace(/(\d{3})(\d{3})(\d{3})(\d{2})/, '$1.$2.$3-$4');
-        }
-        return cpf;
-    };
-
-    const filterRetiradas = () => {
-        let filtered = [...retiradas];
-        
-        if (activeSearchTerm.trim() !== '') {
-            const searchLower = activeSearchTerm.toLowerCase().trim();
-            filtered = filtered.filter(retirada => {
-                switch (activeSearchOption) {
-                    case 'paciente':
-                        return retirada.paciente.nome.toLowerCase().includes(searchLower);
-                    case 'cpf':
-                        return retirada.paciente.cpf.replace(/\D/g, '').includes(searchLower.replace(/\D/g, ''));
-                    case 'medicamento':
-                        return retirada.lotes.medicamento.descricao.toLowerCase().includes(searchLower);
-                    case 'lote':
-                        return retirada.lotes.numero.toLowerCase().includes(searchLower);
-                    case 'usuario':
-                        return retirada.user.username.toLowerCase().includes(searchLower);
-                    default:
-                        return true;
-                }
-            });
-        }
-        
-        setFilteredRetiradas(filtered);
-    };
-
-    const handleSearch = () => {
-        setActiveSearchTerm(searchTerm);
-        setActiveSearchOption(searchOption);
-        setPage(1);
-    };
-
-    const handleClearSearch = () => {
-        setSearchTerm('');
-        setActiveSearchTerm('');
-        setActiveSearchOption('paciente');
-        setSearchOption('paciente');
-        setPage(1);
-    };
-
     const handleGeneratePDF = async () => {
         try {
-            const pdfRes = await api.get('/retiradas', { params: { page: 1, pageSize: 200 } });
+            const pdfRes = await api.get('/retiradas', {
+                params: {
+                    page: 1,
+                    pageSize: 200,
+                    sortBy,
+                    sortOrder,
+                    ...(activeSearchTerm.trim() ? { q: activeSearchTerm.trim() } : {}),
+                },
+            });
             const rows = pdfRes.data.data as Retirada[];
 
             const doc = new jsPDF('landscape', 'mm', 'a4');
@@ -173,21 +153,14 @@ export default function RetiradasPage() {
                 month: '2-digit',
                 year: 'numeric',
                 hour: '2-digit',
-                minute: '2-digit'
+                minute: '2-digit',
             });
             doc.text(`Gerado em: ${dataGeracao}`, pageWidth / 2, y, { align: 'center' });
             y += 10;
 
             if (activeSearchTerm) {
                 doc.setFontSize(10);
-                const campoBusca = {
-                    'paciente': 'Paciente',
-                    'cpf': 'CPF',
-                    'medicamento': 'Medicamento',
-                    'lote': 'Lote',
-                    'usuario': 'Usuário'
-                }[activeSearchOption] || 'Campo';
-                doc.text(`Busca: ${campoBusca} - "${activeSearchTerm}"`, margin, y);
+                doc.text(`Busca: "${activeSearchTerm}"`, margin, y);
                 y += 5;
             }
             y += 5;
@@ -210,12 +183,12 @@ export default function RetiradasPage() {
 
             doc.setFontSize(8);
             doc.setFont('helvetica', 'normal');
-            
+
             rows.forEach((retirada) => {
                 if (y > pageHeight - 20) {
                     doc.addPage();
                     y = startY;
-                    
+
                     doc.setFontSize(9);
                     doc.setFont('helvetica', 'bold');
                     x = margin;
@@ -238,7 +211,7 @@ export default function RetiradasPage() {
                     retirada.lotes.medicamento.descricao || '',
                     retirada.lotes.numero || '',
                     retirada.qtde.toString() || '',
-                    retirada.user.username || ''
+                    retirada.user.username || '',
                 ];
 
                 rowData.forEach((data, idx) => {
@@ -264,7 +237,7 @@ export default function RetiradasPage() {
 
             const fileName = `retiradas_${new Date().toISOString().split('T')[0]}.pdf`;
             doc.save(fileName);
-            
+
             toast.success('PDF gerado com sucesso!');
         } catch (error) {
             console.error('Erro ao gerar PDF:', error);
@@ -278,9 +251,7 @@ export default function RetiradasPage() {
         }
 
         try {
-
             await api.delete(`/retirada/${id}`, {});
-
             toast.success('Retirada excluída com sucesso e estoque revertido!');
             loadRetiradas();
         } catch (error: any) {
@@ -294,9 +265,36 @@ export default function RetiradasPage() {
         }
     };
 
-    if (!mounted) {
-        return null;
-    }
+    const renderActions = (retirada: Retirada) => (
+        <div className={styles.actions} onClick={(e) => e.stopPropagation()}>
+            {hasPermission('retiradas.ver') && (
+                <Link href={`/retiradas/${retirada.id}`} className={styles.btnIcon} title="Ver detalhes">
+                    <FaEye size={14} />
+                </Link>
+            )}
+            {hasPermission('retiradas.editar') && (
+                <Link
+                    href={`/retiradas/${retirada.id}/editar`}
+                    className={`${styles.btnIcon} ${styles.btnIconEdit}`}
+                    title="Editar"
+                >
+                    <FaEdit size={14} />
+                </Link>
+            )}
+            {hasPermission('retiradas.excluir') && (
+                <button
+                    type="button"
+                    onClick={() => handleDelete(retirada.id)}
+                    className={`${styles.btnIcon} ${styles.btnIconDelete}`}
+                    title="Excluir"
+                >
+                    <FaTrash size={14} />
+                </button>
+            )}
+        </div>
+    );
+
+    if (!mounted) return null;
 
     return (
         <WithPermission requiredPermission="retiradas.ver">
@@ -305,235 +303,135 @@ export default function RetiradasPage() {
             <main className={styles.main}>
                 <div className={styles.container}>
                     <div className={styles.contentWrapper}>
-                        <div className={styles.header}>
-                            <div className={styles.headerContent}>
-                                <div className={styles.headerIcon}>
-                                    <FaHandHoldingHeart size={24} />
-                                </div>
-                                <div>
-                                    <h1>Doações e Retiradas</h1>
-                                    <p>Gerencie as doações e retiradas de medicamentos</p>
-                                </div>
-                            </div>
-                            <div className={styles.headerActions}>
-                                {filteredRetiradas.length > 0 && (
-                                    <button
-                                        onClick={handleGeneratePDF}
-                                        className={styles.btnPDF}
-                                        title="Gerar PDF das retiradas listadas"
-                                    >
-                                        <FaFilePdf size={20} />
-                                        Gerar PDF
-                                    </button>
-                                )}
-                                {hasPermission('retiradas.criar') && (
-                                    <Link href="/retiradas/novo" className={styles.btnNew}>
-                                        <FaPlus size={20} />
-                                        Nova Retirada
-                                    </Link>
-                                )}
-                            </div>
-                        </div>
-
-                        {/* Campo de Busca */}
-                        <div className={styles.searchContainer}>
-                            <div className={styles.searchPanel}>
-                                <div className={styles.searchHeader}>
-                                    <b>Buscar por:</b>
-                                    <div className={styles.searchOptions}>
-                                        <label className={styles.radioOption}>
-                                            <input
-                                                type="radio"
-                                                name="searchOption"
-                                                value="paciente"
-                                                checked={searchOption === 'paciente'}
-                                                onChange={(e) => setSearchOption(e.target.value)}
-                                            />
-                                            <span>Paciente</span>
-                                        </label>
-                                        <label className={styles.radioOption}>
-                                            <input
-                                                type="radio"
-                                                name="searchOption"
-                                                value="cpf"
-                                                checked={searchOption === 'cpf'}
-                                                onChange={(e) => setSearchOption(e.target.value)}
-                                            />
-                                            <span>CPF</span>
-                                        </label>
-                                        <label className={styles.radioOption}>
-                                            <input
-                                                type="radio"
-                                                name="searchOption"
-                                                value="medicamento"
-                                                checked={searchOption === 'medicamento'}
-                                                onChange={(e) => setSearchOption(e.target.value)}
-                                            />
-                                            <span>Medicamento</span>
-                                        </label>
-                                        <label className={styles.radioOption}>
-                                            <input
-                                                type="radio"
-                                                name="searchOption"
-                                                value="lote"
-                                                checked={searchOption === 'lote'}
-                                                onChange={(e) => setSearchOption(e.target.value)}
-                                            />
-                                            <span>Lote</span>
-                                        </label>
-                                        <label className={styles.radioOption}>
-                                            <input
-                                                type="radio"
-                                                name="searchOption"
-                                                value="usuario"
-                                                checked={searchOption === 'usuario'}
-                                                onChange={(e) => setSearchOption(e.target.value)}
-                                            />
-                                            <span>Usuário</span>
-                                        </label>
-                                    </div>
-                                </div>
-                                <div className={styles.searchBody}>
-                                    <div className={styles.searchBox}>
-                                        <FaSearch size={20} className={styles.searchIcon} />
-                                        <input
-                                            type="text"
-                                            placeholder="Digite aqui sua pesquisa"
-                                            value={searchTerm}
-                                            onChange={(e) => setSearchTerm(e.target.value)}
-                                            onKeyPress={(e) => {
-                                                if (e.key === 'Enter') {
-                                                    handleSearch();
-                                                }
-                                            }}
-                                            className={styles.searchInput}
-                                        />
-                                        {searchTerm && (
-                                            <button
-                                                onClick={handleClearSearch}
-                                                className={styles.clearButton}
-                                                title="Limpar busca"
-                                            >
-                                                <FaTimes size={18} />
-                                            </button>
-                                        )}
-                                    </div>
-                                    <button
-                                        onClick={handleSearch}
-                                        className={styles.searchButton}
-                                        title="Buscar"
-                                    >
-                                        <FaSearch size={20} />
-                                        Buscar
-                                    </button>
-                                    {activeSearchTerm && (
-                                        <div className={styles.searchResults}>
-                                            {filteredRetiradas.length > 0 ? (
-                                                <span>{pagination?.total ?? filteredRetiradas.length} resultado(s) na lista</span>
-                                            ) : (
-                                                <span>Nenhum resultado encontrado</span>
-                                            )}
-                                        </div>
+                        <ListPageHeader
+                            icon={<FaHandHoldingHeart size={24} />}
+                            title="Doações e Retiradas"
+                            subtitle="Gerencie as doações e retiradas de medicamentos"
+                            actions={
+                                <>
+                                    {pagination != null && pagination.total > 0 && (
+                                        <button
+                                            type="button"
+                                            onClick={handleGeneratePDF}
+                                            className={styles.btnPDF}
+                                            title="Gerar PDF das retiradas listadas"
+                                        >
+                                            <FaFilePdf size={16} />
+                                            Gerar PDF
+                                        </button>
                                     )}
-                                </div>
-                            </div>
-                        </div>
+                                    {hasPermission('retiradas.criar') && (
+                                        <Link href="/retiradas/novo" className={styles.btnNew}>
+                                            <FaPlus size={16} />
+                                            Nova Retirada
+                                        </Link>
+                                    )}
+                                </>
+                            }
+                        />
+
+                        <ListSearchToolbar
+                            value={searchTerm}
+                            onChange={setSearchTerm}
+                            placeholder="Buscar por paciente, CPF, medicamento, lote ou usuário…"
+                            sortOptions={SORT_OPTIONS}
+                            sortBy={sortBy}
+                            sortOrder={sortOrder}
+                            onSortByChange={setSortBy}
+                            onSortOrderToggle={() => setSortOrder((o) => (o === 'asc' ? 'desc' : 'asc'))}
+                        />
 
                         {loading ? (
-                            <div className={styles.loadingContainer}>
-                                <p>Carregando retiradas...</p>
+                            <div className={styles.loading}>
+                                <p>Carregando retiradas…</p>
                             </div>
-                        ) : filteredRetiradas.length === 0 ? (
-                            <div className={styles.emptyState}>
+                        ) : retiradas.length === 0 ? (
+                            <div className={styles.empty}>
                                 <p>
-                                    {activeSearchTerm 
-                                        ? 'Nenhuma retirada encontrada com os critérios de busca' 
+                                    {activeSearchTerm
+                                        ? 'Nenhuma retirada encontrada com os critérios de busca'
                                         : 'Nenhuma retirada registrada'}
                                 </p>
                                 {!activeSearchTerm && hasPermission('retiradas.criar') && (
                                     <Link href="/retiradas/novo" className={styles.btnNew}>
-                                        Registrar Primeira Retirada
+                                        Registrar primeira retirada
                                     </Link>
                                 )}
                             </div>
                         ) : (
                             <>
-                            <div className={styles.grid}>
-                                {filteredRetiradas.map((retirada) => (
-                                    <div key={retirada.id} className={styles.card}>
-                                        <div className={styles.cardHeader}>
-                                            <div className={styles.cardIcon}>
-                                                <FaHandHoldingHeart size={20} />
-                                            </div>
-                                            <h3>Retirada #{retirada.id}</h3>
-                                        </div>
-                                        <div className={styles.cardBody}>
-                                            <div className={styles.infoRow}>
-                                                <span className={styles.label}>Paciente:</span>
-                                                <span>{retirada.paciente.nome}</span>
-                                            </div>
-                                            <div className={styles.infoRow}>
-                                                <span className={styles.label}>CPF:</span>
-                                                <span>{formatCPF(retirada.paciente.cpf)}</span>
-                                            </div>
-                                            <div className={styles.infoRow}>
-                                                <span className={styles.label}>Medicamento:</span>
-                                                <span>{retirada.lotes.medicamento.descricao}</span>
-                                            </div>
-                                            <div className={styles.infoRow}>
-                                                <span className={styles.label}>Forma Farmacêutica:</span>
-                                                <span>{retirada.lotes.formaFarmaceutica.descricao}</span>
-                                            </div>
-                                            <div className={styles.infoRow}>
-                                                <span className={styles.label}>Lote:</span>
-                                                <span>{retirada.lotes.numero}</span>
-                                            </div>
-                                            <div className={styles.infoRow}>
-                                                <span className={styles.label}>Quantidade:</span>
-                                                <span>{retirada.qtde}</span>
-                                            </div>
-                                            <div className={styles.infoRow}>
-                                                <span className={styles.label}>Data:</span>
-                                                <span>{formatDate(retirada.created || '')}</span>
-                                            </div>
-                                            <div className={styles.infoRow}>
-                                                <span className={styles.label}>Registrado por:</span>
-                                                <span>{retirada.user.username}</span>
-                                            </div>
-                                        </div>
-                                        <div className={styles.cardFooter}>
-                                            {hasPermission('retiradas.ver') && (
-                                                <Link href={`/retiradas/${retirada.id}`} className={styles.btnView} title="Ver detalhes">
-                                                    <FaEye size={16} />
-                                                </Link>
-                                            )}
-                                            {hasPermission('retiradas.editar') && (
-                                                <Link href={`/retiradas/${retirada.id}/editar`} className={styles.btnEdit} title="Editar">
-                                                    <FaEdit size={16} />
-                                                </Link>
-                                            )}
-                                            {hasPermission('retiradas.excluir') && (
-                                                <button
-                                                    onClick={() => handleDelete(retirada.id)}
-                                                    className={styles.btnDelete}
-                                                    title="Excluir"
+                                <div className={styles.tableWrap}>
+                                    <table className={styles.table}>
+                                        <thead>
+                                            <tr>
+                                                <th>Data</th>
+                                                <th>Paciente</th>
+                                                <th>Medicamento</th>
+                                                <th className={styles.hideTablet}>Lote</th>
+                                                <th>Qtde</th>
+                                                <th className={styles.hideTablet}>Usuário</th>
+                                                <th className={styles.actionsCol}>Ações</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody>
+                                            {retiradas.map((retirada) => (
+                                                <tr
+                                                    key={retirada.id}
+                                                    className={styles.row}
+                                                    onClick={() => router.push(`/retiradas/${retirada.id}`)}
                                                 >
-                                                    <FaTrash size={16} />
-                                                </button>
-                                            )}
+                                                    <td>{formatDate(retirada.created || '')}</td>
+                                                    <td>
+                                                        <strong className={styles.primaryText}>
+                                                            {retirada.paciente.nome}
+                                                        </strong>
+                                                        <span className={styles.subText}>
+                                                            {formatCPF(retirada.paciente.cpf)}
+                                                        </span>
+                                                    </td>
+                                                    <td>{retirada.lotes.medicamento.descricao}</td>
+                                                    <td className={styles.hideTablet}>{retirada.lotes.numero}</td>
+                                                    <td>{retirada.qtde}</td>
+                                                    <td className={styles.hideTablet}>{retirada.user.username}</td>
+                                                    <td className={styles.actionsCol}>{renderActions(retirada)}</td>
+                                                </tr>
+                                            ))}
+                                        </tbody>
+                                    </table>
+                                </div>
+
+                                <div className={styles.mobileList}>
+                                    {retiradas.map((retirada) => (
+                                        <div
+                                            key={retirada.id}
+                                            className={`${styles.mobileCard} ${styles.mobileCardClickable}`}
+                                            onClick={() => router.push(`/retiradas/${retirada.id}`)}
+                                        >
+                                            <div className={styles.mobileCardHeader}>
+                                                <strong>{retirada.paciente.nome}</strong>
+                                                <span className={styles.subText}>
+                                                    {formatCPF(retirada.paciente.cpf)}
+                                                </span>
+                                            </div>
+                                            <p className={styles.mobileMeta}>
+                                                {retirada.lotes.medicamento.descricao} · Lote {retirada.lotes.numero}
+                                            </p>
+                                            <p className={styles.mobileMeta}>
+                                                {formatDate(retirada.created || '')} · Qtde {retirada.qtde} ·{' '}
+                                                {retirada.user.username}
+                                            </p>
+                                            <div className={styles.mobileActions}>{renderActions(retirada)}</div>
                                         </div>
-                                    </div>
-                                ))}
-                            </div>
-                            {pagination && (
-                                <PaginationBar
-                                    page={pagination.page}
-                                    totalPages={pagination.totalPages}
-                                    total={pagination.total}
+                                    ))}
+                                </div>
+
+                                <ListFooter
+                                    pagination={pagination}
+                                    pageSize={pageSize}
                                     onPageChange={setPage}
+                                    onPageSizeChange={setPageSize}
                                     disabled={loading}
                                 />
-                            )}
                             </>
                         )}
                     </div>
@@ -542,4 +440,3 @@ export default function RetiradasPage() {
         </WithPermission>
     );
 }
-

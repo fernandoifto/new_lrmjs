@@ -225,27 +225,53 @@ interface IUpdateUser {
 
 //Modelo de listar usuários
 class ListUsersModel {
-    async execute(p: ParsedPagination) {
-        const base = {
-            select: {
-                id: true,
-                username: true,
-                email: true,
-                created: true,
-                modified: true
-            },
-            orderBy: {
-                created: 'desc' as const
-            }
-        };
-        const [total, items] = await Promise.all([
-            prismaClient.users.count(),
+    async execute(
+        p: ParsedPagination,
+        opts?: { q?: string; sortBy?: "username" | "email" | "created"; sortOrder?: "asc" | "desc" }
+    ) {
+        const q = opts?.q?.trim();
+        const where = q
+            ? {
+                  OR: [
+                      { username: { contains: q, mode: "insensitive" as const } },
+                      { email: { contains: q, mode: "insensitive" as const } },
+                  ],
+              }
+            : {};
+        const sortBy = opts?.sortBy || "created";
+        const sortOrder = opts?.sortOrder || "desc";
+        const [total, rows] = await Promise.all([
+            prismaClient.users.count({ where }),
             prismaClient.users.findMany({
-                ...base,
+                where,
                 skip: p.skip,
                 take: p.take,
+                select: {
+                    id: true,
+                    username: true,
+                    email: true,
+                    created: true,
+                    modified: true,
+                    userRoles: {
+                        select: {
+                            role: {
+                                select: {
+                                    id: true,
+                                    nome: true,
+                                },
+                            },
+                        },
+                    },
+                },
+                orderBy: {
+                    [sortBy]: sortOrder,
+                } as Record<string, "asc" | "desc">,
             }),
         ]);
+        const items = rows.map(({ userRoles, ...user }) => ({
+            ...user,
+            grupos: userRoles.map((ur) => ur.role),
+        }));
         return { items, total };
     }
 }

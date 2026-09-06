@@ -6,8 +6,7 @@ import { useRouter, usePathname } from 'next/navigation';
 import { api } from '@/api/api';
 import { toast } from 'react-toastify';
 import { usePermissions } from '@/hooks/usePermissions';
-import { usePendingSolicitacoes } from '@/hooks/usePendingSolicitacoes';
-import { FaUsersCog, FaCalendarAlt, FaPills, FaUserCircle, FaSignOutAlt, FaHandHoldingHeart, FaClipboardList, FaBell } from 'react-icons/fa';
+import { FaUsersCog, FaCalendarAlt, FaPills, FaUserCircle, FaSignOutAlt, FaHandHoldingHeart } from 'react-icons/fa';
 import styles from './styles.module.css';
 
 interface User {
@@ -24,7 +23,6 @@ export default function Menu() {
     const [loading, setLoading] = useState(true);
     const [mounted, setMounted] = useState(false);
     const { hasPermission, hasAnyPermission, isAdmin } = usePermissions();
-    const { pendingCount } = usePendingSolicitacoes();
 
     useEffect(() => {
         setMounted(true);
@@ -68,9 +66,6 @@ export default function Menu() {
         if (path === '/pacientes-doacoes') {
             return pathname === '/pacientes-doacoes' || pathname.startsWith('/pacientes') || pathname.startsWith('/retiradas');
         }
-        if (path === '/solicitacoes') {
-            return pathname === '/solicitacoes' || pathname.startsWith('/solicitacoes/');
-        }
         if (path === '/permissoes') {
             return pathname === '/permissoes' || pathname.startsWith('/permissoes/') || pathname.startsWith('/users');
         }
@@ -110,23 +105,6 @@ export default function Menu() {
                             >
                                 <FaHandHoldingHeart size={20} />
                                 <span>Pacientes e Doações</span>
-                            </Link>
-                        )}
-
-                        {(isAdmin || hasPermission('retiradas.ver')) && (
-                            <Link 
-                                href="/solicitacoes" 
-                                className={`${styles.menuItem} ${isActive('/solicitacoes') ? styles.active : ''}`}
-                            >
-                                <div className={styles.menuItemContent}>
-                                    <FaClipboardList size={20} />
-                                    <span>Solicitações</span>
-                                    {pendingCount > 0 && (
-                                        <span className={styles.notificationBadge} title={`${pendingCount} solicitação(ões) pendente(s)`}>
-                                            {pendingCount > 99 ? '99+' : pendingCount}
-                                        </span>
-                                    )}
-                                </div>
                             </Link>
                         )}
 

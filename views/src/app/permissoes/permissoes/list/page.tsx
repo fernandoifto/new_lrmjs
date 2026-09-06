@@ -9,11 +9,15 @@ import Menu from '../../../components/menu';
 import WithPermission from '@/components/withPermission';
 import { usePermissions } from '@/hooks/usePermissions';
 import { FaShieldAlt, FaPlus, FaEye, FaEdit, FaTrash } from 'react-icons/fa';
-import styles from './page.module.css';
 import Link from 'next/link';
-import { LIST_PAGE_SIZE } from '@/lib/pagedApi';
 import type { PaginationMeta } from '@/lib/pagedApi';
-import { PaginationBar } from '@/components/PaginationBar';
+import {
+    ListPageHeader,
+    ListSearchToolbar,
+    ListFooter,
+    useDebouncedValue,
+    listStyles as styles,
+} from '@/components/list';
 
 interface Permissao {
     id: number;
@@ -25,6 +29,12 @@ interface Permissao {
     modified: string;
 }
 
+const SORT_OPTIONS = [
+    { value: 'nome', label: 'Nome' },
+    { value: 'pagina', label: 'Página' },
+    { value: 'created', label: 'Data de criação' },
+];
+
 export default function PermissoesListPage() {
     const router = useRouter();
     const { isAdmin } = usePermissions();
@@ -32,25 +42,38 @@ export default function PermissoesListPage() {
     const [loading, setLoading] = useState(true);
     const [mounted, setMounted] = useState(false);
     const [page, setPage] = useState(1);
+    const [pageSize, setPageSize] = useState(20);
     const [pagination, setPagination] = useState<PaginationMeta | null>(null);
+    const [searchTerm, setSearchTerm] = useState('');
+    const [sortBy, setSortBy] = useState('nome');
+    const [sortOrder, setSortOrder] = useState<'asc' | 'desc'>('asc');
+    const activeSearchTerm = useDebouncedValue(searchTerm);
 
     useEffect(() => {
         setMounted(true);
     }, []);
 
     useEffect(() => {
+        setPage(1);
+    }, [activeSearchTerm, sortBy, sortOrder, pageSize]);
+
+    useEffect(() => {
         if (!mounted) return;
         loadPermissoes();
-    }, [mounted, page]);
+    }, [mounted, page, activeSearchTerm, sortBy, sortOrder, pageSize]);
 
     const loadPermissoes = async () => {
         try {
             setLoading(true);
-
             const response = await api.get('/permissoes', {
-                params: { page, pageSize: LIST_PAGE_SIZE },
+                params: {
+                    page,
+                    pageSize,
+                    sortBy,
+                    sortOrder,
+                    ...(activeSearchTerm.trim() ? { q: activeSearchTerm.trim() } : {}),
+                },
             });
-
             setPermissoes(response.data.data);
             setPagination(response.data.pagination);
         } catch (error: any) {
@@ -67,14 +90,9 @@ export default function PermissoesListPage() {
     };
 
     const handleDelete = async (id: number, nome: string) => {
-        if (!confirm(`Tem certeza que deseja excluir a permissão "${nome}"?`)) {
-            return;
-        }
-
+        if (!confirm(`Tem certeza que deseja excluir a permissão "${nome}"?`)) return;
         try {
-
             await api.delete(`/permissao/${id}`, {});
-
             toast.success('Permissão excluída com sucesso!');
             loadPermissoes();
         } catch (error: any) {
@@ -88,20 +106,38 @@ export default function PermissoesListPage() {
         }
     };
 
-    const formatDate = (dateString: string) => {
-        const date = new Date(dateString);
-        return date.toLocaleDateString('pt-BR', {
-            day: '2-digit',
-            month: '2-digit',
-            year: 'numeric',
-            hour: '2-digit',
-            minute: '2-digit'
-        });
-    };
+    const renderActions = (permissao: Permissao) => (
+        <div className={styles.actions} onClick={(e) => e.stopPropagation()}>
+            <Link
+                href={`/permissoes/permissoes/${permissao.id}`}
+                className={styles.btnIcon}
+                title="Ver detalhes"
+            >
+                <FaEye size={14} />
+            </Link>
+            {isAdmin && (
+                <Link
+                    href={`/permissoes/permissoes/${permissao.id}/editar`}
+                    className={`${styles.btnIcon} ${styles.btnIconEdit}`}
+                    title="Editar"
+                >
+                    <FaEdit size={14} />
+                </Link>
+            )}
+            {isAdmin && (
+                <button
+                    type="button"
+                    onClick={() => handleDelete(permissao.id, permissao.nome)}
+                    className={`${styles.btnIcon} ${styles.btnIconDelete}`}
+                    title="Excluir permissão"
+                >
+                    <FaTrash size={14} />
+                </button>
+            )}
+        </div>
+    );
 
-    if (!mounted) {
-        return null;
-    }
+    if (!mounted) return null;
 
     return (
         <WithPermission requiredPermission="admin">
@@ -110,32 +146,43 @@ export default function PermissoesListPage() {
             <main className={styles.main}>
                 <div className={styles.container}>
                     <div className={styles.contentWrapper}>
-                        <div className={styles.header}>
-                            <div className={styles.headerContent}>
-                                <div className={styles.headerIcon}>
-                                    <FaShieldAlt size={24} />
-                                </div>
-                                <div>
-                                    <h1>Permissões</h1>
-                                    <p>Lista de todas as permissões cadastradas</p>
-                                </div>
-                            </div>
-                            {isAdmin && (
-                                <Link href="/permissoes/novo" className={styles.btnNew}>
-                                    <FaPlus size={20} />
-                                    Nova Permissão
-                                </Link>
-                            )}
-                        </div>
+                        <ListPageHeader
+                            icon={<FaShieldAlt size={24} />}
+                            title="Permissões"
+                            subtitle="Lista de todas as permissões cadastradas"
+                            actions={
+                                isAdmin ? (
+                                    <Link href="/permissoes/novo" className={styles.btnNew}>
+                                        <FaPlus size={16} />
+                                        Nova Permissão
+                                    </Link>
+                                ) : null
+                            }
+                        />
+
+                        <ListSearchToolbar
+                            value={searchTerm}
+                            onChange={setSearchTerm}
+                            placeholder="Buscar por nome, descrição, página ou ação…"
+                            sortOptions={SORT_OPTIONS}
+                            sortBy={sortBy}
+                            sortOrder={sortOrder}
+                            onSortByChange={setSortBy}
+                            onSortOrderToggle={() => setSortOrder((o) => (o === 'asc' ? 'desc' : 'asc'))}
+                        />
 
                         {loading ? (
-                            <div className={styles.loadingContainer}>
-                                <p>Carregando permissões...</p>
+                            <div className={styles.loading}>
+                                <p>Carregando permissões…</p>
                             </div>
                         ) : permissoes.length === 0 ? (
-                            <div className={styles.emptyState}>
-                                <p>Nenhuma permissão encontrada</p>
-                                {isAdmin && (
+                            <div className={styles.empty}>
+                                <p>
+                                    {activeSearchTerm
+                                        ? 'Nenhuma permissão encontrada com os critérios de busca'
+                                        : 'Nenhuma permissão encontrada'}
+                                </p>
+                                {!activeSearchTerm && isAdmin && (
                                     <Link href="/permissoes/novo" className={styles.btnNew}>
                                         Criar primeira permissão
                                     </Link>
@@ -143,80 +190,70 @@ export default function PermissoesListPage() {
                             </div>
                         ) : (
                             <>
-                            <div className={styles.grid}>
-                                {permissoes.map((permissao) => (
-                                    <div key={permissao.id} className={styles.card}>
-                                        <div className={styles.cardHeader}>
-                                            <div className={styles.cardIcon}>
-                                                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                                                    <path d="M12 15v2M9 11.24l-1.5-1.5a4.5 4.5 0 0 1 0-6.36l6.36 6.36a4.5 4.5 0 0 1 0 6.36L9 11.24zM21 12a9 9 0 1 1-18 0 9 9 0 0 1 18 0z" />
-                                                </svg>
-                                            </div>
-                                            <h3>{permissao.nome}</h3>
-                                        </div>
-                                        <div className={styles.cardBody}>
-                                            {permissao.descricao && (
-                                                <div className={styles.infoRow}>
-                                                    <span className={styles.label}>Descrição:</span>
-                                                    <span>{permissao.descricao}</span>
-                                                </div>
-                                            )}
-                                            {permissao.pagina && (
-                                                <div className={styles.infoRow}>
-                                                    <span className={styles.label}>Página:</span>
-                                                    <span>{permissao.pagina}</span>
-                                                </div>
-                                            )}
-                                            {permissao.acao && (
-                                                <div className={styles.infoRow}>
-                                                    <span className={styles.label}>Ação:</span>
-                                                    <span>{permissao.acao}</span>
-                                                </div>
-                                            )}
-                                            <div className={styles.infoRow}>
-                                                <span className={styles.label}>Criado em:</span>
-                                                <span>{formatDate(permissao.created)}</span>
-                                            </div>
-                                        </div>
-                                        <div className={styles.cardFooter}>
-                                            <Link 
-                                                href={`/permissoes/permissoes/${permissao.id}`}
-                                                className={styles.btnView}
-                                                title="Ver detalhes"
-                                            >
-                                                <FaEye size={16} />
-                                            </Link>
-                                            {isAdmin && (
-                                                <Link 
-                                                    href={`/permissoes/permissoes/${permissao.id}/editar`}
-                                                    className={styles.btnEdit}
-                                                    title="Editar"
+                                <div className={styles.tableWrap}>
+                                    <table className={styles.table}>
+                                        <thead>
+                                            <tr>
+                                                <th>Nome</th>
+                                                <th>Descrição</th>
+                                                <th>Página</th>
+                                                <th>Ação</th>
+                                                <th className={styles.actionsCol}>Ações</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody>
+                                            {permissoes.map((permissao) => (
+                                                <tr
+                                                    key={permissao.id}
+                                                    className={styles.row}
+                                                    onClick={() =>
+                                                        router.push(`/permissoes/permissoes/${permissao.id}`)
+                                                    }
                                                 >
-                                                    <FaEdit size={16} />
-                                                </Link>
-                                            )}
-                                            {isAdmin && (
-                                                <button
-                                                    onClick={() => handleDelete(permissao.id, permissao.nome)}
-                                                    className={styles.btnDelete}
-                                                    title="Excluir permissão"
-                                                >
-                                                    <FaTrash size={18} />
-                                                </button>
-                                            )}
+                                                    <td>
+                                                        <strong className={styles.primaryText}>{permissao.nome}</strong>
+                                                    </td>
+                                                    <td>{permissao.descricao || '—'}</td>
+                                                    <td>{permissao.pagina || '—'}</td>
+                                                    <td>{permissao.acao || '—'}</td>
+                                                    <td className={styles.actionsCol}>{renderActions(permissao)}</td>
+                                                </tr>
+                                            ))}
+                                        </tbody>
+                                    </table>
+                                </div>
+
+                                <div className={styles.mobileList}>
+                                    {permissoes.map((permissao) => (
+                                        <div
+                                            key={permissao.id}
+                                            className={`${styles.mobileCard} ${styles.mobileCardClickable}`}
+                                            onClick={() =>
+                                                router.push(`/permissoes/permissoes/${permissao.id}`)
+                                            }
+                                        >
+                                            <div className={styles.mobileCardHeader}>
+                                                <strong>{permissao.nome}</strong>
+                                                <span className={styles.subText}>
+                                                    {[permissao.pagina, permissao.acao].filter(Boolean).join(' · ') ||
+                                                        '—'}
+                                                </span>
+                                            </div>
+                                            {permissao.descricao ? (
+                                                <p className={styles.mobileMeta}>{permissao.descricao}</p>
+                                            ) : null}
+                                            <div className={styles.mobileActions}>{renderActions(permissao)}</div>
                                         </div>
-                                    </div>
-                                ))}
-                            </div>
-                            {pagination != null && (
-                                <PaginationBar
-                                    page={pagination.page}
-                                    totalPages={pagination.totalPages}
-                                    total={pagination.total}
-                                    disabled={loading}
+                                    ))}
+                                </div>
+
+                                <ListFooter
+                                    pagination={pagination}
+                                    pageSize={pageSize}
                                     onPageChange={setPage}
+                                    onPageSizeChange={setPageSize}
+                                    disabled={loading}
                                 />
-                            )}
                             </>
                         )}
                     </div>

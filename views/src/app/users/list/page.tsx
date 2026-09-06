@@ -9,19 +9,49 @@ import Menu from '../../components/menu';
 import WithPermission from '@/components/withPermission';
 import { usePermissions } from '@/hooks/usePermissions';
 import { FaUsers, FaPlus, FaEye, FaEdit, FaTrash } from 'react-icons/fa';
-import styles from './page.module.css';
 import Link from 'next/link';
-import { LIST_PAGE_SIZE } from '@/lib/pagedApi';
 import type { PaginationMeta } from '@/lib/pagedApi';
-import { PaginationBar } from '@/components/PaginationBar';
+import {
+    ListPageHeader,
+    ListSearchToolbar,
+    ListFooter,
+    useDebouncedValue,
+    listStyles as styles,
+} from '@/components/list';
+
+interface Grupo {
+    id: number;
+    nome: string;
+}
 
 interface User {
     id: number;
     username: string;
     email: string;
-    role: string | null;
+    grupos?: Grupo[];
     created: string;
     modified: string;
+}
+
+const SORT_OPTIONS = [
+    { value: 'username', label: 'Nome' },
+    { value: 'email', label: 'Email' },
+    { value: 'created', label: 'Data de criação' },
+];
+
+function formatGrupos(grupos?: Grupo[]) {
+    if (!grupos || grupos.length === 0) return null;
+    return grupos.map((g) => g.nome).join(', ');
+}
+
+function formatDate(dateString: string) {
+    return new Date(dateString).toLocaleDateString('pt-BR', {
+        day: '2-digit',
+        month: '2-digit',
+        year: 'numeric',
+        hour: '2-digit',
+        minute: '2-digit',
+    });
 }
 
 export default function UsersListPage() {
@@ -31,25 +61,38 @@ export default function UsersListPage() {
     const [loading, setLoading] = useState(true);
     const [mounted, setMounted] = useState(false);
     const [page, setPage] = useState(1);
+    const [pageSize, setPageSize] = useState(20);
     const [pagination, setPagination] = useState<PaginationMeta | null>(null);
+    const [searchTerm, setSearchTerm] = useState('');
+    const [sortBy, setSortBy] = useState('created');
+    const [sortOrder, setSortOrder] = useState<'asc' | 'desc'>('desc');
+    const activeSearchTerm = useDebouncedValue(searchTerm);
 
     useEffect(() => {
         setMounted(true);
     }, []);
 
     useEffect(() => {
+        setPage(1);
+    }, [activeSearchTerm, sortBy, sortOrder, pageSize]);
+
+    useEffect(() => {
         if (!mounted) return;
         loadUsers();
-    }, [mounted, page]);
+    }, [mounted, page, activeSearchTerm, sortBy, sortOrder, pageSize]);
 
     const loadUsers = async () => {
         try {
             setLoading(true);
-
             const response = await api.get('/users', {
-                params: { page, pageSize: LIST_PAGE_SIZE },
+                params: {
+                    page,
+                    pageSize,
+                    sortBy,
+                    sortOrder,
+                    ...(activeSearchTerm.trim() ? { q: activeSearchTerm.trim() } : {}),
+                },
             });
-
             setUsers(response.data.data);
             setPagination(response.data.pagination);
         } catch (error: any) {
@@ -66,14 +109,9 @@ export default function UsersListPage() {
     };
 
     const handleDelete = async (id: number, username: string) => {
-        if (!confirm(`Tem certeza que deseja excluir o usuário "${username}"?`)) {
-            return;
-        }
-
+        if (!confirm(`Tem certeza que deseja excluir o usuário "${username}"?`)) return;
         try {
-
             await api.delete(`/user/${id}`, {});
-
             toast.success('Usuário excluído com sucesso!');
             loadUsers();
         } catch (error: any) {
@@ -87,20 +125,34 @@ export default function UsersListPage() {
         }
     };
 
-    const formatDate = (dateString: string) => {
-        const date = new Date(dateString);
-        return date.toLocaleDateString('pt-BR', {
-            day: '2-digit',
-            month: '2-digit',
-            year: 'numeric',
-            hour: '2-digit',
-            minute: '2-digit'
-        });
-    };
+    const renderActions = (user: User) => (
+        <div className={styles.actions} onClick={(e) => e.stopPropagation()}>
+            <Link href={`/users/${user.id}`} className={styles.btnIcon} title="Ver detalhes">
+                <FaEye size={14} />
+            </Link>
+            {isAdmin && (
+                <Link
+                    href={`/users/${user.id}/editar`}
+                    className={`${styles.btnIcon} ${styles.btnIconEdit}`}
+                    title="Editar"
+                >
+                    <FaEdit size={14} />
+                </Link>
+            )}
+            {isAdmin && (
+                <button
+                    type="button"
+                    onClick={() => handleDelete(user.id, user.username)}
+                    className={`${styles.btnIcon} ${styles.btnIconDelete}`}
+                    title="Excluir usuário"
+                >
+                    <FaTrash size={14} />
+                </button>
+            )}
+        </div>
+    );
 
-    if (!mounted) {
-        return null;
-    }
+    if (!mounted) return null;
 
     return (
         <WithPermission requiredPermission="admin">
@@ -109,32 +161,43 @@ export default function UsersListPage() {
             <main className={styles.main}>
                 <div className={styles.container}>
                     <div className={styles.contentWrapper}>
-                        <div className={styles.header}>
-                            <div className={styles.headerContent}>
-                                <div className={styles.headerIcon}>
-                                    <FaUsers size={24} />
-                                </div>
-                                <div>
-                                    <h1>Usuários</h1>
-                                    <p>Lista de todos os usuários cadastrados</p>
-                                </div>
-                            </div>
-                            {isAdmin && (
-                                <Link href="/users/novo" className={styles.btnNew}>
-                                    <FaPlus size={20} />
-                                    Novo Usuário
-                                </Link>
-                            )}
-                        </div>
+                        <ListPageHeader
+                            icon={<FaUsers size={24} />}
+                            title="Usuários"
+                            subtitle="Lista de todos os usuários cadastrados"
+                            actions={
+                                isAdmin ? (
+                                    <Link href="/users/novo" className={styles.btnNew}>
+                                        <FaPlus size={16} />
+                                        Novo Usuário
+                                    </Link>
+                                ) : null
+                            }
+                        />
+
+                        <ListSearchToolbar
+                            value={searchTerm}
+                            onChange={setSearchTerm}
+                            placeholder="Buscar por nome ou email…"
+                            sortOptions={SORT_OPTIONS}
+                            sortBy={sortBy}
+                            sortOrder={sortOrder}
+                            onSortByChange={setSortBy}
+                            onSortOrderToggle={() => setSortOrder((o) => (o === 'asc' ? 'desc' : 'asc'))}
+                        />
 
                         {loading ? (
-                            <div className={styles.loadingContainer}>
-                                <p>Carregando usuários...</p>
+                            <div className={styles.loading}>
+                                <p>Carregando usuários…</p>
                             </div>
                         ) : users.length === 0 ? (
-                            <div className={styles.emptyState}>
-                                <p>Nenhum usuário encontrado</p>
-                                {isAdmin && (
+                            <div className={styles.empty}>
+                                <p>
+                                    {activeSearchTerm
+                                        ? 'Nenhum usuário encontrado com os critérios de busca'
+                                        : 'Nenhum usuário encontrado'}
+                                </p>
+                                {!activeSearchTerm && isAdmin && (
                                     <Link href="/users/novo" className={styles.btnNew}>
                                         Criar primeiro usuário
                                     </Link>
@@ -142,73 +205,79 @@ export default function UsersListPage() {
                             </div>
                         ) : (
                             <>
-                            <div className={styles.grid}>
-                                {users.map((user) => (
-                                    <div key={user.id} className={styles.card}>
-                                        <div className={styles.cardHeader}>
-                                            <div className={styles.cardIcon}>
-                                                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" width="20" height="20">
-                                                    <path fill="none" d="M0 0h24v24H0z" />
-                                                    <path d="M12 22C6.477 22 2 17.523 2 12S6.477 2 12 2s10 4.477 10 10-4.477 10-10 10zm-4.987-3.744A7.966 7.966 0 0 0 12 20c1.97 0 3.773-.712 5.167-1.892A6.979 6.979 0 0 0 12.16 16a6.981 6.981 0 0 0-5.147 2.256zM5.616 16.82A8.975 8.975 0 0 1 12.16 14a8.972 8.972 0 0 1 6.362 2.634 8 8 0 1 0-12.906.187zM12 13a4 4 0 1 1 0-8 4 4 0 0 1 0 8zm0-2a2 2 0 1 0 0-4 2 2 0 0 0 0 4z" fill="currentColor" />
-                                                </svg>
-                                            </div>
-                                            <h3>{user.username}</h3>
-                                        </div>
-                                        <div className={styles.cardBody}>
-                                            <div className={styles.infoRow}>
-                                                <span className={styles.label}>Email:</span>
-                                                <span>{user.email}</span>
-                                            </div>
-                                            {user.role && (
-                                                <div className={styles.infoRow}>
-                                                    <span className={styles.label}>Função:</span>
-                                                    <span>{user.role}</span>
-                                                </div>
-                                            )}
-                                            <div className={styles.infoRow}>
-                                                <span className={styles.label}>Criado em:</span>
-                                                <span>{formatDate(user.created)}</span>
-                                            </div>
-                                        </div>
-                                        <div className={styles.cardFooter}>
-                                            <Link 
-                                                href={`/users/${user.id}`}
-                                                className={styles.btnView}
-                                                title="Ver detalhes"
-                                            >
-                                                <FaEye size={16} />
-                                            </Link>
-                                            {isAdmin && (
-                                                <Link 
-                                                    href={`/users/${user.id}/editar`}
-                                                    className={styles.btnEdit}
-                                                    title="Editar"
+                                <div className={styles.tableWrap}>
+                                    <table className={styles.table}>
+                                        <thead>
+                                            <tr>
+                                                <th>Nome</th>
+                                                <th>Email</th>
+                                                <th>Grupo</th>
+                                                <th className={styles.hideTablet}>Criado em</th>
+                                                <th className={styles.actionsCol}>Ações</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody>
+                                            {users.map((user) => (
+                                                <tr
+                                                    key={user.id}
+                                                    className={styles.row}
+                                                    onClick={() => router.push(`/users/${user.id}`)}
                                                 >
-                                                    <FaEdit size={16} />
-                                                </Link>
-                                            )}
-                                            {isAdmin && (
-                                                <button
-                                                    onClick={() => handleDelete(user.id, user.username)}
-                                                    className={styles.btnDelete}
-                                                    title="Excluir usuário"
-                                                >
-                                                    <FaTrash size={18} />
-                                                </button>
-                                            )}
+                                                    <td>
+                                                        <strong className={styles.primaryText}>{user.username}</strong>
+                                                    </td>
+                                                    <td>{user.email}</td>
+                                                    <td>
+                                                        {user.grupos && user.grupos.length > 0 ? (
+                                                            <div className={styles.badges}>
+                                                                {user.grupos.map((grupo) => (
+                                                                    <span
+                                                                        key={grupo.id}
+                                                                        className={`${styles.badge} ${styles.badgeSuccess}`}
+                                                                    >
+                                                                        {grupo.nome}
+                                                                    </span>
+                                                                ))}
+                                                            </div>
+                                                        ) : (
+                                                            '—'
+                                                        )}
+                                                    </td>
+                                                    <td className={styles.hideTablet}>{formatDate(user.created)}</td>
+                                                    <td className={styles.actionsCol}>{renderActions(user)}</td>
+                                                </tr>
+                                            ))}
+                                        </tbody>
+                                    </table>
+                                </div>
+
+                                <div className={styles.mobileList}>
+                                    {users.map((user) => (
+                                        <div
+                                            key={user.id}
+                                            className={`${styles.mobileCard} ${styles.mobileCardClickable}`}
+                                            onClick={() => router.push(`/users/${user.id}`)}
+                                        >
+                                            <div className={styles.mobileCardHeader}>
+                                                <strong>{user.username}</strong>
+                                                <span className={styles.subText}>{user.email}</span>
+                                            </div>
+                                            <p className={styles.mobileMeta}>
+                                                {formatGrupos(user.grupos) || 'Sem grupo'}
+                                            </p>
+                                            <p className={styles.mobileMeta}>{formatDate(user.created)}</p>
+                                            <div className={styles.mobileActions}>{renderActions(user)}</div>
                                         </div>
-                                    </div>
-                                ))}
-                            </div>
-                            {pagination && (
-                                <PaginationBar
-                                    page={pagination.page}
-                                    totalPages={pagination.totalPages}
-                                    total={pagination.total}
+                                    ))}
+                                </div>
+
+                                <ListFooter
+                                    pagination={pagination}
+                                    pageSize={pageSize}
                                     onPageChange={setPage}
+                                    onPageSizeChange={setPageSize}
                                     disabled={loading}
                                 />
-                            )}
                             </>
                         )}
                     </div>
@@ -217,4 +286,3 @@ export default function UsersListPage() {
         </WithPermission>
     );
 }
-

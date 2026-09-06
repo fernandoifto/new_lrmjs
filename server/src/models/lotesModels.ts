@@ -3,9 +3,10 @@ import type { ParsedPagination } from "../utils/pagination";
 
 export interface ListLotesFilter {
     q?: string;
-    campo?: string;
     /** Restringe lotes a um medicamento (ex.: tela de detalhe). */
     idMedicamento?: number;
+    sortBy?: "created" | "numero" | "datavencimento" | "qtde";
+    sortOrder?: "asc" | "desc";
 }
 
 function parseBrDateDayRange(q: string): { gte: Date; lt: Date } | null {
@@ -147,8 +148,8 @@ class ListLotesModel {
                 tipoMedicamento: true
             },
             orderBy: {
-                created: 'desc' as const
-            }
+                [(opts?.sortBy || "created")]: (opts?.sortOrder || "desc")
+            } as Record<string, "asc" | "desc">
         };
 
         const and: object[] = [];
@@ -157,46 +158,25 @@ class ListLotesModel {
         }
 
         const q = opts?.q?.trim();
-        const campo = (opts?.campo || "numero").toLowerCase();
         if (q) {
-            switch (campo) {
-                case "medicamento":
-                    and.push({ medicamento: { descricao: { contains: q, mode: "insensitive" as const } } });
-                    break;
-                case "principioativo":
-                    and.push({ medicamento: { principioativo: { contains: q, mode: "insensitive" as const } } });
-                    break;
-                case "formafarmaceutica":
-                    and.push({ formaFarmaceutica: { descricao: { contains: q, mode: "insensitive" as const } } });
-                    break;
-                case "tipomedicamento":
-                    and.push({ tipoMedicamento: { descricao: { contains: q, mode: "insensitive" as const } } });
-                    break;
-                case "quantidade": {
-                    const n = parseInt(String(q).replace(/\D/g, ""), 10);
-                    if (!Number.isNaN(n)) {
-                        and.push({ qtde: n });
-                    }
-                    break;
-                }
-                case "datafabricacao": {
-                    const dr = parseBrDateDayRange(q);
-                    if (dr) {
-                        and.push({ datafabricacao: { gte: dr.gte, lt: dr.lt } });
-                    }
-                    break;
-                }
-                case "datavencimento": {
-                    const dr = parseBrDateDayRange(q);
-                    if (dr) {
-                        and.push({ datavencimento: { gte: dr.gte, lt: dr.lt } });
-                    }
-                    break;
-                }
-                case "numero":
-                default:
-                    and.push({ numero: { contains: q, mode: "insensitive" as const } });
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any
+            const OR: any[] = [
+                { numero: { contains: q, mode: "insensitive" as const } },
+                { medicamento: { descricao: { contains: q, mode: "insensitive" as const } } },
+                { medicamento: { principioativo: { contains: q, mode: "insensitive" as const } } },
+                { formaFarmaceutica: { descricao: { contains: q, mode: "insensitive" as const } } },
+                { tipoMedicamento: { descricao: { contains: q, mode: "insensitive" as const } } },
+            ];
+            const n = parseInt(String(q).replace(/\D/g, ""), 10);
+            if (!Number.isNaN(n) && String(q).replace(/\D/g, "") === String(n)) {
+                OR.push({ qtde: n });
             }
+            const dr = parseBrDateDayRange(q);
+            if (dr) {
+                OR.push({ datafabricacao: { gte: dr.gte, lt: dr.lt } });
+                OR.push({ datavencimento: { gte: dr.gte, lt: dr.lt } });
+            }
+            and.push({ OR });
         }
 
         const where = and.length ? { AND: and } : {};

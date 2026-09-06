@@ -1,5 +1,6 @@
 import { Request, Response } from "express";
 import { parsePaginationParams, paginatedResponse } from "../utils/pagination";
+import { parseSortField, parseSortOrder } from "../utils/sorting";
 import { 
     CreateLoteModel, 
     ListLotesModel,
@@ -36,7 +37,6 @@ export class ListLotesController {
         try {
             const p = parsePaginationParams(request.query);
             const q = request.query.q ? String(request.query.q) : undefined;
-            const campo = request.query.campo ? String(request.query.campo) : undefined;
             const rawMed = request.query.idMedicamento;
             let idMedicamento: number | undefined;
             if (rawMed !== undefined && String(rawMed) !== "") {
@@ -46,7 +46,13 @@ export class ListLotesController {
                 }
             }
             const listLotes = new ListLotesModel();
-            const { items, total } = await listLotes.execute(p, { q, campo, idMedicamento });
+            const sortBy = parseSortField(
+                request.query.sortBy ? String(request.query.sortBy) : undefined,
+                ["created", "numero", "datavencimento", "qtde"] as const,
+                "created"
+            );
+            const sortOrder = parseSortOrder(request.query.sortOrder ? String(request.query.sortOrder) : undefined);
+            const { items, total } = await listLotes.execute(p, { q, idMedicamento, sortBy, sortOrder });
             return response.json(paginatedResponse(items, total, p.page, p.pageSize));
         } catch (error: any) {
             return response.status(400).json({ error: error.message });

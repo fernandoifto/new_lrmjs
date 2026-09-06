@@ -8,13 +8,17 @@ import Header from '../home/components/header';
 import Menu from '../components/menu';
 import WithPermission from '@/components/withPermission';
 import { usePermissions } from '@/hooks/usePermissions';
-import { FaBoxes, FaFilePdf, FaPlus, FaSearch, FaTimes, FaEye, FaEdit, FaTrash, FaHandHoldingHeart } from 'react-icons/fa';
-import styles from './page.module.css';
+import { FaBoxes, FaFilePdf, FaPlus, FaEye, FaEdit, FaTrash, FaHandHoldingHeart } from 'react-icons/fa';
 import Link from 'next/link';
 import jsPDF from 'jspdf';
-import { LIST_PAGE_SIZE } from '@/lib/pagedApi';
 import type { PaginationMeta } from '@/lib/pagedApi';
-import { PaginationBar } from '@/components/PaginationBar';
+import {
+    ListPageHeader,
+    ListSearchToolbar,
+    ListFooter,
+    useDebouncedValue,
+    listStyles as styles,
+} from '@/components/list';
 
 interface Lote {
     id: number;
@@ -39,27 +43,65 @@ interface Lote {
     modified: string;
 }
 
+const SORT_OPTIONS = [
+    { value: 'created', label: 'Data de criação' },
+    { value: 'numero', label: 'Número' },
+    { value: 'datavencimento', label: 'Vencimento' },
+    { value: 'qtde', label: 'Quantidade' },
+];
+
+function formatDate(dateString: string) {
+    return new Date(dateString).toLocaleDateString('pt-BR', {
+        day: '2-digit',
+        month: '2-digit',
+        year: 'numeric',
+    });
+}
+
+function getVencimentoStatus(dateString: string) {
+    const vencimento = new Date(dateString);
+    const hoje = new Date();
+    hoje.setHours(0, 0, 0, 0);
+    vencimento.setHours(0, 0, 0, 0);
+
+    const diffTime = vencimento.getTime() - hoje.getTime();
+    const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+
+    if (diffDays < 0) {
+        return { status: 'vencido' as const, days: diffDays, className: `${styles.badge} ${styles.badgeDanger}` };
+    }
+    if (diffDays <= 90) {
+        return { status: 'proximo' as const, days: diffDays, className: `${styles.badge} ${styles.badgeWarning}` };
+    }
+    return { status: 'ok' as const, days: diffDays, className: `${styles.badge} ${styles.badgeSuccess}` };
+}
+
 export default function LotesPage() {
     const router = useRouter();
     const { hasPermission } = usePermissions();
     const [lotes, setLotes] = useState<Lote[]>([]);
-    const [page, setPage] = useState(1);
-    const [pagination, setPagination] = useState<PaginationMeta | null>(null);
     const [loading, setLoading] = useState(true);
     const [mounted, setMounted] = useState(false);
+    const [page, setPage] = useState(1);
+    const [pageSize, setPageSize] = useState(20);
+    const [pagination, setPagination] = useState<PaginationMeta | null>(null);
     const [searchTerm, setSearchTerm] = useState('');
-    const [searchOption, setSearchOption] = useState('numero');
-    const [activeSearchTerm, setActiveSearchTerm] = useState('');
-    const [activeSearchOption, setActiveSearchOption] = useState('numero');
+    const [sortBy, setSortBy] = useState('created');
+    const [sortOrder, setSortOrder] = useState<'asc' | 'desc'>('desc');
+    const activeSearchTerm = useDebouncedValue(searchTerm);
 
     useEffect(() => {
         setMounted(true);
     }, []);
 
     useEffect(() => {
+        setPage(1);
+    }, [activeSearchTerm, sortBy, sortOrder, pageSize]);
+
+    useEffect(() => {
         if (!mounted) return;
         loadLotes();
-    }, [mounted, page, activeSearchTerm, activeSearchOption]);
+    }, [mounted, page, activeSearchTerm, sortBy, sortOrder, pageSize]);
 
     const loadLotes = async () => {
         try {
@@ -67,11 +109,12 @@ export default function LotesPage() {
 
             const params: Record<string, string | number> = {
                 page,
-                pageSize: LIST_PAGE_SIZE,
+                pageSize,
+                sortBy,
+                sortOrder,
             };
             if (activeSearchTerm.trim()) {
                 params.q = activeSearchTerm.trim();
-                params.campo = activeSearchOption;
             }
 
             const response = await api.get('/lotes', { params });
@@ -97,7 +140,6 @@ export default function LotesPage() {
         }
 
         try {
-
             await api.delete(`/lote/${id}`, {});
 
             toast.success('Lote excluído com sucesso!');
@@ -113,53 +155,15 @@ export default function LotesPage() {
         }
     };
 
-    const formatDate = (dateString: string) => {
-        const date = new Date(dateString);
-        return date.toLocaleDateString('pt-BR', {
-            day: '2-digit',
-            month: '2-digit',
-            year: 'numeric'
-        });
-    };
-
-    const getVencimentoStatus = (dateString: string) => {
-        const vencimento = new Date(dateString);
-        const hoje = new Date();
-        hoje.setHours(0, 0, 0, 0);
-        vencimento.setHours(0, 0, 0, 0);
-        
-        const diffTime = vencimento.getTime() - hoje.getTime();
-        const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
-        
-        if (diffDays < 0) {
-            return { status: 'vencido', days: diffDays, className: styles.expired };
-        } else if (diffDays <= 90) {
-            return { status: 'proximo', days: diffDays, className: styles.warning };
-        } else {
-            return { status: 'ok', days: diffDays, className: styles.safe };
-        }
-    };
-
-    const handleSearch = () => {
-        setActiveSearchTerm(searchTerm);
-        setActiveSearchOption(searchOption);
-        setPage(1);
-    };
-
-    const handleClearSearch = () => {
-        setSearchTerm('');
-        setActiveSearchTerm('');
-        setActiveSearchOption('numero');
-        setSearchOption('numero');
-        setPage(1);
-    };
-
     const handleGeneratePDF = async () => {
         try {
-            const baseParams: Record<string, string | number> = { pageSize: 200 };
+            const baseParams: Record<string, string | number> = {
+                pageSize: 200,
+                sortBy,
+                sortOrder,
+            };
             if (activeSearchTerm.trim()) {
                 baseParams.q = activeSearchTerm.trim();
-                baseParams.campo = activeSearchOption;
             }
             const first = await api.get('/lotes', { params: { ...baseParams, page: 1 } });
             let rows: Lote[] = [...first.data.data];
@@ -188,24 +192,14 @@ export default function LotesPage() {
                 month: '2-digit',
                 year: 'numeric',
                 hour: '2-digit',
-                minute: '2-digit'
+                minute: '2-digit',
             });
             doc.text(`Gerado em: ${dataGeracao}`, pageWidth / 2, y, { align: 'center' });
             y += 10;
 
             if (activeSearchTerm) {
                 doc.setFontSize(10);
-                const campoBusca = {
-                    'numero': 'Número',
-                    'medicamento': 'Medicamento',
-                    'principioativo': 'Princípio Ativo',
-                    'formafarmaceutica': 'Forma Farmacêutica',
-                    'tipomedicamento': 'Tipo de Medicamento',
-                    'quantidade': 'Quantidade',
-                    'datafabricacao': 'Data de Fabricação',
-                    'datavencimento': 'Data de Vencimento'
-                }[activeSearchOption] || 'Campo';
-                doc.text(`Busca: ${campoBusca} - "${activeSearchTerm}"`, margin, y);
+                doc.text(`Busca: "${activeSearchTerm}"`, margin, y);
                 y += 5;
             }
             y += 5;
@@ -228,12 +222,12 @@ export default function LotesPage() {
 
             doc.setFontSize(8);
             doc.setFont('helvetica', 'normal');
-            
+
             rows.forEach((lote) => {
                 if (y > pageHeight - 20) {
                     doc.addPage();
                     y = startY;
-                    
+
                     doc.setFontSize(9);
                     doc.setFont('helvetica', 'bold');
                     x = margin;
@@ -249,11 +243,12 @@ export default function LotesPage() {
                 }
 
                 const vencimentoStatus = getVencimentoStatus(lote.datavencimento);
-                const statusText = vencimentoStatus.status === 'vencido' 
-                    ? 'Vencido' 
-                    : vencimentoStatus.status === 'proximo' 
-                    ? `${vencimentoStatus.days}d` 
-                    : 'OK';
+                const statusText =
+                    vencimentoStatus.status === 'vencido'
+                        ? 'Vencido'
+                        : vencimentoStatus.status === 'proximo'
+                          ? `${vencimentoStatus.days}d`
+                          : 'OK';
 
                 x = margin;
                 const rowData = [
@@ -264,7 +259,7 @@ export default function LotesPage() {
                     lote.qtde.toString() || '',
                     formatDate(lote.datafabricacao) || '',
                     formatDate(lote.datavencimento) || '',
-                    statusText
+                    statusText,
                 ];
 
                 rowData.forEach((data, idx) => {
@@ -290,7 +285,7 @@ export default function LotesPage() {
 
             const fileName = `lotes_${new Date().toISOString().split('T')[0]}.pdf`;
             doc.save(fileName);
-            
+
             toast.success('PDF gerado com sucesso!');
         } catch (error) {
             console.error('Erro ao gerar PDF:', error);
@@ -298,9 +293,70 @@ export default function LotesPage() {
         }
     };
 
-    if (!mounted) {
-        return null;
-    }
+    const renderVencimentoBadge = (lote: Lote) => {
+        const vencimentoStatus = getVencimentoStatus(lote.datavencimento);
+        return (
+            <span className={vencimentoStatus.className}>
+                {formatDate(lote.datavencimento)}
+                {vencimentoStatus.status === 'vencido' && ' (Vencido)'}
+                {vencimentoStatus.status === 'proximo' && ` (${vencimentoStatus.days}d)`}
+            </span>
+        );
+    };
+
+    const renderActions = (lote: Lote) => {
+        const vencimentoStatus = getVencimentoStatus(lote.datavencimento);
+        const isVencido = vencimentoStatus.status === 'vencido';
+
+        return (
+            <div className={styles.actions} onClick={(e) => e.stopPropagation()}>
+                {hasPermission('lotes.ver') && (
+                    <Link href={`/lotes/${lote.id}`} className={styles.btnIcon} title="Ver detalhes">
+                        <FaEye size={14} />
+                    </Link>
+                )}
+                {hasPermission('lotes.editar') && (
+                    <Link
+                        href={`/lotes/${lote.id}/editar`}
+                        className={`${styles.btnIcon} ${styles.btnIconEdit}`}
+                        title="Editar"
+                    >
+                        <FaEdit size={14} />
+                    </Link>
+                )}
+                {hasPermission('retiradas.criar') && (
+                    <button
+                        type="button"
+                        className={`${styles.btnIcon} ${styles.btnIconDoar}`}
+                        disabled={isVencido}
+                        title={
+                            isVencido
+                                ? 'Não é possível doar medicamento vencido'
+                                : 'Doar medicamento'
+                        }
+                        onClick={() => {
+                            if (isVencido) return;
+                            router.push(`/retiradas/novo?lote=${lote.id}`);
+                        }}
+                    >
+                        <FaHandHoldingHeart size={14} />
+                    </button>
+                )}
+                {hasPermission('lotes.excluir') && (
+                    <button
+                        type="button"
+                        onClick={() => handleDelete(lote.id, lote.numero)}
+                        className={`${styles.btnIcon} ${styles.btnIconDelete}`}
+                        title="Excluir"
+                    >
+                        <FaTrash size={14} />
+                    </button>
+                )}
+            </div>
+        );
+    };
+
+    if (!mounted) return null;
 
     return (
         <WithPermission requiredPermission="lotes.ver">
@@ -309,287 +365,137 @@ export default function LotesPage() {
             <main className={styles.main}>
                 <div className={styles.container}>
                     <div className={styles.contentWrapper}>
-                        <div className={styles.header}>
-                            <div className={styles.headerContent}>
-                                <div className={styles.headerIcon}>
-                                    <FaBoxes size={24} />
-                                </div>
-                                <div>
-                                    <h1>Lotes</h1>
-                                    <p>Gerencie os lotes de medicamentos do sistema</p>
-                                </div>
-                            </div>
-                            <div className={styles.headerActions}>
-                                {pagination != null && pagination.total > 0 && (
-                                    <button
-                                        onClick={handleGeneratePDF}
-                                        className={styles.btnPDF}
-                                        title="Gerar PDF dos lotes listados"
-                                    >
-                                        <FaFilePdf size={20} />
-                                        Gerar PDF
-                                    </button>
-                                )}
-                                {hasPermission('lotes.criar') && (
-                                    <Link href="/lotes/novo" className={styles.btnNew}>
-                                        <FaPlus size={20} />
-                                        Novo Lote
-                                    </Link>
-                                )}
-                            </div>
-                        </div>
-
-                        {/* Campo de Busca */}
-                        <div className={styles.searchContainer}>
-                            <div className={styles.searchPanel}>
-                                <div className={styles.searchHeader}>
-                                    <b>Buscar por:</b>
-                                    <div className={styles.searchOptions}>
-                                        <label className={styles.radioOption}>
-                                            <input
-                                                type="radio"
-                                                name="searchOption"
-                                                value="numero"
-                                                checked={searchOption === 'numero'}
-                                                onChange={(e) => setSearchOption(e.target.value)}
-                                            />
-                                            <span>Número</span>
-                                        </label>
-                                        <label className={styles.radioOption}>
-                                            <input
-                                                type="radio"
-                                                name="searchOption"
-                                                value="medicamento"
-                                                checked={searchOption === 'medicamento'}
-                                                onChange={(e) => setSearchOption(e.target.value)}
-                                            />
-                                            <span>Medicamento</span>
-                                        </label>
-                                        <label className={styles.radioOption}>
-                                            <input
-                                                type="radio"
-                                                name="searchOption"
-                                                value="principioativo"
-                                                checked={searchOption === 'principioativo'}
-                                                onChange={(e) => setSearchOption(e.target.value)}
-                                            />
-                                            <span>Princípio Ativo</span>
-                                        </label>
-                                        <label className={styles.radioOption}>
-                                            <input
-                                                type="radio"
-                                                name="searchOption"
-                                                value="formafarmaceutica"
-                                                checked={searchOption === 'formafarmaceutica'}
-                                                onChange={(e) => setSearchOption(e.target.value)}
-                                            />
-                                            <span>Forma Farmacêutica</span>
-                                        </label>
-                                        <label className={styles.radioOption}>
-                                            <input
-                                                type="radio"
-                                                name="searchOption"
-                                                value="tipomedicamento"
-                                                checked={searchOption === 'tipomedicamento'}
-                                                onChange={(e) => setSearchOption(e.target.value)}
-                                            />
-                                            <span>Tipo de Medicamento</span>
-                                        </label>
-                                        <label className={styles.radioOption}>
-                                            <input
-                                                type="radio"
-                                                name="searchOption"
-                                                value="quantidade"
-                                                checked={searchOption === 'quantidade'}
-                                                onChange={(e) => setSearchOption(e.target.value)}
-                                            />
-                                            <span>Quantidade</span>
-                                        </label>
-                                        <label className={styles.radioOption}>
-                                            <input
-                                                type="radio"
-                                                name="searchOption"
-                                                value="datafabricacao"
-                                                checked={searchOption === 'datafabricacao'}
-                                                onChange={(e) => setSearchOption(e.target.value)}
-                                            />
-                                            <span>Data Fabricação</span>
-                                        </label>
-                                        <label className={styles.radioOption}>
-                                            <input
-                                                type="radio"
-                                                name="searchOption"
-                                                value="datavencimento"
-                                                checked={searchOption === 'datavencimento'}
-                                                onChange={(e) => setSearchOption(e.target.value)}
-                                            />
-                                            <span>Data Vencimento</span>
-                                        </label>
-                                    </div>
-                                </div>
-                                <div className={styles.searchBody}>
-                                    <div className={styles.searchBox}>
-                                        <FaSearch size={20} className={styles.searchIcon} />
-                                        <input
-                                            type="text"
-                                            placeholder="Digite aqui sua pesquisa"
-                                            value={searchTerm}
-                                            onChange={(e) => setSearchTerm(e.target.value)}
-                                            onKeyPress={(e) => {
-                                                if (e.key === 'Enter') {
-                                                    handleSearch();
-                                                }
-                                            }}
-                                            className={styles.searchInput}
-                                        />
-                                        {searchTerm && (
-                                            <button
-                                                onClick={handleClearSearch}
-                                                className={styles.clearButton}
-                                                title="Limpar busca"
-                                            >
-                                                <FaTimes size={18} />
-                                            </button>
-                                        )}
-                                    </div>
-                                    <button
-                                        onClick={handleSearch}
-                                        className={styles.searchButton}
-                                        title="Buscar"
-                                    >
-                                        <FaSearch size={20} />
-                                        Buscar
-                                    </button>
-                                    {activeSearchTerm && pagination != null && (
-                                        <div className={styles.searchResults}>
-                                            {pagination.total > 0 ? (
-                                                <span>{pagination.total} resultado(s) encontrado(s)</span>
-                                            ) : (
-                                                <span>Nenhum resultado encontrado</span>
-                                            )}
-                                        </div>
+                        <ListPageHeader
+                            icon={<FaBoxes size={24} />}
+                            title="Lotes"
+                            subtitle="Gerencie os lotes de medicamentos do sistema"
+                            actions={
+                                <>
+                                    {pagination != null && pagination.total > 0 && (
+                                        <button
+                                            type="button"
+                                            onClick={handleGeneratePDF}
+                                            className={styles.btnPDF}
+                                            title="Gerar PDF dos lotes listados"
+                                        >
+                                            <FaFilePdf size={16} />
+                                            Gerar PDF
+                                        </button>
                                     )}
-                                </div>
-                            </div>
-                        </div>
+                                    {hasPermission('lotes.criar') && (
+                                        <Link href="/lotes/novo" className={styles.btnNew}>
+                                            <FaPlus size={16} />
+                                            Novo Lote
+                                        </Link>
+                                    )}
+                                </>
+                            }
+                        />
+
+                        <ListSearchToolbar
+                            value={searchTerm}
+                            onChange={setSearchTerm}
+                            placeholder="Buscar por número, medicamento, princípio, forma ou tipo…"
+                            sortOptions={SORT_OPTIONS}
+                            sortBy={sortBy}
+                            sortOrder={sortOrder}
+                            onSortByChange={setSortBy}
+                            onSortOrderToggle={() => setSortOrder((o) => (o === 'asc' ? 'desc' : 'asc'))}
+                        />
 
                         {loading ? (
-                            <div className={styles.loadingContainer}>
-                                <p>Carregando...</p>
+                            <div className={styles.loading}>
+                                <p>Carregando lotes…</p>
                             </div>
                         ) : lotes.length === 0 ? (
-                            <div className={styles.emptyState}>
+                            <div className={styles.empty}>
                                 <p>
-                                    {activeSearchTerm 
-                                        ? 'Nenhum lote encontrado com os critérios de busca' 
+                                    {activeSearchTerm
+                                        ? 'Nenhum lote encontrado com os critérios de busca'
                                         : 'Nenhum lote cadastrado'}
                                 </p>
-                                {!activeSearchTerm && (
+                                {!activeSearchTerm && hasPermission('lotes.criar') && (
                                     <Link href="/lotes/novo" className={styles.btnNew}>
-                                        Cadastrar Primeiro Lote
+                                        Cadastrar primeiro lote
                                     </Link>
                                 )}
                             </div>
                         ) : (
                             <>
-                            <div className={styles.grid}>
-                                {lotes.map((lote) => {
-                                    const vencimentoStatus = getVencimentoStatus(lote.datavencimento);
-                                    return (
-                                        <div key={lote.id} className={styles.card}>
-                                            <div className={styles.cardHeader}>
-                                                <div className={styles.cardIcon}>
-                                                    <FaBoxes size={20} />
-                                                </div>
-                                                <h3>Lote {lote.numero}</h3>
+                                <div className={styles.tableWrap}>
+                                    <table className={styles.table}>
+                                        <thead>
+                                            <tr>
+                                                <th>Número</th>
+                                                <th>Medicamento</th>
+                                                <th className={styles.hideTablet}>Forma</th>
+                                                <th>Qtde</th>
+                                                <th>Vencimento</th>
+                                                <th className={styles.actionsCol}>Ações</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody>
+                                            {lotes.map((lote) => (
+                                                <tr
+                                                    key={lote.id}
+                                                    className={styles.row}
+                                                    onClick={() => router.push(`/lotes/${lote.id}`)}
+                                                >
+                                                    <td>
+                                                        <strong className={styles.primaryText}>{lote.numero}</strong>
+                                                    </td>
+                                                    <td>
+                                                        <strong className={styles.primaryText}>
+                                                            {lote.medicamento.descricao}
+                                                        </strong>
+                                                        {lote.medicamento.principioativo && (
+                                                            <span className={styles.subText}>
+                                                                {lote.medicamento.principioativo}
+                                                            </span>
+                                                        )}
+                                                    </td>
+                                                    <td className={styles.hideTablet}>
+                                                        {lote.formaFarmaceutica.descricao}
+                                                    </td>
+                                                    <td>{lote.qtde}</td>
+                                                    <td>{renderVencimentoBadge(lote)}</td>
+                                                    <td className={styles.actionsCol}>{renderActions(lote)}</td>
+                                                </tr>
+                                            ))}
+                                        </tbody>
+                                    </table>
+                                </div>
+
+                                <div className={styles.mobileList}>
+                                    {lotes.map((lote) => (
+                                        <div
+                                            key={lote.id}
+                                            className={`${styles.mobileCard} ${styles.mobileCardClickable}`}
+                                            onClick={() => router.push(`/lotes/${lote.id}`)}
+                                        >
+                                            <div className={styles.mobileCardHeader}>
+                                                <strong>Lote {lote.numero}</strong>
+                                                <span className={styles.subText}>{lote.medicamento.descricao}</span>
                                             </div>
-                                            <div className={styles.cardBody}>
-                                                <div className={styles.infoRow}>
-                                                    <span className={styles.label}>Medicamento:</span>
-                                                    <span>{lote.medicamento.descricao}</span>
-                                                </div>
-                                                <div className={styles.infoRow}>
-                                                    <span className={styles.label}>Forma Farmacêutica:</span>
-                                                    <span>{lote.formaFarmaceutica.descricao}</span>
-                                                </div>
-                                                <div className={styles.infoRow}>
-                                                    <span className={styles.label}>Tipo:</span>
-                                                    <span>{lote.tipoMedicamento.descricao}</span>
-                                                </div>
-                                                <div className={styles.infoRow}>
-                                                    <span className={styles.label}>Quantidade:</span>
-                                                    <span>{lote.qtde}</span>
-                                                </div>
-                                                <div className={styles.infoRow}>
-                                                    <span className={styles.label}>Fabricação:</span>
-                                                    <span>{formatDate(lote.datafabricacao)}</span>
-                                                </div>
-                                                <div className={styles.infoRow}>
-                                                    <span className={styles.label}>Vencimento:</span>
-                                                    <span className={vencimentoStatus.className}>
-                                                        {formatDate(lote.datavencimento)}
-                                                        {vencimentoStatus.status === 'vencido' && ' (Vencido)'}
-                                                        {vencimentoStatus.status === 'proximo' && ` (${vencimentoStatus.days} dias)`}
-                                                    </span>
-                                                </div>
-                                            </div>
-                                            <div className={styles.cardFooter}>
-                                                {hasPermission('lotes.ver') && (
-                                                    <Link href={`/lotes/${lote.id}`} className={styles.btnView} title="Ver detalhes">
-                                                        <FaEye size={16} />
-                                                    </Link>
-                                                )}
-                                                {hasPermission('lotes.editar') && (
-                                                    <Link href={`/lotes/${lote.id}/editar`} className={styles.btnEdit} title="Editar">
-                                                        <FaEdit size={16} />
-                                                    </Link>
-                                                )}
-                                                {vencimentoStatus.status === 'vencido' ? (
-                                                    hasPermission('retiradas.criar') && (
-                                                        <button
-                                                            className={`${styles.btnDoar} ${styles.btnDisabled}`}
-                                                            disabled
-                                                            title="Não é possível doar medicamento vencido"
-                                                        >
-                                                            <FaHandHoldingHeart size={16} />
-                                                            Doar
-                                                        </button>
-                                                    )
-                                                ) : (
-                                                    hasPermission('retiradas.criar') && (
-                                                        <Link 
-                                                            href={`/retiradas/novo?lote=${lote.id}`}
-                                                            className={styles.btnDoar}
-                                                            title="Doar medicamento"
-                                                        >
-                                                            <FaHandHoldingHeart size={16} />
-                                                            Doar
-                                                        </Link>
-                                                    )
-                                                )}
-                                                {hasPermission('lotes.excluir') && (
-                                                    <button
-                                                        onClick={() => handleDelete(lote.id, lote.numero)}
-                                                        className={styles.btnDelete}
-                                                        title="Excluir"
-                                                    >
-                                                        <FaTrash size={16} />
-                                                    </button>
-                                                )}
-                                            </div>
+                                            {lote.medicamento.principioativo && (
+                                                <p className={styles.mobileMeta}>{lote.medicamento.principioativo}</p>
+                                            )}
+                                            <p className={styles.mobileMeta}>
+                                                {lote.formaFarmaceutica.descricao} · Qtde: {lote.qtde}
+                                            </p>
+                                            <p className={styles.mobileMeta}>{renderVencimentoBadge(lote)}</p>
+                                            <div className={styles.mobileActions}>{renderActions(lote)}</div>
                                         </div>
-                                    );
-                                })}
-                            </div>
-                            {pagination != null && (
-                                <PaginationBar
-                                    page={pagination.page}
-                                    totalPages={pagination.totalPages}
-                                    total={pagination.total}
-                                    disabled={loading}
+                                    ))}
+                                </div>
+
+                                <ListFooter
+                                    pagination={pagination}
+                                    pageSize={pageSize}
                                     onPageChange={setPage}
+                                    onPageSizeChange={setPageSize}
+                                    disabled={loading}
                                 />
-                            )}
                             </>
                         )}
                     </div>
@@ -598,4 +504,3 @@ export default function LotesPage() {
         </WithPermission>
     );
 }
-

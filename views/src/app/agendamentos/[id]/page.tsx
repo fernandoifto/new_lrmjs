@@ -7,7 +7,7 @@ import Header from '../../home/components/header';
 import Menu from '../../components/menu';
 import WithPermission from '@/components/withPermission';
 import { usePermissions } from '@/hooks/usePermissions';
-import { FaHandHoldingMedical, FaClipboardCheck, FaEdit, FaTrash, FaUserCircle, FaArrowLeft, FaCamera, FaTimes, FaChevronLeft, FaChevronRight, FaUndo } from 'react-icons/fa';
+import { FaHandHoldingMedical, FaClipboardCheck, FaEdit, FaTrash, FaUserCircle, FaArrowLeft, FaCamera, FaTimes, FaChevronLeft, FaChevronRight, FaUndo, FaWhatsapp } from 'react-icons/fa';
 import styles from './page.module.css';
 import Link from 'next/link';
 
@@ -37,6 +37,7 @@ interface Agendamento {
 }
 
 import { statusLabel } from '../lib/status';
+import { formatPhone, whatsappUrl } from '../lib/phone';
 
 export default function AgendamentoViewPage() {
     const router = useRouter();
@@ -86,16 +87,6 @@ export default function AgendamentoViewPage() {
             hour: '2-digit',
             minute: '2-digit'
         });
-    };
-
-    const formatPhone = (phone: string) => {
-        const cleaned = phone.replace(/\D/g, '');
-        if (cleaned.length === 11) {
-            return cleaned.replace(/(\d{2})(\d{5})(\d{4})/, '($1) $2-$3');
-        } else if (cleaned.length === 10) {
-            return cleaned.replace(/(\d{2})(\d{4})(\d{4})/, '($1) $2-$3');
-        }
-        return phone;
     };
 
     const formatCEP = (cep: string) => {
@@ -240,6 +231,8 @@ export default function AgendamentoViewPage() {
         return null;
     }
 
+    const waHref = agendamento ? whatsappUrl(agendamento.telefone) : null;
+
     return (
         <WithPermission requiredPermission="agendamentos.ver">
             <Header />
@@ -338,7 +331,20 @@ export default function AgendamentoViewPage() {
                                 <div className={styles.infoGrid}>
                                     <div className={styles.infoItem}>
                                         <span className={styles.label}>Telefone/WhatsApp</span>
-                                        <span className={styles.value}>{formatPhone(agendamento.telefone)}</span>
+                                        {waHref ? (
+                                            <a
+                                                href={waHref}
+                                                target="_blank"
+                                                rel="noopener noreferrer"
+                                                className={styles.whatsappLink}
+                                                title="Abrir no WhatsApp"
+                                            >
+                                                <FaWhatsapp size={18} aria-hidden />
+                                                {formatPhone(agendamento.telefone)}
+                                            </a>
+                                        ) : (
+                                            <span className={styles.value}>{formatPhone(agendamento.telefone)}</span>
+                                        )}
                                     </div>
                                 </div>
                             </div>

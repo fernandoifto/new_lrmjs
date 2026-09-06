@@ -92,7 +92,12 @@ class CreateSolicitacaoModel {
 
 //Modelo de listar solicitações
 class ListSolicitacoesModel {
-    async execute(status: string | undefined, p: ParsedPagination, search?: string) {
+    async execute(
+        status: string | undefined,
+        p: ParsedPagination,
+        search?: string,
+        opts?: { sortBy?: "created" | "status" | "qtde"; sortOrder?: "asc" | "desc" }
+    ) {
         // eslint-disable-next-line @typescript-eslint/no-explicit-any
         const andParts: any[] = [];
         if (status) {
@@ -127,7 +132,9 @@ class ListSolicitacoesModel {
             },
             paciente: true
         };
-        const orderBy = { created: "desc" as const };
+        const sortBy = opts?.sortBy || "created";
+        const sortOrder = opts?.sortOrder || "desc";
+        const orderBy = { [sortBy]: sortOrder } as Record<string, "asc" | "desc">;
 
         const [total, items] = await Promise.all([
             prismaClient.solicitacoes.count({ where }),

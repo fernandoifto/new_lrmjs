@@ -18,6 +18,7 @@ import {
     FaEdit,
     FaTrash,
     FaCalendarDay,
+    FaWhatsapp,
 } from 'react-icons/fa';
 import styles from './AgendamentosListView.module.css';
 import Link from 'next/link';
@@ -33,6 +34,7 @@ import {
     statusBadgeClass,
     statusLabel,
 } from '../lib/status';
+import { formatPhone, whatsappUrl } from '../lib/phone';
 
 interface Agendamento {
     id: number;
@@ -64,15 +66,26 @@ const FILTROS: FiltroAgendamento[] = [
     'visitado',
 ];
 
-function formatPhone(phone: string) {
-    const cleaned = phone.replace(/\D/g, '');
-    if (cleaned.length === 11) return cleaned.replace(/(\d{2})(\d{5})(\d{4})/, '($1) $2-$3');
-    if (cleaned.length === 10) return cleaned.replace(/(\d{2})(\d{4})(\d{4})/, '($1) $2-$3');
-    return phone;
-}
-
 function formatAddress(endereco: string, numero: string) {
     return `${endereco}, ${numero}`.trim();
+}
+
+function WhatsAppPhoneLink({ phone }: { phone: string }) {
+    const href = whatsappUrl(phone);
+    if (!href) return <>{formatPhone(phone)}</>;
+    return (
+        <a
+            href={href}
+            className={styles.phoneLink}
+            target="_blank"
+            rel="noopener noreferrer"
+            title="Abrir no WhatsApp"
+            onClick={(e) => e.stopPropagation()}
+        >
+            <FaWhatsapp size={14} aria-hidden />
+            {formatPhone(phone)}
+        </a>
+    );
 }
 
 function AgendamentosListViewContent() {
@@ -487,13 +500,7 @@ function AgendamentosListViewContent() {
                                                     </td>
                                                     <td className={styles.hideTablet}>{ag.datavisita || '—'}</td>
                                                     <td className={styles.hideMobile}>
-                                                        <a
-                                                            href={`tel:${ag.telefone.replace(/\D/g, '')}`}
-                                                            className={styles.phoneLink}
-                                                            onClick={(e) => e.stopPropagation()}
-                                                        >
-                                                            {formatPhone(ag.telefone)}
-                                                        </a>
+                                                        <WhatsAppPhoneLink phone={ag.telefone} />
                                                     </td>
                                                     <td>
                                                         <span className={`${styles.badge} ${styles[statusBadgeClass(ag.status)]}`}>
@@ -522,6 +529,9 @@ function AgendamentosListViewContent() {
                                             <p className={styles.mobileMeta}>
                                                 {formatAddress(ag.endereco, ag.numero)} — {ag.setor}
                                                 {ag.datavisita ? ` · ${ag.datavisita}` : ''}
+                                            </p>
+                                            <p className={styles.mobileMeta}>
+                                                <WhatsAppPhoneLink phone={ag.telefone} />
                                             </p>
                                             <div className={styles.mobileStatus}>
                                                 <span className={`${styles.badge} ${styles[statusBadgeClass(ag.status)]}`}>

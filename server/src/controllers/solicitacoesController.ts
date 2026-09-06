@@ -1,5 +1,6 @@
 import { Request, Response } from "express";
 import { parsePaginationParams, paginatedResponse } from "../utils/pagination";
+import { parseSortField, parseSortOrder } from "../utils/sorting";
 import { CreateSolicitacaoModel, ListSolicitacoesModel, GetSolicitacaoModel, ConfirmarSolicitacaoModel, ConcluirDoacaoModel, RecusarSolicitacaoModel, DeleteSolicitacaoModel, ListSolicitacoesByPacienteModel } from "../models/solicitacoesModels";
 import { uploadSingleReceita } from "../middlewares/upload";
 import { verifyPacienteContextToken } from "../services/pacienteContextToken";
@@ -78,11 +79,18 @@ class ListSolicitacoesController {
         try {
             const { status, search } = req.query;
             const p = parsePaginationParams(req.query);
+            const sortBy = parseSortField(
+                req.query.sortBy ? String(req.query.sortBy) : undefined,
+                ["created", "status", "qtde"] as const,
+                "created"
+            );
+            const sortOrder = parseSortOrder(req.query.sortOrder ? String(req.query.sortOrder) : undefined);
             const listSolicitacoesModel = new ListSolicitacoesModel();
             const { items, total } = await listSolicitacoesModel.execute(
                 status as string | undefined,
                 p,
-                search ? String(search) : undefined
+                search ? String(search) : undefined,
+                { sortBy, sortOrder }
             );
             const data = attachUploadTokensToSolicitacoes(items);
             return res.status(200).json(paginatedResponse(data, total, p.page, p.pageSize));

@@ -1,5 +1,6 @@
 import { Request, Response } from "express";
 import { parsePaginationParams, paginatedResponse } from "../utils/pagination";
+import { parseSortField, parseSortOrder } from "../utils/sorting";
 import { CreatePacienteModel, ListPacientesModel, GetPacienteModel, GetPacienteByCPFModel, UpdatePacienteModel, DeletePacienteModel } from "../models/pacientesModels";
 import { issuePacienteContextToken } from "../services/pacienteContextToken";
 
@@ -37,9 +38,14 @@ class ListPacientesController {
         try {
             const p = parsePaginationParams(req.query);
             const q = req.query.q ? String(req.query.q) : undefined;
-            const campo = req.query.campo ? String(req.query.campo) : undefined;
+            const sortBy = parseSortField(
+                req.query.sortBy ? String(req.query.sortBy) : undefined,
+                ["nome", "cpf", "datanascimento", "created"] as const,
+                "nome"
+            );
+            const sortOrder = parseSortOrder(req.query.sortOrder ? String(req.query.sortOrder) : undefined);
             const listPacientesModel = new ListPacientesModel();
-            const { items, total } = await listPacientesModel.execute(p, { q, campo });
+            const { items, total } = await listPacientesModel.execute(p, { q, sortBy, sortOrder });
 
             return res.status(200).json(paginatedResponse(items, total, p.page, p.pageSize));
         } catch (error: any) {

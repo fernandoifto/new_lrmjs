@@ -11,11 +11,6 @@ const navLinks: { href: string; label: string; variant: Variant }[] = [
     variant: "ghost",
   },
   {
-    href: "/solicitar-doacao",
-    label: "Solicitar Doação",
-    variant: "outline",
-  },
-  {
     href: "/agendar",
     label: "Agendar Coleta",
     variant: "solid",

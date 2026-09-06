@@ -9,17 +9,34 @@ import Menu from '../components/menu';
 import WithPermission from '@/components/withPermission';
 import { usePermissions } from '@/hooks/usePermissions';
 import { FaFlask, FaPlus, FaEye, FaEdit, FaTrash } from 'react-icons/fa';
-import styles from './page.module.css';
 import Link from 'next/link';
-import { LIST_PAGE_SIZE } from '@/lib/pagedApi';
 import type { PaginationMeta } from '@/lib/pagedApi';
-import { PaginationBar } from '@/components/PaginationBar';
+import {
+    ListPageHeader,
+    ListSearchToolbar,
+    ListFooter,
+    useDebouncedValue,
+    listStyles as styles,
+} from '@/components/list';
 
 interface FormaFarmaceutica {
     id: number;
     descricao: string;
     created: string;
     modified: string;
+}
+
+const SORT_OPTIONS = [
+    { value: 'descricao', label: 'Descrição' },
+    { value: 'created', label: 'Data de criação' },
+];
+
+function formatDate(dateString: string) {
+    return new Date(dateString).toLocaleDateString('pt-BR', {
+        day: '2-digit',
+        month: '2-digit',
+        year: 'numeric',
+    });
 }
 
 export default function FormasFarmaceuticasPage() {
@@ -29,25 +46,38 @@ export default function FormasFarmaceuticasPage() {
     const [loading, setLoading] = useState(true);
     const [mounted, setMounted] = useState(false);
     const [page, setPage] = useState(1);
+    const [pageSize, setPageSize] = useState(20);
     const [pagination, setPagination] = useState<PaginationMeta | null>(null);
+    const [searchTerm, setSearchTerm] = useState('');
+    const [sortBy, setSortBy] = useState('descricao');
+    const [sortOrder, setSortOrder] = useState<'asc' | 'desc'>('asc');
+    const activeSearchTerm = useDebouncedValue(searchTerm);
 
     useEffect(() => {
         setMounted(true);
     }, []);
 
     useEffect(() => {
+        setPage(1);
+    }, [activeSearchTerm, sortBy, sortOrder, pageSize]);
+
+    useEffect(() => {
         if (!mounted) return;
         loadFormasFarmaceuticas();
-    }, [mounted, page]);
+    }, [mounted, page, activeSearchTerm, sortBy, sortOrder, pageSize]);
 
     const loadFormasFarmaceuticas = async () => {
         try {
             setLoading(true);
-
             const response = await api.get('/formas-farmaceuticas', {
-                params: { page, pageSize: LIST_PAGE_SIZE },
+                params: {
+                    page,
+                    pageSize,
+                    sortBy,
+                    sortOrder,
+                    ...(activeSearchTerm.trim() ? { q: activeSearchTerm.trim() } : {}),
+                },
             });
-
             setFormasFarmaceuticas(response.data.data);
             setPagination(response.data.pagination);
         } catch (error: any) {
@@ -64,14 +94,9 @@ export default function FormasFarmaceuticasPage() {
     };
 
     const handleDelete = async (id: number, descricao: string) => {
-        if (!confirm(`Tem certeza que deseja excluir a forma farmacêutica "${descricao}"?`)) {
-            return;
-        }
-
+        if (!confirm(`Tem certeza que deseja excluir a forma farmacêutica "${descricao}"?`)) return;
         try {
-
             await api.delete(`/forma-farmaceutica/${id}`, {});
-
             toast.success('Forma farmacêutica excluída com sucesso!');
             loadFormasFarmaceuticas();
         } catch (error: any) {
@@ -85,18 +110,36 @@ export default function FormasFarmaceuticasPage() {
         }
     };
 
-    const formatDate = (dateString: string) => {
-        const date = new Date(dateString);
-        return date.toLocaleDateString('pt-BR', {
-            day: '2-digit',
-            month: '2-digit',
-            year: 'numeric'
-        });
-    };
+    const renderActions = (forma: FormaFarmaceutica) => (
+        <div className={styles.actions} onClick={(e) => e.stopPropagation()}>
+            {hasPermission('formas_farmaceuticas.ver') && (
+                <Link href={`/formas-farmaceuticas/${forma.id}`} className={styles.btnIcon} title="Ver detalhes">
+                    <FaEye size={14} />
+                </Link>
+            )}
+            {hasPermission('formas_farmaceuticas.editar') && (
+                <Link
+                    href={`/formas-farmaceuticas/${forma.id}/editar`}
+                    className={`${styles.btnIcon} ${styles.btnIconEdit}`}
+                    title="Editar"
+                >
+                    <FaEdit size={14} />
+                </Link>
+            )}
+            {hasPermission('formas_farmaceuticas.excluir') && (
+                <button
+                    type="button"
+                    onClick={() => handleDelete(forma.id, forma.descricao)}
+                    className={`${styles.btnIcon} ${styles.btnIconDelete}`}
+                    title="Excluir"
+                >
+                    <FaTrash size={14} />
+                </button>
+            )}
+        </div>
+    );
 
-    if (!mounted) {
-        return null;
-    }
+    if (!mounted) return null;
 
     return (
         <WithPermission requiredPermission="formas_farmaceuticas.ver">
@@ -105,93 +148,100 @@ export default function FormasFarmaceuticasPage() {
             <main className={styles.main}>
                 <div className={styles.container}>
                     <div className={styles.contentWrapper}>
-                        <div className={styles.header}>
-                            <div className={styles.headerContent}>
-                                <div className={styles.headerIcon}>
-                                    <FaFlask size={24} />
-                                </div>
-                                <div>
-                                    <h1>Formas Farmacêuticas</h1>
-                                    <p>Gerencie as formas farmacêuticas do sistema</p>
-                                </div>
-                            </div>
-                            {hasPermission('formas_farmaceuticas.criar') && (
-                                <Link href="/formas-farmaceuticas/novo" className={styles.btnNew}>
-                                    <FaPlus size={20} />
-                                    Nova Forma
-                                </Link>
-                            )}
-                        </div>
+                        <ListPageHeader
+                            icon={<FaFlask size={24} />}
+                            title="Formas Farmacêuticas"
+                            subtitle="Gerencie as formas farmacêuticas do sistema"
+                            actions={
+                                hasPermission('formas_farmaceuticas.criar') ? (
+                                    <Link href="/formas-farmaceuticas/novo" className={styles.btnNew}>
+                                        <FaPlus size={16} />
+                                        Nova Forma
+                                    </Link>
+                                ) : null
+                            }
+                        />
+
+                        <ListSearchToolbar
+                            value={searchTerm}
+                            onChange={setSearchTerm}
+                            placeholder="Buscar por descrição…"
+                            sortOptions={SORT_OPTIONS}
+                            sortBy={sortBy}
+                            sortOrder={sortOrder}
+                            onSortByChange={setSortBy}
+                            onSortOrderToggle={() => setSortOrder((o) => (o === 'asc' ? 'desc' : 'asc'))}
+                        />
 
                         {loading ? (
-                            <div className={styles.loadingContainer}>
-                                <p>Carregando...</p>
+                            <div className={styles.loading}>
+                                <p>Carregando formas farmacêuticas…</p>
                             </div>
                         ) : formasFarmaceuticas.length === 0 ? (
-                            <div className={styles.emptyState}>
-                                <p>Nenhuma forma farmacêutica cadastrada</p>
-                                {hasPermission('formas_farmaceuticas.criar') && (
+                            <div className={styles.empty}>
+                                <p>
+                                    {activeSearchTerm
+                                        ? 'Nenhuma forma encontrada com os critérios de busca'
+                                        : 'Nenhuma forma farmacêutica cadastrada'}
+                                </p>
+                                {!activeSearchTerm && hasPermission('formas_farmaceuticas.criar') && (
                                     <Link href="/formas-farmaceuticas/novo" className={styles.btnNew}>
-                                        Cadastrar Primeira Forma
+                                        Cadastrar primeira forma
                                     </Link>
                                 )}
                             </div>
                         ) : (
                             <>
-                            <div className={styles.grid}>
-                                {formasFarmaceuticas.map((forma) => (
-                                    <div key={forma.id} className={styles.card}>
-                                        <div className={styles.cardHeader}>
-                                            <div className={styles.cardIcon}>
-                                                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                                                    <path d="M19.5 14.25v-2.625a3.375 3.375 0 00-3.375-3.375h-1.5A1.125 1.125 0 0113.5 7.125v-1.5a3.375 3.375 0 00-3.375-3.375H8.25m0 12.75h7.5m-7.5 3H12M10.5 2.25H5.625c-.621 0-1.125.504-1.125 1.125v17.25c0 .621.504 1.125 1.125 1.125h12.75c.621 0 1.125-.504 1.125-1.125V11.25a9 9 0 00-9-9z" />
-                                                </svg>
-                                            </div>
-                                            <h3>{forma.descricao}</h3>
-                                        </div>
-                                        <div className={styles.cardBody}>
-                                            <div className={styles.infoRow}>
-                                                <span className={styles.label}>Criado em:</span>
-                                                <span>{formatDate(forma.created)}</span>
-                                            </div>
-                                            <div className={styles.infoRow}>
-                                                <span className={styles.label}>Modificado em:</span>
-                                                <span>{formatDate(forma.modified)}</span>
-                                            </div>
-                                        </div>
-                                        <div className={styles.cardFooter}>
-                                            {hasPermission('formas_farmaceuticas.ver') && (
-                                                <Link href={`/formas-farmaceuticas/${forma.id}`} className={styles.btnView} title="Ver detalhes">
-                                                    <FaEye size={16} />
-                                                </Link>
-                                            )}
-                                            {hasPermission('formas_farmaceuticas.editar') && (
-                                                <Link href={`/formas-farmaceuticas/${forma.id}/editar`} className={styles.btnEdit} title="Editar">
-                                                    <FaEdit size={16} />
-                                                </Link>
-                                            )}
-                                            {hasPermission('formas_farmaceuticas.excluir') && (
-                                                <button
-                                                    onClick={() => handleDelete(forma.id, forma.descricao)}
-                                                    className={styles.btnDelete}
-                                                    title="Excluir"
+                                <div className={styles.tableWrap}>
+                                    <table className={styles.table}>
+                                        <thead>
+                                            <tr>
+                                                <th>Descrição</th>
+                                                <th>Criado em</th>
+                                                <th className={styles.actionsCol}>Ações</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody>
+                                            {formasFarmaceuticas.map((forma) => (
+                                                <tr
+                                                    key={forma.id}
+                                                    className={styles.row}
+                                                    onClick={() => router.push(`/formas-farmaceuticas/${forma.id}`)}
                                                 >
-                                                    <FaTrash size={16} />
-                                                </button>
-                                            )}
+                                                    <td>
+                                                        <strong className={styles.primaryText}>{forma.descricao}</strong>
+                                                    </td>
+                                                    <td>{formatDate(forma.created)}</td>
+                                                    <td className={styles.actionsCol}>{renderActions(forma)}</td>
+                                                </tr>
+                                            ))}
+                                        </tbody>
+                                    </table>
+                                </div>
+
+                                <div className={styles.mobileList}>
+                                    {formasFarmaceuticas.map((forma) => (
+                                        <div
+                                            key={forma.id}
+                                            className={`${styles.mobileCard} ${styles.mobileCardClickable}`}
+                                            onClick={() => router.push(`/formas-farmaceuticas/${forma.id}`)}
+                                        >
+                                            <div className={styles.mobileCardHeader}>
+                                                <strong>{forma.descricao}</strong>
+                                                <span className={styles.subText}>{formatDate(forma.created)}</span>
+                                            </div>
+                                            <div className={styles.mobileActions}>{renderActions(forma)}</div>
                                         </div>
-                                    </div>
-                                ))}
-                            </div>
-                            {pagination && (
-                                <PaginationBar
-                                    page={pagination.page}
-                                    totalPages={pagination.totalPages}
-                                    total={pagination.total}
+                                    ))}
+                                </div>
+
+                                <ListFooter
+                                    pagination={pagination}
+                                    pageSize={pageSize}
                                     onPageChange={setPage}
+                                    onPageSizeChange={setPageSize}
                                     disabled={loading}
                                 />
-                            )}
                             </>
                         )}
                     </div>
@@ -200,4 +250,3 @@ export default function FormasFarmaceuticasPage() {
         </WithPermission>
     );
 }
-

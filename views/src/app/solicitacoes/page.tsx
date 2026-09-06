@@ -8,13 +8,27 @@ import Header from '../home/components/header';
 import Menu from '../components/menu';
 import WithPermission from '@/components/withPermission';
 import { usePermissions } from '@/hooks/usePermissions';
-import { FaHandHoldingHeart, FaCheckCircle, FaTimesCircle, FaClock, FaEye, FaSearch, FaTimes, FaFilePdf, FaFileMedical, FaCheck } from 'react-icons/fa';
-import styles from './page.module.css';
+import {
+    FaHandHoldingHeart,
+    FaEye,
+    FaFilePdf,
+    FaFileMedical,
+    FaCheck,
+    FaCheckCircle,
+    FaTimes,
+    FaTimesCircle,
+} from 'react-icons/fa';
 import Link from 'next/link';
 import jsPDF from 'jspdf';
-import { LIST_PAGE_SIZE } from '@/lib/pagedApi';
 import type { PaginationMeta } from '@/lib/pagedApi';
-import { PaginationBar } from '@/components/PaginationBar';
+import {
+    ListPageHeader,
+    ListSearchToolbar,
+    ListFooter,
+    useDebouncedValue,
+    listStyles as styles,
+} from '@/components/list';
+import modalStyles from './SolicitacoesList.module.css';
 
 interface Solicitacao {
     id: number;
@@ -50,6 +64,82 @@ interface Solicitacao {
     };
 }
 
+type FilterKey = 'todas' | 'pendentes' | 'aprovadas' | 'concluidas' | 'recusadas';
+
+const FILTERS: { key: FilterKey; label: string; status?: string }[] = [
+    { key: 'todas', label: 'Todas' },
+    { key: 'pendentes', label: 'Pendentes', status: 'pendente_de_aprovacao' },
+    { key: 'aprovadas', label: 'Aprovadas', status: 'aprovado_para_retirada' },
+    { key: 'concluidas', label: 'Concluídas', status: 'retirada_concluida' },
+    { key: 'recusadas', label: 'Recusadas', status: 'recusada' },
+];
+
+const FILTER_PDF_LABEL: Record<Exclude<FilterKey, 'todas'>, string> = {
+    pendentes: 'Pendentes de Aprovação',
+    aprovadas: 'Aprovadas para Retirada',
+    concluidas: 'Retiradas Concluídas',
+    recusadas: 'Recusadas',
+};
+
+const SORT_OPTIONS = [
+    { value: 'created', label: 'Data de criação' },
+    { value: 'status', label: 'Status' },
+    { value: 'qtde', label: 'Quantidade' },
+];
+
+function statusParamFromFilter(filter: FilterKey): string | undefined {
+    return FILTERS.find((f) => f.key === filter)?.status;
+}
+
+function getStatusLabel(status: string) {
+    switch (status) {
+        case 'pendente_de_aprovacao':
+            return 'Pendente de Aprovação';
+        case 'aprovado_para_retirada':
+            return 'Aprovado para Retirada';
+        case 'retirada_concluida':
+            return 'Retirada Concluída';
+        case 'recusada':
+            return 'Recusada';
+        default:
+            return status;
+    }
+}
+
+function getStatusBadgeClass(status: string) {
+    switch (status) {
+        case 'pendente_de_aprovacao':
+            return styles.badgeWarning;
+        case 'aprovado_para_retirada':
+            return styles.badgeInfo;
+        case 'retirada_concluida':
+            return styles.badgeSuccess;
+        case 'recusada':
+            return styles.badgeDanger;
+        default:
+            return styles.badgeNeutral;
+    }
+}
+
+function formatDate(dateString: string) {
+    return new Date(dateString).toLocaleDateString('pt-BR', {
+        day: '2-digit',
+        month: '2-digit',
+        year: 'numeric',
+        hour: '2-digit',
+        minute: '2-digit',
+    });
+}
+
+function formatDateOnly(dateString: string) {
+    return new Date(dateString).toLocaleDateString('pt-BR');
+}
+
+function getImageUrl(path: string): string {
+    if (path.startsWith('http')) return path;
+    return `http://localhost:3333${path}`;
+}
+
 export default function SolicitacoesPage() {
     const router = useRouter();
     const { hasPermission, isAdmin } = usePermissions();
@@ -57,12 +147,13 @@ export default function SolicitacoesPage() {
     const [loading, setLoading] = useState(true);
     const [mounted, setMounted] = useState(false);
     const [page, setPage] = useState(1);
+    const [pageSize, setPageSize] = useState(20);
     const [pagination, setPagination] = useState<PaginationMeta | null>(null);
-    const [filter, setFilter] = useState<'todas' | 'pendentes' | 'aprovadas' | 'concluidas' | 'recusadas'>('pendentes');
+    const [filter, setFilter] = useState<FilterKey>('pendentes');
     const [searchTerm, setSearchTerm] = useState('');
-    const [searchOption, setSearchOption] = useState('paciente');
-    const [activeSearchTerm, setActiveSearchTerm] = useState('');
-    const [activeSearchOption, setActiveSearchOption] = useState('paciente');
+    const [sortBy, setSortBy] = useState('created');
+    const [sortOrder, setSortOrder] = useState<'asc' | 'desc'>('desc');
+    const activeSearchTerm = useDebouncedValue(searchTerm);
     const [modalFotoAberta, setModalFotoAberta] = useState(false);
     const [fotoSelecionada, setFotoSelecionada] = useState<string | null>(null);
 
@@ -72,32 +163,27 @@ export default function SolicitacoesPage() {
 
     useEffect(() => {
         setPage(1);
-    }, [filter]);
+    }, [filter, activeSearchTerm, sortBy, sortOrder, pageSize]);
 
     useEffect(() => {
         if (!mounted) return;
         loadSolicitacoes();
-    }, [mounted, filter, page, activeSearchTerm]);
+    }, [mounted, filter, page, activeSearchTerm, sortBy, sortOrder, pageSize]);
 
     const loadSolicitacoes = async () => {
         try {
             setLoading(true);
-
-            const statusParam = filter === 'todas' ? undefined : 
-                filter === 'pendentes' ? 'pendente_de_aprovacao' : 
-                filter === 'aprovadas' ? 'aprovado_para_retirada' : 
-                filter === 'concluidas' ? 'retirada_concluida' : 
-                'recusada';
-
+            const statusParam = statusParamFromFilter(filter);
             const response = await api.get('/solicitacoes', {
                 params: {
                     page,
-                    pageSize: LIST_PAGE_SIZE,
+                    pageSize,
+                    sortBy,
+                    sortOrder,
                     ...(statusParam ? { status: statusParam } : {}),
                     ...(activeSearchTerm.trim() ? { search: activeSearchTerm.trim() } : {}),
                 },
             });
-
             setSolicitacoes(response.data.data);
             setPagination(response.data.pagination);
         } catch (error: any) {
@@ -114,14 +200,16 @@ export default function SolicitacoesPage() {
     };
 
     const handleConfirmar = async (id: number) => {
-        if (!confirm('Tem certeza que deseja aprovar esta solicitação para retirada? O solicitante será informado que pode retirar o medicamento.')) {
+        if (
+            !confirm(
+                'Tem certeza que deseja aprovar esta solicitação para retirada? O solicitante será informado que pode retirar o medicamento.'
+            )
+        ) {
             return;
         }
 
         try {
-
             await api.post(`/solicitacao/${id}/confirmar`, {}, {});
-
             toast.success('Solicitação aprovada para retirada! O solicitante pode retirar o medicamento.');
             loadSolicitacoes();
         } catch (error: any) {
@@ -136,17 +224,17 @@ export default function SolicitacoesPage() {
     };
 
     const handleConcluirDoacao = async (id: number) => {
-        if (!confirm('Tem certeza que deseja concluir a doação? A retirada será registrada e o estoque será atualizado.')) {
+        if (
+            !confirm(
+                'Tem certeza que deseja concluir a doação? A retirada será registrada e o estoque será atualizado.'
+            )
+        ) {
             return;
         }
 
         try {
-
-            // Obter ID do usuário atual
             const userResponse = await api.get('/detail', {});
-
             await api.post(`/solicitacao/${id}/concluir?userId=${userResponse.data.id}`, {}, {});
-
             toast.success('Doação concluída com sucesso! Retirada registrada e estoque atualizado.');
             loadSolicitacoes();
         } catch (error: any) {
@@ -166,9 +254,7 @@ export default function SolicitacoesPage() {
         }
 
         try {
-
             await api.post(`/solicitacao/${id}/recusar`, {}, {});
-
             toast.success('Solicitação recusada');
             loadSolicitacoes();
         } catch (error: any) {
@@ -182,47 +268,15 @@ export default function SolicitacoesPage() {
         }
     };
 
-    const formatDate = (dateString: string) => {
-        const date = new Date(dateString);
-        return date.toLocaleDateString('pt-BR', {
-            day: '2-digit',
-            month: '2-digit',
-            year: 'numeric',
-            hour: '2-digit',
-            minute: '2-digit'
-        });
-    };
-
-    const formatDateOnly = (dateString: string) => {
-        const date = new Date(dateString);
-        return date.toLocaleDateString('pt-BR');
-    };
-
-    const handleSearch = () => {
-        setActiveSearchTerm(searchTerm);
-        setActiveSearchOption(searchOption);
-        setPage(1);
-    };
-
-    const handleClearSearch = () => {
-        setSearchTerm('');
-        setActiveSearchTerm('');
-        setActiveSearchOption('paciente');
-        setSearchOption('paciente');
-        setPage(1);
-    };
-
     const handleGeneratePDF = async () => {
         try {
-            const statusParam = filter === 'todas' ? undefined : 
-                filter === 'pendentes' ? 'pendente_de_aprovacao' : 
-                filter === 'aprovadas' ? 'aprovado_para_retirada' : 
-                filter === 'concluidas' ? 'retirada_concluida' : 
-                'recusada';
+            const statusParam = statusParamFromFilter(filter);
             const pdfRes = await api.get('/solicitacoes', {
                 params: {
                     page: 1,
                     pageSize: 200,
+                    sortBy,
+                    sortOrder,
                     ...(statusParam ? { status: statusParam } : {}),
                     ...(activeSearchTerm.trim() ? { search: activeSearchTerm.trim() } : {}),
                 },
@@ -248,34 +302,20 @@ export default function SolicitacoesPage() {
                 month: '2-digit',
                 year: 'numeric',
                 hour: '2-digit',
-                minute: '2-digit'
+                minute: '2-digit',
             });
             doc.text(`Gerado em: ${dataGeracao}`, pageWidth / 2, y, { align: 'center' });
             y += 5;
 
             if (filter !== 'todas') {
                 doc.setFontSize(10);
-                const filterLabel = {
-                    'pendentes': 'Pendentes de Aprovação',
-                    'aprovadas': 'Aprovadas para Retirada',
-                    'concluidas': 'Retiradas Concluídas',
-                    'recusadas': 'Recusadas'
-                }[filter] || filter;
-                doc.text(`Filtro: ${filterLabel}`, margin, y);
+                doc.text(`Filtro: ${FILTER_PDF_LABEL[filter]}`, margin, y);
                 y += 5;
             }
 
-            if (activeSearchTerm) {
+            if (activeSearchTerm.trim()) {
                 doc.setFontSize(10);
-                const campoBusca = {
-                    'paciente': 'Paciente',
-                    'cpf': 'CPF',
-                    'medicamento': 'Medicamento',
-                    'lote': 'Número do Lote',
-                    'status': 'Status',
-                    'data': 'Data'
-                }[activeSearchOption] || 'Campo';
-                doc.text(`Busca: ${campoBusca} - "${activeSearchTerm}"`, margin, y);
+                doc.text(`Busca: "${activeSearchTerm.trim()}"`, margin, y);
                 y += 5;
             }
             y += 5;
@@ -298,12 +338,12 @@ export default function SolicitacoesPage() {
 
             doc.setFontSize(7);
             doc.setFont('helvetica', 'normal');
-            
+
             rows.forEach((solicitacao) => {
                 if (y > pageHeight - 20) {
                     doc.addPage();
                     y = startY;
-                    
+
                     doc.setFontSize(9);
                     doc.setFont('helvetica', 'bold');
                     x = margin;
@@ -327,7 +367,7 @@ export default function SolicitacoesPage() {
                     solicitacao.qtde.toString() || '',
                     getStatusLabel(solicitacao.status) || '',
                     formatDateOnly(solicitacao.created) || '',
-                    solicitacao.lotes.qtde.toString() || ''
+                    solicitacao.lotes.qtde.toString() || '',
                 ];
 
                 rowData.forEach((data, idx) => {
@@ -353,7 +393,6 @@ export default function SolicitacoesPage() {
 
             const fileName = `solicitacoes_${new Date().toISOString().split('T')[0]}.pdf`;
             doc.save(fileName);
-            
             toast.success('PDF gerado com sucesso!');
         } catch (error) {
             console.error('Erro ao gerar PDF:', error);
@@ -361,47 +400,74 @@ export default function SolicitacoesPage() {
         }
     };
 
-    const getStatusIcon = (status: string) => {
-        switch (status) {
-            case 'pendente_de_aprovacao':
-                return <FaClock className={styles.statusIconPendente} size={20} />;
-            case 'aprovado_para_retirada':
-                return <FaCheckCircle className={styles.statusIconConfirmada} size={20} />;
-            case 'retirada_concluida':
-                return <FaCheckCircle className={styles.statusIconConcluida} size={20} />;
-            case 'recusada':
-                return <FaTimesCircle className={styles.statusIconRecusada} size={20} />;
-            default:
-                return null;
-        }
+    const openFoto = (path: string) => {
+        setFotoSelecionada(getImageUrl(path));
+        setModalFotoAberta(true);
     };
 
-    const getStatusLabel = (status: string) => {
-        switch (status) {
-            case 'pendente_de_aprovacao':
-                return 'Pendente de Aprovação';
-            case 'aprovado_para_retirada':
-                return 'Aprovado para Retirada';
-            case 'retirada_concluida':
-                return 'Retirada Concluída';
-            case 'recusada':
-                return 'Recusada';
-            default:
-                return status;
-        }
+    const closeFoto = () => {
+        setModalFotoAberta(false);
+        setFotoSelecionada(null);
     };
 
-    const getImageUrl = (path: string): string => {
-        if (path.startsWith('http')) return path;
-        return `http://localhost:3333${path}`;
-    };
-
-    if (!mounted) {
-        return null;
-    }
+    if (!mounted) return null;
 
     const podeConfirmar = isAdmin || hasPermission('retiradas.criar');
     const podeRecusar = isAdmin || hasPermission('retiradas.editar');
+
+    const renderActions = (solicitacao: Solicitacao) => (
+        <div className={styles.actions} onClick={(e) => e.stopPropagation()}>
+            {solicitacao.status === 'pendente_de_aprovacao' && podeConfirmar && (
+                <button
+                    type="button"
+                    className={styles.btnPrimary}
+                    onClick={() => handleConfirmar(solicitacao.id)}
+                    title="Aprovar para retirada"
+                >
+                    <FaCheckCircle size={14} />
+                    Aprovar
+                </button>
+            )}
+            {solicitacao.status === 'pendente_de_aprovacao' && podeRecusar && (
+                <button
+                    type="button"
+                    className={`${styles.btnIcon} ${styles.btnIconDelete}`}
+                    onClick={() => handleRecusar(solicitacao.id)}
+                    title="Recusar"
+                >
+                    <FaTimesCircle size={14} />
+                </button>
+            )}
+            {solicitacao.status === 'aprovado_para_retirada' && podeConfirmar && (
+                <button
+                    type="button"
+                    className={styles.btnPrimary}
+                    onClick={() => handleConcluirDoacao(solicitacao.id)}
+                    title="Concluir doação"
+                >
+                    <FaCheck size={14} />
+                    Concluir doação
+                </button>
+            )}
+            {solicitacao.foto_receita && (
+                <button
+                    type="button"
+                    className={styles.btnIcon}
+                    onClick={() => openFoto(solicitacao.foto_receita!)}
+                    title="Ver foto da receita"
+                >
+                    <FaFileMedical size={14} />
+                </button>
+            )}
+            <Link
+                href={`/solicitacoes/${solicitacao.id}`}
+                className={styles.btnIcon}
+                title="Ver detalhes"
+            >
+                <FaEye size={14} />
+            </Link>
+        </div>
+    );
 
     return (
         <WithPermission requiredPermission="retiradas.ver">
@@ -410,367 +476,196 @@ export default function SolicitacoesPage() {
             <main className={styles.main}>
                 <div className={styles.container}>
                     <div className={styles.contentWrapper}>
-                        <div className={styles.header}>
-                            <div className={styles.headerContent}>
-                                <div className={styles.headerIcon}>
-                                    <FaHandHoldingHeart size={24} />
-                                </div>
-                                <div>
-                                    <h1>Solicitações de Doação</h1>
-                                    <p>Gerencie as solicitações de medicamentos dos pacientes</p>
-                                </div>
-                            </div>
-                            <div className={styles.headerActions}>
-                                <div className={styles.filterButtons}>
+                        <ListPageHeader
+                            icon={<FaHandHoldingHeart size={24} />}
+                            title="Solicitações de Doação"
+                            subtitle="Gerencie as solicitações de medicamentos dos pacientes"
+                            actions={
+                                solicitacoes.length > 0 ? (
                                     <button
-                                        className={`${styles.filterBtn} ${filter === 'todas' ? styles.filterBtnActive : ''}`}
-                                        onClick={() => setFilter('todas')}
-                                    >
-                                        Todas
-                                    </button>
-                                    <button
-                                        className={`${styles.filterBtn} ${filter === 'pendentes' ? styles.filterBtnActive : ''}`}
-                                        onClick={() => setFilter('pendentes')}
-                                    >
-                                        Pendentes
-                                    </button>
-                                    <button
-                                        className={`${styles.filterBtn} ${filter === 'aprovadas' ? styles.filterBtnActive : ''}`}
-                                        onClick={() => setFilter('aprovadas')}
-                                    >
-                                        Aprovadas
-                                    </button>
-                                    <button
-                                        className={`${styles.filterBtn} ${filter === 'concluidas' ? styles.filterBtnActive : ''}`}
-                                        onClick={() => setFilter('concluidas')}
-                                    >
-                                        Concluídas
-                                    </button>
-                                    <button
-                                        className={`${styles.filterBtn} ${filter === 'recusadas' ? styles.filterBtnActive : ''}`}
-                                        onClick={() => setFilter('recusadas')}
-                                    >
-                                        Recusadas
-                                    </button>
-                                </div>
-                                {solicitacoes.length > 0 && (
-                                    <button
+                                        type="button"
                                         onClick={handleGeneratePDF}
                                         className={styles.btnPDF}
                                         title="Gerar PDF das solicitações listadas"
                                     >
-                                        <FaFilePdf size={20} />
+                                        <FaFilePdf size={18} />
                                         Gerar PDF
                                     </button>
-                                )}
-                            </div>
+                                ) : null
+                            }
+                        />
+
+                        <div className={styles.kpiGrid}>
+                            {FILTERS.map((f) => (
+                                <button
+                                    key={f.key}
+                                    type="button"
+                                    className={`${styles.kpiCard} ${filter === f.key ? styles.kpiActive : ''}`}
+                                    onClick={() => setFilter(f.key)}
+                                >
+                                    <span className={styles.kpiCount} style={{ fontSize: '1.05rem' }}>
+                                        {f.label}
+                                    </span>
+                                </button>
+                            ))}
                         </div>
 
-                        {/* Campo de Busca */}
-                        <div className={styles.searchContainer}>
-                            <div className={styles.searchPanel}>
-                                <div className={styles.searchHeader}>
-                                    <b>Buscar por:</b>
-                                    <div className={styles.searchOptions}>
-                                        <label className={styles.radioOption}>
-                                            <input
-                                                type="radio"
-                                                name="searchOption"
-                                                value="paciente"
-                                                checked={searchOption === 'paciente'}
-                                                onChange={(e) => setSearchOption(e.target.value)}
-                                            />
-                                            <span>Paciente</span>
-                                        </label>
-                                        <label className={styles.radioOption}>
-                                            <input
-                                                type="radio"
-                                                name="searchOption"
-                                                value="cpf"
-                                                checked={searchOption === 'cpf'}
-                                                onChange={(e) => setSearchOption(e.target.value)}
-                                            />
-                                            <span>CPF</span>
-                                        </label>
-                                        <label className={styles.radioOption}>
-                                            <input
-                                                type="radio"
-                                                name="searchOption"
-                                                value="medicamento"
-                                                checked={searchOption === 'medicamento'}
-                                                onChange={(e) => setSearchOption(e.target.value)}
-                                            />
-                                            <span>Medicamento</span>
-                                        </label>
-                                        <label className={styles.radioOption}>
-                                            <input
-                                                type="radio"
-                                                name="searchOption"
-                                                value="lote"
-                                                checked={searchOption === 'lote'}
-                                                onChange={(e) => setSearchOption(e.target.value)}
-                                            />
-                                            <span>Número do Lote</span>
-                                        </label>
-                                        <label className={styles.radioOption}>
-                                            <input
-                                                type="radio"
-                                                name="searchOption"
-                                                value="status"
-                                                checked={searchOption === 'status'}
-                                                onChange={(e) => setSearchOption(e.target.value)}
-                                            />
-                                            <span>Status</span>
-                                        </label>
-                                        <label className={styles.radioOption}>
-                                            <input
-                                                type="radio"
-                                                name="searchOption"
-                                                value="data"
-                                                checked={searchOption === 'data'}
-                                                onChange={(e) => setSearchOption(e.target.value)}
-                                            />
-                                            <span>Data</span>
-                                        </label>
-                                    </div>
-                                </div>
-                                <div className={styles.searchBody}>
-                                    <div className={styles.searchBox}>
-                                        <FaSearch size={20} className={styles.searchIcon} />
-                                        <input
-                                            type="text"
-                                            placeholder="Digite aqui sua pesquisa"
-                                            value={searchTerm}
-                                            onChange={(e) => setSearchTerm(e.target.value)}
-                                            onKeyPress={(e) => {
-                                                if (e.key === 'Enter') {
-                                                    handleSearch();
-                                                }
-                                            }}
-                                            className={styles.searchInput}
-                                        />
-                                        {searchTerm && (
-                                            <button
-                                                onClick={handleClearSearch}
-                                                className={styles.clearButton}
-                                                title="Limpar busca"
-                                            >
-                                                <FaTimes size={18} />
-                                            </button>
-                                        )}
-                                    </div>
-                                    <button
-                                        onClick={handleSearch}
-                                        className={styles.searchButton}
-                                        title="Buscar"
-                                    >
-                                        <FaSearch size={20} />
-                                        Buscar
-                                    </button>
-                                    {activeSearchTerm && (
-                                        <div className={styles.searchResults}>
-                                            {solicitacoes.length > 0 ? (
-                                                <span>{pagination?.total ?? solicitacoes.length} resultado(s) encontrado(s)</span>
-                                            ) : (
-                                                <span>Nenhum resultado encontrado</span>
-                                            )}
-                                        </div>
-                                    )}
-                                </div>
-                            </div>
-                        </div>
+                        <ListSearchToolbar
+                            value={searchTerm}
+                            onChange={setSearchTerm}
+                            placeholder="Buscar por paciente, CPF, medicamento, lote…"
+                            sortOptions={SORT_OPTIONS}
+                            sortBy={sortBy}
+                            sortOrder={sortOrder}
+                            onSortByChange={setSortBy}
+                            onSortOrderToggle={() => setSortOrder((o) => (o === 'asc' ? 'desc' : 'asc'))}
+                        />
 
                         {loading ? (
-                            <div className={styles.loadingContainer}>
-                                <p>Carregando solicitações...</p>
+                            <div className={styles.loading}>
+                                <p>Carregando solicitações…</p>
                             </div>
                         ) : solicitacoes.length === 0 ? (
-                            <div className={styles.emptyContainer}>
-                                <p>Nenhuma solicitação encontrada.</p>
+                            <div className={styles.empty}>
+                                <p>
+                                    {activeSearchTerm.trim()
+                                        ? 'Nenhuma solicitação encontrada com os critérios de busca'
+                                        : 'Nenhuma solicitação encontrada.'}
+                                </p>
                             </div>
                         ) : (
                             <>
-                            <div className={styles.solicitacoesList}>
-                                {solicitacoes.map((solicitacao) => (
-                                    <div key={solicitacao.id} className={styles.solicitacaoCard}>
-                                        <div className={styles.solicitacaoHeader}>
-                                            <div className={styles.solicitacaoStatus}>
-                                                {getStatusIcon(solicitacao.status)}
-                                                <span className={`${styles.statusLabel} ${styles[`status${solicitacao.status.charAt(0).toUpperCase() + solicitacao.status.slice(1)}`]}`}>
+                                <div className={styles.tableWrap}>
+                                    <table className={styles.table}>
+                                        <thead>
+                                            <tr>
+                                                <th>Paciente</th>
+                                                <th>Medicamento</th>
+                                                <th className={styles.hideMobile}>Lote</th>
+                                                <th className={styles.hideTablet}>Qtde</th>
+                                                <th>Status</th>
+                                                <th className={styles.hideTablet}>Data</th>
+                                                <th className={styles.actionsCol}>Ações</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody>
+                                            {solicitacoes.map((solicitacao) => (
+                                                <tr
+                                                    key={solicitacao.id}
+                                                    className={styles.row}
+                                                    onClick={() =>
+                                                        router.push(`/solicitacoes/${solicitacao.id}`)
+                                                    }
+                                                >
+                                                    <td>
+                                                        <strong className={styles.primaryText}>
+                                                            {solicitacao.paciente.nome}
+                                                        </strong>
+                                                        <span className={styles.subText}>
+                                                            {solicitacao.paciente.cpf}
+                                                        </span>
+                                                    </td>
+                                                    <td>
+                                                        <span className={styles.primaryText}>
+                                                            {solicitacao.lotes.medicamento.descricao}
+                                                        </span>
+                                                        <span className={styles.subText}>
+                                                            {solicitacao.lotes.medicamento.principioativo}
+                                                        </span>
+                                                    </td>
+                                                    <td className={styles.hideMobile}>
+                                                        {solicitacao.lotes.numero}
+                                                    </td>
+                                                    <td className={styles.hideTablet}>{solicitacao.qtde}</td>
+                                                    <td>
+                                                        <span
+                                                            className={`${styles.badge} ${getStatusBadgeClass(solicitacao.status)}`}
+                                                        >
+                                                            {getStatusLabel(solicitacao.status)}
+                                                        </span>
+                                                    </td>
+                                                    <td className={styles.hideTablet}>
+                                                        {formatDate(solicitacao.created)}
+                                                    </td>
+                                                    <td className={styles.actionsCol}>
+                                                        {renderActions(solicitacao)}
+                                                    </td>
+                                                </tr>
+                                            ))}
+                                        </tbody>
+                                    </table>
+                                </div>
+
+                                <div className={styles.mobileList}>
+                                    {solicitacoes.map((solicitacao) => (
+                                        <div
+                                            key={solicitacao.id}
+                                            className={`${styles.mobileCard} ${styles.mobileCardClickable}`}
+                                            onClick={() =>
+                                                router.push(`/solicitacoes/${solicitacao.id}`)
+                                            }
+                                        >
+                                            <div className={styles.mobileCardHeader}>
+                                                <strong>{solicitacao.paciente.nome}</strong>
+                                                <span className={styles.subText}>
+                                                    {solicitacao.lotes.medicamento.descricao}
+                                                </span>
+                                            </div>
+                                            <p className={styles.mobileMeta}>
+                                                Lote {solicitacao.lotes.numero} · Qtde {solicitacao.qtde}
+                                            </p>
+                                            <p className={styles.mobileMeta}>
+                                                {formatDate(solicitacao.created)}
+                                            </p>
+                                            <div className={styles.mobileStatus}>
+                                                <span
+                                                    className={`${styles.badge} ${getStatusBadgeClass(solicitacao.status)}`}
+                                                >
                                                     {getStatusLabel(solicitacao.status)}
                                                 </span>
                                             </div>
-                                            <span className={styles.solicitacaoDate}>
-                                                {formatDate(solicitacao.created)}
-                                            </span>
+                                            <div className={styles.mobileActions}>
+                                                {renderActions(solicitacao)}
+                                            </div>
                                         </div>
+                                    ))}
+                                </div>
 
-                                        <div className={styles.solicitacaoBody}>
-                                            <div className={styles.section}>
-                                                <h3>Informações do Paciente</h3>
-                                                <div className={styles.infoGrid}>
-                                                    <div className={styles.infoItem}>
-                                                        <span className={styles.label}>Nome</span>
-                                                        <span className={styles.value}>{solicitacao.paciente.nome}</span>
-                                                    </div>
-                                                    <div className={styles.infoItem}>
-                                                        <span className={styles.label}>CPF</span>
-                                                        <span className={styles.value}>{solicitacao.paciente.cpf}</span>
-                                                    </div>
-                                                    <div className={styles.infoItem}>
-                                                        <span className={styles.label}>Telefone</span>
-                                                        <span className={styles.value}>{solicitacao.paciente.telefone}</span>
-                                                    </div>
-                                                </div>
-                                            </div>
-
-                                            <div className={styles.section}>
-                                                <h3>Medicamento Solicitado</h3>
-                                                <div className={styles.infoGrid}>
-                                                    <div className={styles.infoItem}>
-                                                        <span className={styles.label}>Medicamento</span>
-                                                        <span className={styles.value}>{solicitacao.lotes.medicamento.descricao}</span>
-                                                    </div>
-                                                    <div className={styles.infoItem}>
-                                                        <span className={styles.label}>Princípio Ativo</span>
-                                                        <span className={styles.value}>{solicitacao.lotes.medicamento.principioativo}</span>
-                                                    </div>
-                                                    <div className={styles.infoItem}>
-                                                        <span className={styles.label}>Forma Farmacêutica</span>
-                                                        <span className={styles.value}>{solicitacao.lotes.formaFarmaceutica.descricao}</span>
-                                                    </div>
-                                                    <div className={styles.infoItem}>
-                                                        <span className={styles.label}>Tipo</span>
-                                                        <span className={styles.value}>{solicitacao.lotes.tipoMedicamento.descricao}</span>
-                                                    </div>
-                                                    <div className={styles.infoItem}>
-                                                        <span className={styles.label}>Lote</span>
-                                                        <span className={styles.value}>{solicitacao.lotes.numero}</span>
-                                                    </div>
-                                                    <div className={styles.infoItem}>
-                                                        <span className={styles.label}>Vencimento</span>
-                                                        <span className={styles.value}>{formatDateOnly(solicitacao.lotes.datavencimento)}</span>
-                                                    </div>
-                                                    <div className={styles.infoItem}>
-                                                        <span className={styles.label}>Quantidade Solicitada</span>
-                                                        <span className={styles.value}>{solicitacao.qtde} unidades</span>
-                                                    </div>
-                                                    <div className={styles.infoItem}>
-                                                        <span className={styles.label}>Disponível no Estoque</span>
-                                                        <span className={styles.value}>{solicitacao.lotes.qtde} unidades</span>
-                                                    </div>
-                                                </div>
-                                            </div>
-
-                                            {solicitacao.foto_receita && (
-                                                <div className={styles.section}>
-                                                    <h3>Foto da Receita Médica</h3>
-                                                    <button
-                                                        onClick={() => {
-                                                            if (solicitacao.foto_receita) {
-                                                                setFotoSelecionada(getImageUrl(solicitacao.foto_receita));
-                                                                setModalFotoAberta(true);
-                                                            }
-                                                        }}
-                                                        className={styles.btnVerFoto}
-                                                        title="Visualizar foto da receita"
-                                                    >
-                                                        <FaFileMedical size={16} />
-                                                        Ver Foto da Receita
-                                                    </button>
-                                                </div>
-                                            )}
-                                        </div>
-
-                                        {solicitacao.status === 'pendente_de_aprovacao' && (
-                                            <div className={styles.solicitacaoFooter}>
-                                                {podeConfirmar && (
-                                                    <button
-                                                        onClick={() => handleConfirmar(solicitacao.id)}
-                                                        className={styles.btnConfirmar}
-                                                    >
-                                                        <FaCheckCircle size={16} />
-                                                        Aprovar para Retirada
-                                                    </button>
-                                                )}
-                                                {podeRecusar && (
-                                                    <button
-                                                        onClick={() => handleRecusar(solicitacao.id)}
-                                                        className={styles.btnRecusar}
-                                                    >
-                                                        <FaTimesCircle size={16} />
-                                                        Recusar
-                                                    </button>
-                                                )}
-                                            </div>
-                                        )}
-
-                                        {solicitacao.status === 'aprovado_para_retirada' && (
-                                            <div className={styles.solicitacaoFooter}>
-                                                <div className={styles.infoMessage}>
-                                                    <FaCheckCircle size={16} style={{ color: '#28a745' }} />
-                                                    <span>O solicitante pode retirar o medicamento</span>
-                                                </div>
-                                                {podeConfirmar && (
-                                                    <button
-                                                        onClick={() => handleConcluirDoacao(solicitacao.id)}
-                                                        className={styles.btnConcluir}
-                                                    >
-                                                        <FaCheck size={16} />
-                                                        Concluir Doação
-                                                    </button>
-                                                )}
-                                            </div>
-                                        )}
-                                    </div>
-                                ))}
-                            </div>
-                            {pagination && (
-                                <PaginationBar
-                                    page={pagination.page}
-                                    totalPages={pagination.totalPages}
-                                    total={pagination.total}
+                                <ListFooter
+                                    pagination={pagination}
+                                    pageSize={pageSize}
                                     onPageChange={setPage}
+                                    onPageSizeChange={setPageSize}
                                     disabled={loading}
                                 />
-                            )}
                             </>
                         )}
                     </div>
                 </div>
             </main>
 
-            {/* Modal de Visualização da Foto */}
             {modalFotoAberta && fotoSelecionada && (
-                <div 
-                    className={styles.modalOverlay}
-                    onClick={() => {
-                        setModalFotoAberta(false);
-                        setFotoSelecionada(null);
-                    }}
-                >
-                    <div 
-                        className={styles.modalContent}
+                <div className={modalStyles.modalOverlay} onClick={closeFoto}>
+                    <div
+                        className={modalStyles.modalContent}
                         onClick={(e) => e.stopPropagation()}
                     >
-                        <div className={styles.modalHeader}>
+                        <div className={modalStyles.modalHeader}>
                             <h2>Foto da Receita Médica</h2>
                             <button
-                                onClick={() => {
-                                    setModalFotoAberta(false);
-                                    setFotoSelecionada(null);
-                                }}
-                                className={styles.modalCloseButton}
+                                type="button"
+                                onClick={closeFoto}
+                                className={modalStyles.modalCloseButton}
                                 title="Fechar"
                             >
                                 <FaTimes size={20} />
                             </button>
                         </div>
-                        <div className={styles.modalBody}>
-                            <img 
-                                src={fotoSelecionada} 
+                        <div className={modalStyles.modalBody}>
+                            <img
+                                src={fotoSelecionada}
                                 alt="Foto da receita médica"
-                                className={styles.modalImage}
+                                className={modalStyles.modalImage}
                             />
                         </div>
                     </div>

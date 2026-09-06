@@ -1,5 +1,6 @@
 import { Request, Response } from "express";
 import { parsePaginationParams, paginatedResponse } from "../utils/pagination";
+import { parseSortField, parseSortOrder } from "../utils/sorting";
 import { 
     CreateMedicamentoModel, 
     ListMedicamentosModel, 
@@ -27,9 +28,14 @@ export class ListMedicamentosController {
         try {
             const p = parsePaginationParams(request.query);
             const q = request.query.q ? String(request.query.q) : undefined;
-            const campo = request.query.campo ? String(request.query.campo) : undefined;
+            const sortBy = parseSortField(
+                request.query.sortBy ? String(request.query.sortBy) : undefined,
+                ["descricao", "principioativo", "created"] as const,
+                "descricao"
+            );
+            const sortOrder = parseSortOrder(request.query.sortOrder ? String(request.query.sortOrder) : undefined);
             const listMedicamentos = new ListMedicamentosModel();
-            const { items, total } = await listMedicamentos.execute(p, { q, campo });
+            const { items, total } = await listMedicamentos.execute(p, { q, sortBy, sortOrder });
             return response.json(paginatedResponse(items, total, p.page, p.pageSize));
         } catch (error: any) {
             return response.status(400).json({ error: error.message });

@@ -81,34 +81,31 @@ class GetPacienteByCPFModel {
 //Modelo de listar pacientes
 type ListPacientesFilter = {
     q?: string;
-    campo?: string;
+    sortBy?: "nome" | "cpf" | "datanascimento" | "created";
+    sortOrder?: "asc" | "desc";
 };
 
 class ListPacientesModel {
     async execute(p: ParsedPagination, opts?: ListPacientesFilter) {
-        const where: {
-            nome?: { contains: string; mode: "insensitive" };
-            cpf?: { contains: string };
-            telefone?: { contains: string };
-            cartaosus?: { contains: string; mode: "insensitive" };
-        } = {};
         const q = opts?.q?.trim();
-        const campo = opts?.campo || "nome";
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        let where: any = {};
         if (q) {
-            if (campo === "cpf" || campo === "telefone") {
-                const digits = q.replace(/\D/g, "");
-                if (campo === "cpf" && digits) {
-                    where.cpf = { contains: digits };
-                } else if (campo === "telefone" && digits) {
-                    where.telefone = { contains: digits };
-                }
-            } else if (campo === "cartaosus") {
-                where.cartaosus = { contains: q, mode: "insensitive" };
-            } else {
-                where.nome = { contains: q, mode: "insensitive" };
+            const digits = q.replace(/\D/g, "");
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any
+            const OR: any[] = [
+                { nome: { contains: q, mode: "insensitive" } },
+                { cartaosus: { contains: q, mode: "insensitive" } },
+            ];
+            if (digits.length > 0) {
+                OR.push({ cpf: { contains: digits } });
+                OR.push({ telefone: { contains: digits } });
             }
+            where = { OR };
         }
-        const orderBy = { nome: 'asc' as const };
+        const sortBy = opts?.sortBy || "nome";
+        const sortOrder = opts?.sortOrder || "asc";
+        const orderBy = { [sortBy]: sortOrder } as Record<string, "asc" | "desc">;
         const [total, items] = await Promise.all([
             prismaClient.pacientes.count({ where }),
             prismaClient.pacientes.findMany({

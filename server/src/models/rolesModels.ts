@@ -39,7 +39,21 @@ class CreateRoleModel {
 }
 
 class ListRolesModel {
-    async execute(p: ParsedPagination) {
+    async execute(
+        p: ParsedPagination,
+        opts?: { q?: string; sortBy?: "nome" | "created"; sortOrder?: "asc" | "desc" }
+    ) {
+        const q = opts?.q?.trim();
+        const where = q
+            ? {
+                  OR: [
+                      { nome: { contains: q, mode: "insensitive" as const } },
+                      { descricao: { contains: q, mode: "insensitive" as const } },
+                  ],
+              }
+            : {};
+        const sortBy = opts?.sortBy || "nome";
+        const sortOrder = opts?.sortOrder || "asc";
         const base = {
             include: {
                 _count: {
@@ -49,13 +63,14 @@ class ListRolesModel {
                 }
             },
             orderBy: {
-                nome: 'asc' as const
-            }
+                [sortBy]: sortOrder
+            } as Record<string, "asc" | "desc">
         };
         const [total, items] = await Promise.all([
-            prismaClient.roles.count(),
+            prismaClient.roles.count({ where }),
             prismaClient.roles.findMany({
                 ...base,
+                where,
                 skip: p.skip,
                 take: p.take,
             }),

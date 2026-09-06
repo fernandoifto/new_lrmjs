@@ -298,12 +298,17 @@
 }
 
 .phoneLink {
-  color: var(--cor-primaria);
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  color: #25d366;
   text-decoration: none;
+  font-weight: 500;
 }
 
 .phoneLink:hover {
   text-decoration: underline;
+  color: #128c7e;
 }
 
 .badge {
