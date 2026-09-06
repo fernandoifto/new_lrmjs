@@ -10,6 +10,10 @@ import { usePermissions } from '@/hooks/usePermissions';
 import { FaHandHoldingMedical, FaClipboardCheck, FaEdit, FaTrash, FaUserCircle, FaArrowLeft, FaCamera, FaTimes, FaChevronLeft, FaChevronRight, FaUndo, FaWhatsapp } from 'react-icons/fa';
 import styles from './page.module.css';
 import Link from 'next/link';
+import { statusLabel } from '../lib/status';
+import { formatPhone, whatsappUrl } from '../lib/phone';
+import LotesDoadosSection from './LotesDoadosSection';
+import type { LoteDoado } from './LotesDoadosSection';
 
 interface Agendamento {
     id: number;
@@ -34,10 +38,8 @@ interface Agendamento {
         email: string;
     } | null;
     status: 'AGUARDANDO_AGENDAMENTO' | 'VISITA_MARCADA_PARA_HOJE' | 'VISITADO';
+    lotes?: LoteDoado[];
 }
-
-import { statusLabel } from '../lib/status';
-import { formatPhone, whatsappUrl } from '../lib/phone';
 
 export default function AgendamentoViewPage() {
     const router = useRouter();
@@ -421,6 +423,13 @@ export default function AgendamentoViewPage() {
                                         ))}
                                     </div>
                                 </div>
+                            )}
+
+                            {agendamento.status === 'VISITADO' && (
+                                <LotesDoadosSection
+                                    agendamentoId={agendamento.id}
+                                    lotes={agendamento.lotes ?? []}
+                                />
                             )}
 
                             <div className={styles.section}>

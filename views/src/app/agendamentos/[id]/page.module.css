@@ -193,7 +193,103 @@
   margin-bottom: 0;
 }
 
-.section h3 {
+.sectionHeader {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 1rem;
+  flex-wrap: wrap;
+  margin-bottom: 1.5rem;
+  padding-bottom: 0.75rem;
+  border-bottom: 2px solid var(--cor-borda);
+}
+
+.sectionHeader h3 {
+  margin: 0;
+  padding: 0;
+  border: none;
+  font-size: 1.3rem;
+  font-weight: 600;
+  color: var(--cor-primaria);
+}
+
+.btnAddLote {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  padding: 0.55rem 1rem;
+  border-radius: 8px;
+  background-color: var(--cor-primaria);
+  color: white;
+  text-decoration: none;
+  font-weight: 500;
+  font-size: 0.9rem;
+  transition: var(--transicao);
+}
+
+.btnAddLote:hover {
+  background-color: #047857;
+}
+
+.emptyLotes {
+  margin: 0;
+  color: var(--cor-texto-claro);
+  font-size: 1rem;
+}
+
+.lotesTableWrap {
+  overflow-x: auto;
+}
+
+.lotesTable {
+  width: 100%;
+  border-collapse: collapse;
+}
+
+.lotesTable th,
+.lotesTable td {
+  text-align: left;
+  padding: 0.75rem 0.6rem;
+  border-bottom: 1px solid var(--cor-borda);
+  vertical-align: top;
+  font-size: 0.95rem;
+}
+
+.lotesTable th {
+  color: var(--cor-texto);
+  font-size: 0.8rem;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+.loteSubText {
+  display: block;
+  color: var(--cor-texto-claro);
+  font-size: 0.85rem;
+  font-weight: 400;
+  margin-top: 0.15rem;
+}
+
+.lotesActionsCol {
+  width: 1%;
+  white-space: nowrap;
+}
+
+.btnViewLote {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  color: var(--cor-primaria);
+  text-decoration: none;
+  font-weight: 500;
+  font-size: 0.9rem;
+}
+
+.btnViewLote:hover {
+  text-decoration: underline;
+}
+
+.section > h3 {
   margin: 0 0 1.5rem 0;
   font-size: 1.3rem;
   font-weight: 600;
@@ -446,6 +542,15 @@
   .header {
     flex-direction: column;
     align-items: stretch;
+  }
+
+  .sectionHeader {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .btnAddLote {
+    justify-content: center;
   }
 
   .btnBack,

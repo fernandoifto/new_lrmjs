@@ -35,6 +35,7 @@ model Agendamentos {
 
   turno       Turnos    @relation(fields: [id_turno], references: [id])
   user        Users?    @relation(fields: [id_user], references: [id])
+  lotes       Lotes[]
   @@map("agendamentos")
 }
 
@@ -127,15 +128,19 @@ model Lotes {
   id_medicamento         Int
   id_forma_farmaceutica  Int
   id_tipo_medicamento    Int
+  id_agendamento         Int
   created                DateTime   @default(now())
   modified               DateTime   @updatedAt
 
   formaFarmaceutica      FormasFarmaceuticas @relation(fields: [id_forma_farmaceutica], references: [id])
   medicamento            Medicamentos @relation(fields: [id_medicamento], references: [id])
   tipoMedicamento        TiposMedicamentos @relation(fields: [id_tipo_medicamento], references: [id])
+  agendamento            Agendamentos @relation(fields: [id_agendamento], references: [id], onDelete: Restrict)
 
   retiradas Retiradas[]
   solicitacoes Solicitacoes[]
+
+  @@index([id_agendamento])
   @@map("lotes")
 }
 

@@ -9,11 +9,12 @@ import {
     UpdateLoteModel, 
     DeleteLoteModel 
 } from "../models/lotesModels";
+import { GetAgendamentoModel } from "../models/agendamentosModels";
 
 export class CreateLoteController {
     async handle(request: Request, response: Response) {
         try {
-            const { numero, datavencimento, datafabricacao, qtde, id_medicamento, id_forma_farmaceutica, id_tipo_medicamento } = request.body;
+            const { numero, datavencimento, datafabricacao, qtde, id_medicamento, id_forma_farmaceutica, id_tipo_medicamento, id_agendamento } = request.body;
             const createLote = new CreateLoteModel();
 
             const lote = await createLote.execute({ 
@@ -21,9 +22,10 @@ export class CreateLoteController {
                 datavencimento, 
                 datafabricacao, 
                 qtde, 
-                id_medicamento, 
-                id_forma_farmaceutica, 
-                id_tipo_medicamento 
+                id_medicamento: parseInt(id_medicamento, 10), 
+                id_forma_farmaceutica: parseInt(id_forma_farmaceutica, 10), 
+                id_tipo_medicamento: parseInt(id_tipo_medicamento, 10),
+                id_agendamento: parseInt(id_agendamento, 10),
             });
             return response.status(201).json(lote);
         } catch (error: any) {
@@ -45,6 +47,14 @@ export class ListLotesController {
                     idMedicamento = n;
                 }
             }
+            const rawAg = request.query.idAgendamento ?? request.query.id_agendamento;
+            let idAgendamento: number | undefined;
+            if (rawAg !== undefined && String(rawAg) !== "") {
+                const n = parseInt(String(rawAg), 10);
+                if (!Number.isNaN(n)) {
+                    idAgendamento = n;
+                }
+            }
             const listLotes = new ListLotesModel();
             const sortBy = parseSortField(
                 request.query.sortBy ? String(request.query.sortBy) : undefined,
@@ -52,7 +62,7 @@ export class ListLotesController {
                 "created"
             );
             const sortOrder = parseSortOrder(request.query.sortOrder ? String(request.query.sortOrder) : undefined);
-            const { items, total } = await listLotes.execute(p, { q, idMedicamento, sortBy, sortOrder });
+            const { items, total } = await listLotes.execute(p, { q, idMedicamento, idAgendamento, sortBy, sortOrder });
             return response.json(paginatedResponse(items, total, p.page, p.pageSize));
         } catch (error: any) {
             return response.status(400).json({ error: error.message });
@@ -90,17 +100,22 @@ export class UpdateLoteController {
     async handle(request: Request, response: Response) {
         try {
             const { id } = request.params;
-            const { numero, datavencimento, datafabricacao, qtde, id_medicamento, id_forma_farmaceutica, id_tipo_medicamento } = request.body;
+            const { numero, datavencimento, datafabricacao, qtde, id_medicamento, id_forma_farmaceutica, id_tipo_medicamento, id_agendamento } = request.body;
             const updateLote = new UpdateLoteModel();
+
+            const parsedAgendamento = id_agendamento !== undefined && id_agendamento !== null && String(id_agendamento) !== ""
+                ? parseInt(id_agendamento, 10)
+                : undefined;
             
             const lote = await updateLote.execute(parseInt(id), { 
                 numero, 
                 datavencimento, 
                 datafabricacao, 
                 qtde, 
-                id_medicamento, 
-                id_forma_farmaceutica, 
-                id_tipo_medicamento 
+                id_medicamento: id_medicamento !== undefined ? parseInt(id_medicamento, 10) : undefined, 
+                id_forma_farmaceutica: id_forma_farmaceutica !== undefined ? parseInt(id_forma_farmaceutica, 10) : undefined, 
+                id_tipo_medicamento: id_tipo_medicamento !== undefined ? parseInt(id_tipo_medicamento, 10) : undefined,
+                id_agendamento: parsedAgendamento,
             });
             return response.json(lote);
         } catch (error: any) {
@@ -119,6 +134,28 @@ export class DeleteLoteController {
             return response.json(result);
         } catch (error: any) {
             return response.status(400).json({ error: error.message });
+        }
+    }
+}
+
+export class ListLotesByAgendamentoController {
+    async handle(request: Request, response: Response) {
+        try {
+            const idAgendamento = parseInt(request.params.id, 10);
+            if (Number.isNaN(idAgendamento)) {
+                return response.status(400).json({ error: "ID do agendamento inválido" });
+            }
+
+            const getAgendamento = new GetAgendamentoModel();
+            await getAgendamento.execute(idAgendamento);
+
+            const p = parsePaginationParams(request.query);
+            const listLotes = new ListLotesModel();
+            const { items, total } = await listLotes.execute(p, { idAgendamento });
+            return response.json(paginatedResponse(items, total, p.page, p.pageSize));
+        } catch (error: any) {
+            const status = error.message === "Agendamento não encontrado" ? 404 : 400;
+            return response.status(status).json({ error: error.message });
         }
     }
 }

@@ -212,7 +212,15 @@ class GetAgendamentoModel {
                         username: true,
                         email: true
                     }
-                }
+                },
+                lotes: {
+                    include: {
+                        medicamento: true,
+                        formaFarmaceutica: true,
+                        tipoMedicamento: true,
+                    },
+                    orderBy: { created: "desc" },
+                },
             }
         });
         
@@ -257,6 +265,12 @@ class UpdateAgendamentoModel {
             }
             const currentStatus = (agendamentoExists.status as AgendamentoStatus) || "AGUARDANDO_AGENDAMENTO";
             validateStatusTransition(currentStatus, data.status, true);
+            if (currentStatus === "VISITADO" && data.status !== "VISITADO") {
+                const lotesVinculados = await prismaClient.lotes.count({ where: { id_agendamento: id } });
+                if (lotesVinculados > 0) {
+                    throw new Error("Não é possível alterar o status de um agendamento que possui lotes vinculados");
+                }
+            }
             updateData.status = data.status;
             if (data.status !== "VISITADO") {
                 updateData.id_user = null;
@@ -345,6 +359,13 @@ class AtualizarStatusAgendamentoModel {
         const currentStatus = (agendamentoExists.status as AgendamentoStatus) || "AGUARDANDO_AGENDAMENTO";
         validateStatusTransition(currentStatus, status, false);
 
+        if (currentStatus === "VISITADO" && status !== "VISITADO") {
+            const lotesVinculados = await prismaClient.lotes.count({ where: { id_agendamento: id } });
+            if (lotesVinculados > 0) {
+                throw new Error("Não é possível alterar o status de um agendamento que possui lotes vinculados");
+            }
+        }
+
         if (status === "VISITADO" && (!idUserVisitou || Number.isNaN(idUserVisitou))) {
             throw new Error("É necessário informar o usuário responsável ao marcar como visitado");
         }
@@ -379,6 +400,11 @@ class DeleteAgendamentoModel {
         
         if (!agendamentoExists) {
             throw new Error("Agendamento não encontrado");
+        }
+
+        const lotesVinculados = await prismaClient.lotes.count({ where: { id_agendamento: id } });
+        if (lotesVinculados > 0) {
+            throw new Error("Não é possível excluir um agendamento que possui lotes vinculados");
         }
         
         await prismaClient.agendamentos.delete({

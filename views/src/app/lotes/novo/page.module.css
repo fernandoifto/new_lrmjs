@@ -109,6 +109,19 @@
   transform: scale(0.95);
 }
 
+.inputLocked {
+  background-color: #f1f5f9 !important;
+  color: #334155 !important;
+  cursor: not-allowed;
+}
+
+.fieldHint {
+  display: block;
+  margin-top: 0.4rem;
+  color: var(--cor-texto-claro);
+  font-size: 0.85rem;
+}
+
 /* Modal */
 .modalOverlay {
   position: fixed;

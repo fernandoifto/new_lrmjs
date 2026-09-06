@@ -31,6 +31,11 @@ interface Lote {
         id: number;
         descricao: string;
     };
+    agendamento?: {
+        id: number;
+        nome: string;
+        status: string;
+    };
     created: string;
     modified: string;
 }
@@ -218,6 +223,22 @@ export default function LoteViewPage() {
                                             </div>
                                         </div>
                                     </div>
+
+                                    {lote.agendamento && (
+                                        <div className={styles.section}>
+                                            <h3>Agendamento de origem</h3>
+                                            <div className={styles.infoGrid}>
+                                                <div className={styles.infoItem}>
+                                                    <span className={styles.label}>Doador / Agendamento</span>
+                                                    <span className={styles.value}>
+                                                        <Link href={`/agendamentos/${lote.agendamento.id}`}>
+                                                            {lote.agendamento.nome} (#{lote.agendamento.id})
+                                                        </Link>
+                                                    </span>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    )}
 
                                     <div className={styles.section}>
                                         <h3>Informações do Sistema</h3>

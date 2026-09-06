@@ -10,6 +10,7 @@ import WithPermission from '@/components/withPermission';
 import styles from './page.module.css';
 import formStyles from '@/app/agendar/forms/style/styles.module.css';
 import Link from 'next/link';
+import { SELECT_PAGE_SIZE } from '@/lib/pagedApi';
 
 interface Lote {
     id: number;
@@ -30,6 +31,12 @@ interface Lote {
         id: number;
         descricao: string;
     };
+    agendamento?: {
+        id: number;
+        nome: string;
+        status: string;
+    };
+    id_agendamento?: number;
 }
 
 interface Medicamento {
@@ -46,6 +53,12 @@ interface FormaFarmaceutica {
 interface TipoMedicamento {
     id: number;
     descricao: string;
+}
+
+interface AgendamentoOpcao {
+    id: number;
+    nome: string;
+    status: string;
 }
 
 export default function EditarLotePage() {
@@ -66,8 +79,10 @@ export default function EditarLotePage() {
         qtde: '',
         id_medicamento: '',
         id_forma_farmaceutica: '',
-        id_tipo_medicamento: ''
+        id_tipo_medicamento: '',
+        id_agendamento: ''
     });
+    const [agendamentosConcluidos, setAgendamentosConcluidos] = useState<AgendamentoOpcao[]>([]);
 
     useEffect(() => {
         setMounted(true);
@@ -92,11 +107,22 @@ export default function EditarLotePage() {
             const tiposResponse = await api.get('/tipos-medicamentos', { params: { page: 1, pageSize: 200 } });
             setTiposMedicamentos(tiposResponse.data.data);
 
+            const agendamentosResponse = await api.get('/agendamentos', {
+                params: { filtro: 'visitado', page: 1, pageSize: SELECT_PAGE_SIZE, sortBy: 'nome', sortOrder: 'asc' },
+            });
+            const concluidos: AgendamentoOpcao[] = agendamentosResponse.data.data || [];
+
             // Carregar lote
             const loteResponse = await api.get(`/lote/${id}`, {});
 
             const loteData = loteResponse.data;
             setLote(loteData);
+
+            const agendamentoAtual = loteData.agendamento as AgendamentoOpcao | undefined;
+            if (agendamentoAtual && !concluidos.some((a) => a.id === agendamentoAtual.id)) {
+                concluidos.unshift(agendamentoAtual);
+            }
+            setAgendamentosConcluidos(concluidos);
             
             // Formatar datas para input date (YYYY-MM-DD)
             const formatDateForInput = (dateString: string) => {
@@ -111,7 +137,8 @@ export default function EditarLotePage() {
                 qtde: loteData.qtde.toString(),
                 id_medicamento: loteData.medicamento.id.toString(),
                 id_forma_farmaceutica: loteData.formaFarmaceutica.id.toString(),
-                id_tipo_medicamento: loteData.tipoMedicamento.id.toString()
+                id_tipo_medicamento: loteData.tipoMedicamento.id.toString(),
+                id_agendamento: String(loteData.id_agendamento || loteData.agendamento?.id || '')
             });
         } catch (error: any) {
             console.error('Erro ao carregar dados:', error);
@@ -161,6 +188,11 @@ export default function EditarLotePage() {
             return;
         }
 
+        if (!formData.id_agendamento) {
+            toast.error('Por favor, selecione o agendamento de origem!');
+            return;
+        }
+
         // Validar que data de fabricação é anterior à data de vencimento
         const dataFabricacao = new Date(formData.datafabricacao);
         const dataVencimento = new Date(formData.datavencimento);
@@ -180,7 +212,8 @@ export default function EditarLotePage() {
                 qtde: parseInt(formData.qtde),
                 id_medicamento: parseInt(formData.id_medicamento),
                 id_forma_farmaceutica: parseInt(formData.id_forma_farmaceutica),
-                id_tipo_medicamento: parseInt(formData.id_tipo_medicamento)
+                id_tipo_medicamento: parseInt(formData.id_tipo_medicamento),
+                id_agendamento: parseInt(formData.id_agendamento)
             }, {});
 
             toast.success('Lote atualizado com sucesso!');
@@ -234,6 +267,40 @@ export default function EditarLotePage() {
                         </div>
 
                         <form ref={formRef} className={formStyles.form} onSubmit={handleSubmit}>
+                            <div className={formStyles.card}>
+                                <div className={formStyles.cardHeader}>
+                                    <div className={formStyles.cardIcon}>
+                                        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                                            <path d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
+                                        </svg>
+                                    </div>
+                                    <h3>Agendamento de origem</h3>
+                                </div>
+                                <div className={formStyles.cardBody}>
+                                    <div className={formStyles.inputRow}>
+                                        <div className={formStyles.inputGroup}>
+                                            <label htmlFor="id_agendamento">
+                                                <span>Agendamento (Concluída) *</span>
+                                                <select
+                                                    id="id_agendamento"
+                                                    name="id_agendamento"
+                                                    required
+                                                    value={formData.id_agendamento}
+                                                    onChange={handleChange}
+                                                >
+                                                    <option value="">Selecione um agendamento concluído</option>
+                                                    {agendamentosConcluidos.map((agendamento) => (
+                                                        <option key={agendamento.id} value={agendamento.id}>
+                                                            {agendamento.nome} (#{agendamento.id})
+                                                        </option>
+                                                    ))}
+                                                </select>
+                                            </label>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+
                             <div className={formStyles.card}>
                                 <div className={formStyles.cardHeader}>
                                     <div className={formStyles.cardIcon}>

@@ -1,8 +1,8 @@
 'use client';
 
-import { useState, useRef, useEffect } from 'react';
+import { Suspense, useState, useRef, useEffect } from 'react';
 import { api } from '@/api/api';
-import { useRouter } from 'next/navigation';
+import { useRouter, useSearchParams } from 'next/navigation';
 import { toast } from 'react-toastify';
 import Header from '../../home/components/header';
 import Menu from '../../components/menu';
@@ -10,6 +10,7 @@ import WithPermission from '@/components/withPermission';
 import styles from './page.module.css';
 import formStyles from '@/app/agendar/forms/style/styles.module.css';
 import Link from 'next/link';
+import { SELECT_PAGE_SIZE } from '@/lib/pagedApi';
 
 interface Medicamento {
     id: number;
@@ -27,8 +28,15 @@ interface TipoMedicamento {
     descricao: string;
 }
 
-export default function NovoLotePage() {
+interface AgendamentoOpcao {
+    id: number;
+    nome: string;
+    status: string;
+}
+
+function NovoLotePageContent() {
     const router = useRouter();
+    const searchParams = useSearchParams();
     const formRef = useRef<HTMLFormElement>(null);
     const [saving, setSaving] = useState(false);
     const [loading, setLoading] = useState(true);
@@ -42,8 +50,12 @@ export default function NovoLotePage() {
         qtde: '',
         id_medicamento: '',
         id_forma_farmaceutica: '',
-        id_tipo_medicamento: ''
+        id_tipo_medicamento: '',
+        id_agendamento: ''
     });
+    const [agendamentosConcluidos, setAgendamentosConcluidos] = useState<AgendamentoOpcao[]>([]);
+    const [agendamentoLocked, setAgendamentoLocked] = useState(false);
+    const [agendamentoLabel, setAgendamentoLabel] = useState('');
     
     // Estados para modais
     const [showModalMedicamento, setShowModalMedicamento] = useState(false);
@@ -65,7 +77,7 @@ export default function NovoLotePage() {
 
     useEffect(() => {
         loadData();
-    }, [router]);
+    }, [router, searchParams]);
 
     const loadData = async () => {
         try {
@@ -81,6 +93,33 @@ export default function NovoLotePage() {
             // Carregar tipos de medicamentos
             const tiposResponse = await api.get('/tipos-medicamentos', { params: { page: 1, pageSize: 200 } });
             setTiposMedicamentos(tiposResponse.data.data);
+
+            const rawAgendamentoId = searchParams.get('agendamento_id') || searchParams.get('id_agendamento');
+            if (rawAgendamentoId) {
+                const agendamentoId = parseInt(rawAgendamentoId, 10);
+                if (!Number.isNaN(agendamentoId)) {
+                    try {
+                        const agendamentoResponse = await api.get(`/agendamento/${agendamentoId}`, {});
+                        const ag = agendamentoResponse.data as AgendamentoOpcao;
+                        if (ag.status === 'VISITADO') {
+                            setFormData(prev => ({ ...prev, id_agendamento: String(ag.id) }));
+                            setAgendamentoLocked(true);
+                            setAgendamentoLabel(`${ag.nome} (#${ag.id})`);
+                            setAgendamentosConcluidos([{ id: ag.id, nome: ag.nome, status: ag.status }]);
+                            return;
+                        }
+                        toast.error('Só é possível cadastrar lotes em agendamentos com status Concluída.');
+                    } catch {
+                        toast.error('Agendamento informado não foi encontrado.');
+                    }
+                }
+            }
+
+            setAgendamentoLocked(false);
+            const agendamentosResponse = await api.get('/agendamentos', {
+                params: { filtro: 'visitado', page: 1, pageSize: SELECT_PAGE_SIZE, sortBy: 'nome', sortOrder: 'asc' },
+            });
+            setAgendamentosConcluidos(agendamentosResponse.data.data || []);
         } catch (error: any) {
             console.error('Erro ao carregar dados:', error);
             if (error.response?.status === 401) {
@@ -217,6 +256,11 @@ try {
             return;
         }
 
+        if (!formData.id_agendamento) {
+            toast.error('Por favor, selecione o agendamento de origem!');
+            return;
+        }
+
         // Validar que data de fabricação é anterior à data de vencimento
         const dataFabricacao = new Date(formData.datafabricacao);
         const dataVencimento = new Date(formData.datavencimento);
@@ -236,12 +280,13 @@ try {
                 qtde: parseInt(formData.qtde),
                 id_medicamento: parseInt(formData.id_medicamento),
                 id_forma_farmaceutica: parseInt(formData.id_forma_farmaceutica),
-                id_tipo_medicamento: parseInt(formData.id_tipo_medicamento)
+                id_tipo_medicamento: parseInt(formData.id_tipo_medicamento),
+                id_agendamento: parseInt(formData.id_agendamento)
             }, {});
 
             toast.success('Lote criado com sucesso!');
             setTimeout(() => {
-                router.push('/lotes');
+                router.push(agendamentoLocked ? `/agendamentos/${formData.id_agendamento}` : '/lotes');
             }, 1500);
         } catch (error: any) {
             console.error('Erro ao criar lote:', error);
@@ -282,14 +327,68 @@ try {
                 <div className={styles.container}>
                     <div className={styles.contentWrapper}>
                         <div className={styles.header}>
-                            <Link href="/lotes" className={styles.btnBack}>
+                            <Link href={agendamentoLocked ? `/agendamentos/${formData.id_agendamento}` : '/lotes'} className={styles.btnBack}>
                                 ← Voltar
                             </Link>
                             <h1>Novo Lote</h1>
-                            <p>Preencha os dados abaixo para criar um novo lote</p>
+                            <p>
+                                {agendamentoLocked
+                                    ? `Cadastro de medicamento coletado em ${agendamentoLabel}`
+                                    : 'Preencha os dados abaixo para criar um novo lote'}
+                            </p>
                         </div>
 
                         <form ref={formRef} className={formStyles.form} onSubmit={handleSubmit}>
+                            <div className={formStyles.card}>
+                                <div className={formStyles.cardHeader}>
+                                    <div className={formStyles.cardIcon}>
+                                        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                                            <path d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
+                                        </svg>
+                                    </div>
+                                    <h3>Agendamento de origem</h3>
+                                </div>
+                                <div className={formStyles.cardBody}>
+                                    <div className={formStyles.inputRow}>
+                                        <div className={formStyles.inputGroup}>
+                                            <label htmlFor="id_agendamento">
+                                                <span>Agendamento (Concluída) *</span>
+                                                {agendamentoLocked ? (
+                                                    <>
+                                                        <input
+                                                            type="text"
+                                                            value={agendamentoLabel}
+                                                            disabled
+                                                            readOnly
+                                                            className={styles.inputLocked}
+                                                        />
+                                                        <input type="hidden" name="id_agendamento" value={formData.id_agendamento} />
+                                                        <small className={styles.fieldHint}>
+                                                            Vinculado ao agendamento de origem. Este campo não pode ser alterado.
+                                                        </small>
+                                                    </>
+                                                ) : (
+                                                    <select
+                                                        id="id_agendamento"
+                                                        name="id_agendamento"
+                                                        required
+                                                        value={formData.id_agendamento}
+                                                        onChange={handleChange}
+                                                    >
+                                                        <option value="">Selecione um agendamento concluído</option>
+                                                        {agendamentosConcluidos.map((agendamento) => (
+                                                            <option key={agendamento.id} value={agendamento.id}>
+                                                                {agendamento.nome} (#{agendamento.id})
+                                                            </option>
+                                                        ))}
+                                                    </select>
+                                                )}
+                                            </label>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+
                             <div className={formStyles.card}>
                                 <div className={formStyles.cardHeader}>
                                     <div className={formStyles.cardIcon}>
@@ -658,6 +757,14 @@ try {
                 </div>
             )}
         </WithPermission>
+    );
+}
+
+export default function NovoLotePage() {
+    return (
+        <Suspense fallback={null}>
+            <NovoLotePageContent />
+        </Suspense>
     );
 }
 

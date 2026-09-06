@@ -1,10 +1,27 @@
 import prismaClient from "../tools/prisma";
 import type { ParsedPagination } from "../utils/pagination";
 
+export const AGENDAMENTO_STATUS_ELEGIVEL_PARA_LOTE = "VISITADO";
+
+const loteInclude = {
+    medicamento: true,
+    formaFarmaceutica: true,
+    tipoMedicamento: true,
+    agendamento: {
+        select: {
+            id: true,
+            nome: true,
+            status: true,
+        },
+    },
+} as const;
+
 export interface ListLotesFilter {
     q?: string;
     /** Restringe lotes a um medicamento (ex.: tela de detalhe). */
     idMedicamento?: number;
+    /** Restringe lotes a um agendamento de doação. */
+    idAgendamento?: number;
     sortBy?: "created" | "numero" | "datavencimento" | "qtde";
     sortOrder?: "asc" | "desc";
 }
@@ -34,6 +51,7 @@ interface ILote {
     id_medicamento: number;
     id_forma_farmaceutica: number;
     id_tipo_medicamento: number;
+    id_agendamento: number;
 }
 
 interface IUpdateLote {
@@ -44,11 +62,33 @@ interface IUpdateLote {
     id_medicamento?: number;
     id_forma_farmaceutica?: number;
     id_tipo_medicamento?: number;
+    id_agendamento?: number;
+}
+
+async function assertAgendamentoElegivelParaLote(id_agendamento: number) {
+    if (!id_agendamento || Number.isNaN(id_agendamento)) {
+        throw new Error("Agendamento é obrigatório");
+    }
+
+    const agendamento = await prismaClient.agendamentos.findUnique({
+        where: { id: id_agendamento },
+        select: { id: true, status: true, nome: true },
+    });
+
+    if (!agendamento) {
+        throw new Error("Agendamento não encontrado");
+    }
+
+    if (agendamento.status !== AGENDAMENTO_STATUS_ELEGIVEL_PARA_LOTE) {
+        throw new Error("Só é possível cadastrar lotes em agendamentos com status Concluída");
+    }
+
+    return agendamento;
 }
 
 //Modelo de criar lote
 class CreateLoteModel {
-    async execute({ numero, datavencimento, datafabricacao, qtde, id_medicamento, id_forma_farmaceutica, id_tipo_medicamento }: ILote) {
+    async execute({ numero, datavencimento, datafabricacao, qtde, id_medicamento, id_forma_farmaceutica, id_tipo_medicamento, id_agendamento }: ILote) {
         if (!numero || numero.trim() === '') {
             throw new Error("Número do lote é obrigatório");
         }
@@ -76,6 +116,8 @@ class CreateLoteModel {
         if (!id_tipo_medicamento) {
             throw new Error("Tipo de medicamento é obrigatório");
         }
+
+        await assertAgendamentoElegivelParaLote(id_agendamento);
 
         // Validar se medicamento existe
         const medicamento = await prismaClient.medicamentos.findUnique({
@@ -126,13 +168,10 @@ class CreateLoteModel {
                 qtde: qtde,
                 id_medicamento: id_medicamento,
                 id_forma_farmaceutica: id_forma_farmaceutica,
-                id_tipo_medicamento: id_tipo_medicamento
+                id_tipo_medicamento: id_tipo_medicamento,
+                id_agendamento: id_agendamento,
             },
-            include: {
-                medicamento: true,
-                formaFarmaceutica: true,
-                tipoMedicamento: true
-            }
+            include: loteInclude,
         });
         return lote;
     }
@@ -142,11 +181,7 @@ class CreateLoteModel {
 class ListLotesModel {
     async execute(p: ParsedPagination, opts?: ListLotesFilter) {
         const base = {
-            include: {
-                medicamento: true,
-                formaFarmaceutica: true,
-                tipoMedicamento: true
-            },
+            include: loteInclude,
             orderBy: {
                 [(opts?.sortBy || "created")]: (opts?.sortOrder || "desc")
             } as Record<string, "asc" | "desc">
@@ -155,6 +190,9 @@ class ListLotesModel {
         const and: object[] = [];
         if (opts?.idMedicamento != null && !Number.isNaN(opts.idMedicamento)) {
             and.push({ id_medicamento: opts.idMedicamento });
+        }
+        if (opts?.idAgendamento != null && !Number.isNaN(opts.idAgendamento)) {
+            and.push({ id_agendamento: opts.idAgendamento });
         }
 
         const q = opts?.q?.trim();
@@ -166,6 +204,7 @@ class ListLotesModel {
                 { medicamento: { principioativo: { contains: q, mode: "insensitive" as const } } },
                 { formaFarmaceutica: { descricao: { contains: q, mode: "insensitive" as const } } },
                 { tipoMedicamento: { descricao: { contains: q, mode: "insensitive" as const } } },
+                { agendamento: { nome: { contains: q, mode: "insensitive" as const } } },
             ];
             const n = parseInt(String(q).replace(/\D/g, ""), 10);
             if (!Number.isNaN(n) && String(q).replace(/\D/g, "") === String(n)) {
@@ -208,11 +247,7 @@ class ListLotesDisponiveisModel {
         };
         const base = {
             where,
-            include: {
-                medicamento: true,
-                formaFarmaceutica: true,
-                tipoMedicamento: true
-            },
+            include: loteInclude,
             orderBy: {
                 datavencimento: 'asc' as const
             }
@@ -236,11 +271,7 @@ class GetLoteModel {
             where: {
                 id: id
             },
-            include: {
-                medicamento: true,
-                formaFarmaceutica: true,
-                tipoMedicamento: true
-            }
+            include: loteInclude,
         });
         
         if (!lote) {
@@ -307,6 +338,11 @@ class UpdateLoteModel {
             }
             updateData.id_tipo_medicamento = data.id_tipo_medicamento;
         }
+
+        if (data.id_agendamento !== undefined) {
+            await assertAgendamentoElegivelParaLote(data.id_agendamento);
+            updateData.id_agendamento = data.id_agendamento;
+        }
         
         // Validar datas se fornecidas
         if (data.datafabricacao || data.datavencimento) {
@@ -338,11 +374,7 @@ class UpdateLoteModel {
                 id: id
             },
             data: updateData,
-            include: {
-                medicamento: true,
-                formaFarmaceutica: true,
-                tipoMedicamento: true
-            }
+            include: loteInclude,
         });
         
         return lote;
@@ -386,4 +418,3 @@ export {
     UpdateLoteModel, 
     DeleteLoteModel 
 }
-
