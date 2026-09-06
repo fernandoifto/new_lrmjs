@@ -28,14 +28,18 @@ model Agendamentos {
   google_maps_url String? @db.Text  // URL do Google Maps ou coordenadas
   id_turno    Int
   id_user     Int?
+  id_user_marcado Int?  // agente que marcou para hoje (claim)
   visitado    Boolean   @default(false)
   status      String    @db.VarChar(40) @default("AGUARDANDO_AGENDAMENTO")
   created     DateTime  @default(now())
   modified    DateTime  @updatedAt
 
   turno       Turnos    @relation(fields: [id_turno], references: [id])
-  user        Users?    @relation(fields: [id_user], references: [id])
+  user        Users?    @relation("AgendamentosVisitados", fields: [id_user], references: [id])
+  userMarcado Users?    @relation("AgendamentosMarcados", fields: [id_user_marcado], references: [id])
   lotes       Lotes[]
+
+  @@index([id_user_marcado])
   @@map("agendamentos")
 }
 
@@ -58,8 +62,10 @@ model Users {
   created   DateTime   @default(now())
   modified  DateTime   @updatedAt
 
-  agendamentos Agendamentos[]
+  agendamentosVisitados Agendamentos[] @relation("AgendamentosVisitados")
+  agendamentosMarcados  Agendamentos[] @relation("AgendamentosMarcados")
   retiradas    Retiradas[]
+  lotes        Lotes[]
   userRoles    UserRoles[]
   @@map("users")
 }
@@ -129,6 +135,7 @@ model Lotes {
   id_forma_farmaceutica  Int
   id_tipo_medicamento    Int
   id_agendamento         Int
+  id_user                Int
   created                DateTime   @default(now())
   modified               DateTime   @updatedAt
 
@@ -136,11 +143,13 @@ model Lotes {
   medicamento            Medicamentos @relation(fields: [id_medicamento], references: [id])
   tipoMedicamento        TiposMedicamentos @relation(fields: [id_tipo_medicamento], references: [id])
   agendamento            Agendamentos @relation(fields: [id_agendamento], references: [id], onDelete: Restrict)
+  user                   Users @relation(fields: [id_user], references: [id], onDelete: Restrict)
 
   retiradas Retiradas[]
   solicitacoes Solicitacoes[]
 
   @@index([id_agendamento])
+  @@index([id_user])
   @@map("lotes")
 }
 

@@ -1,0 +1,264 @@
+.screen {
+  min-height: 100vh;
+  background: #f8fafc;
+  padding: 1.25rem 1.5rem 2rem;
+  color: #1e293b;
+}
+
+.toolbar {
+  display: flex;
+  justify-content: space-between;
+  gap: 1rem;
+  flex-wrap: wrap;
+  align-items: flex-end;
+  margin-bottom: 1.25rem;
+  padding: 1rem 1.25rem;
+  background: #fff;
+  border: 1px solid #e2e8f0;
+  border-radius: 12px;
+}
+
+.toolbarLeft h1 {
+  margin: 0.35rem 0 0;
+  font-size: 1.35rem;
+  color: #059669;
+}
+
+.toolbarLeft p {
+  margin: 0.25rem 0 0;
+  color: #64748b;
+  font-size: 0.9rem;
+}
+
+.toolbarRight {
+  display: flex;
+  gap: 0.75rem;
+  align-items: flex-end;
+  flex-wrap: wrap;
+}
+
+.qtdeField {
+  display: flex;
+  flex-direction: column;
+  gap: 0.35rem;
+  font-size: 0.8rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: #334155;
+}
+
+.qtdeField input {
+  width: 110px;
+  padding: 0.55rem 0.7rem;
+  border: 1px solid #cbd5e1;
+  border-radius: 8px;
+  font-size: 1rem;
+}
+
+.pager {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  flex-wrap: wrap;
+}
+
+.pageInfo {
+  font-size: 0.9rem;
+  color: #475569;
+  min-width: 7.5rem;
+  text-align: center;
+}
+
+.btnSecondary,
+.btnPrint {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.4rem;
+  padding: 0.65rem 1.1rem;
+  border-radius: 8px;
+  font-weight: 500;
+  font-size: 0.95rem;
+  border: none;
+  cursor: pointer;
+  text-decoration: none;
+}
+
+.btnSecondary {
+  background: rgba(5, 150, 105, 0.1);
+  color: #059669;
+  width: fit-content;
+}
+
+.btnSecondary:hover {
+  background: rgba(5, 150, 105, 0.18);
+}
+
+.btnSecondary:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+}
+
+.btnPrint {
+  background: #059669;
+  color: #fff;
+}
+
+.btnPrint:hover {
+  background: #047857;
+}
+
+.btnPrintOutline {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.4rem;
+  padding: 0.65rem 1.1rem;
+  border-radius: 8px;
+  font-weight: 500;
+  font-size: 0.95rem;
+  cursor: pointer;
+  text-decoration: none;
+  background: #fff;
+  color: #059669;
+  border: 1px solid #059669;
+}
+
+.btnPrintOutline:hover {
+  background: rgba(5, 150, 105, 0.08);
+}
+
+.sheet {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(60mm, 1fr));
+  gap: 4mm;
+}
+
+.previewSheet {
+  display: grid;
+}
+
+.printAll {
+  display: none;
+}
+
+.printPage {
+  page-break-after: always;
+  break-after: page;
+}
+
+.printPage:last-child {
+  page-break-after: auto;
+  break-after: auto;
+}
+
+.label {
+  width: 60mm;
+  min-height: 40mm;
+  max-width: 100%;
+  box-sizing: border-box;
+  border: 1px solid #94a3b8;
+  border-radius: 2mm;
+  padding: 2.2mm 2.5mm;
+  background: #fff;
+  display: flex;
+  flex-direction: column;
+  gap: 1.2mm;
+  page-break-inside: avoid;
+  break-inside: avoid;
+  font-family: Arial, Helvetica, sans-serif;
+  color: #0f172a;
+}
+
+.labelHeader {
+  font-size: 8.5pt;
+  font-weight: 700;
+  line-height: 1.15;
+  text-transform: uppercase;
+  border-bottom: 0.4mm solid #059669;
+  padding-bottom: 1mm;
+}
+
+.labelRow {
+  display: flex;
+  justify-content: space-between;
+  gap: 2mm;
+  font-size: 6.5pt;
+  line-height: 1.2;
+}
+
+.labelRow span {
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+
+.barcodeWrap {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  margin-top: 0.5mm;
+}
+
+.barcode {
+  width: 100%;
+  max-height: 14mm;
+}
+
+.labelFooter {
+  margin-top: auto;
+  font-size: 5.5pt;
+  color: #475569;
+  border-top: 0.2mm solid #cbd5e1;
+  padding-top: 1mm;
+}
+
+@media print {
+  @page {
+    margin: 4mm;
+    size: auto;
+  }
+
+  .screen {
+    padding: 0;
+    background: #fff;
+  }
+
+  .toolbar {
+    display: none !important;
+  }
+
+  .printModePagina .previewSheet {
+    display: grid !important;
+  }
+
+  .printModePagina .printAll {
+    display: none !important;
+  }
+
+  .printModeTodas .previewSheet {
+    display: none !important;
+  }
+
+  .printModeTodas .printAll {
+    display: block !important;
+  }
+
+  .printPage {
+    display: block;
+    width: 100%;
+  }
+
+  .sheet {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(60mm, 1fr));
+    gap: 3mm;
+  }
+
+  .label {
+    width: 60mm;
+    height: 40mm;
+    border-radius: 0;
+    box-shadow: none;
+  }
+}

@@ -1,6 +1,6 @@
 'use client';
 
-import { Suspense, useCallback, useEffect, useState } from 'react';
+import { Suspense, useCallback, useEffect, useMemo, useState } from 'react';
 import { api } from '@/api/api';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { toast } from 'react-toastify';
@@ -19,6 +19,7 @@ import {
     FaTrash,
     FaCalendarDay,
     FaWhatsapp,
+    FaUndo,
 } from 'react-icons/fa';
 import styles from './AgendamentosListView.module.css';
 import Link from 'next/link';
@@ -48,6 +49,7 @@ interface Agendamento {
     created: string;
     turno: { id: number; descricao: string };
     user: { id: number; username: string; email: string } | null;
+    userMarcado: { id: number; username: string; email: string } | null;
     status: AgendamentoStatus;
 }
 
@@ -57,6 +59,8 @@ interface Stats {
     visita_marcada_hoje: number;
     visitado: number;
 }
+
+type BulkAction = 'marcar_hoje' | 'concluir' | 'desmarcar';
 
 const PAGE_SIZE_OPTIONS = [10, 20, 50, 100];
 const FILTROS: FiltroAgendamento[] = [
@@ -102,6 +106,8 @@ function AgendamentosListViewContent() {
     const [pagination, setPagination] = useState<PaginationMeta | null>(null);
     const [searchTerm, setSearchTerm] = useState('');
     const [activeSearchTerm, setActiveSearchTerm] = useState('');
+    const [selectedIds, setSelectedIds] = useState<Set<number>>(new Set());
+    const [bulkLoading, setBulkLoading] = useState(false);
 
     const rawFiltro = searchParams.get('filtro');
     const filtro: FiltroAgendamento = FILTROS.includes(rawFiltro as FiltroAgendamento)
@@ -109,6 +115,9 @@ function AgendamentosListViewContent() {
         : 'todos';
     const sortBy = (searchParams.get('sortBy') as SortField) || 'created';
     const sortOrder = searchParams.get('sortOrder') === 'asc' ? 'asc' : 'desc';
+
+    const canVisitar = hasPermission('agendamentos.visitar');
+    const canSeeMarcadoPor = hasPermission('agendamentos.editar');
 
     const updateParams = useCallback(
         (updates: Record<string, string | null>) => {
@@ -147,6 +156,10 @@ function AgendamentosListViewContent() {
         if (!mounted) return;
         loadStats();
     }, [mounted]);
+
+    useEffect(() => {
+        setSelectedIds(new Set());
+    }, [page, filtro, activeSearchTerm, sortBy, sortOrder, pageSize]);
 
     const loadStats = async () => {
         try {
@@ -192,11 +205,118 @@ function AgendamentosListViewContent() {
         loadStats();
     };
 
-    const handleVisitar = async (id: number) => {
+    const selectedItems = useMemo(
+        () => agendamentos.filter((ag) => selectedIds.has(ag.id)),
+        [agendamentos, selectedIds]
+    );
+
+    const allPageSelected = agendamentos.length > 0 && agendamentos.every((ag) => selectedIds.has(ag.id));
+    const somePageSelected = agendamentos.some((ag) => selectedIds.has(ag.id));
+
+    const selectedAguardando = selectedItems.filter((ag) => ag.status === 'AGUARDANDO_AGENDAMENTO');
+    const selectedHoje = selectedItems.filter((ag) => ag.status === 'VISITA_MARCADA_PARA_HOJE');
+
+    const toggleSelect = (id: number) => {
+        setSelectedIds((prev) => {
+            const next = new Set(prev);
+            if (next.has(id)) next.delete(id);
+            else next.add(id);
+            return next;
+        });
+    };
+
+    const toggleSelectAllPage = () => {
+        if (allPageSelected) {
+            setSelectedIds((prev) => {
+                const next = new Set(prev);
+                agendamentos.forEach((ag) => next.delete(ag.id));
+                return next;
+            });
+            return;
+        }
+        setSelectedIds((prev) => {
+            const next = new Set(prev);
+            agendamentos.forEach((ag) => next.add(ag.id));
+            return next;
+        });
+    };
+
+    const clearSelection = () => setSelectedIds(new Set());
+
+    const runBulkAction = async (action: BulkAction) => {
+        if (!canVisitar || selectedIds.size === 0 || bulkLoading) return;
+
+        const targets =
+            action === 'marcar_hoje'
+                ? selectedAguardando
+                : selectedHoje;
+
+        if (targets.length === 0) {
+            if (action === 'marcar_hoje') {
+                toast.info('Selecione agendamentos em "Aguardando" para marcar para hoje.');
+            } else if (action === 'concluir') {
+                toast.info('Selecione agendamentos "Agendado para hoje" para concluir.');
+            } else {
+                toast.info('Selecione agendamentos "Agendado para hoje" para desmarcar.');
+            }
+            return;
+        }
+
+        if (action === 'desmarcar') {
+            const ok = confirm(
+                `Desmarcar ${targets.length} coleta(s)? Eles voltarão para Aguardando e ficarão visíveis para todos os agentes.`
+            );
+            if (!ok) return;
+        }
+
+        if (action === 'concluir') {
+            const ok = confirm(`Concluir ${targets.length} visita(s) selecionada(s)?`);
+            if (!ok) return;
+        }
+
+        if (action === 'marcar_hoje') {
+            const ok = confirm(
+                `Marcar ${targets.length} agendamento(s) para hoje? Eles ficarão visíveis só para você (e para a supervisão).`
+            );
+            if (!ok) return;
+        }
+
+        setBulkLoading(true);
         try {
-            const userResponse = await api.get('/detail', {});
-            await api.patch(`/agendamento/${id}/visitar?userId=${userResponse.data.id}`, {}, {});
-            toast.success('Agendamento concluído!');
+            let okCount = 0;
+            const errors: string[] = [];
+
+            for (const ag of targets) {
+                try {
+                    if (action === 'marcar_hoje') {
+                        await api.patch(`/agendamento/${ag.id}/status`, { status: 'VISITA_MARCADA_PARA_HOJE' }, {});
+                    } else if (action === 'desmarcar') {
+                        await api.patch(`/agendamento/${ag.id}/desmarcar`, {}, {});
+                    } else {
+                        await api.patch(`/agendamento/${ag.id}/visitar`, {}, {});
+                    }
+                    okCount += 1;
+                } catch (error: unknown) {
+                    const err = error as { response?: { data?: { error?: string } } };
+                    errors.push(`${ag.nome}: ${err.response?.data?.error || 'falha'}`);
+                }
+            }
+
+            if (okCount > 0 && errors.length === 0) {
+                const msg =
+                    action === 'marcar_hoje'
+                        ? `${okCount} visita(s) marcada(s) para hoje.`
+                        : action === 'concluir'
+                            ? `${okCount} agendamento(s) concluído(s).`
+                            : `${okCount} agendamento(s) desmarcado(s).`;
+                toast.success(msg);
+            } else if (okCount > 0) {
+                toast.warning(`${okCount} ok, ${errors.length} com erro. ${errors.slice(0, 2).join(' · ')}`);
+            } else {
+                toast.error(errors[0] || 'Nenhuma ação pôde ser concluída.');
+            }
+
+            clearSelection();
             refreshAll();
         } catch (error: unknown) {
             const err = error as { response?: { status?: number; data?: { error?: string } } };
@@ -204,19 +324,10 @@ function AgendamentosListViewContent() {
                 toast.error('Sessão expirada. Faça login novamente.');
                 router.push('/login');
             } else {
-                toast.error(err.response?.data?.error || 'Erro ao concluir agendamento');
+                toast.error(err.response?.data?.error || 'Erro ao executar ação em lote');
             }
-        }
-    };
-
-    const handleMarcarParaHoje = async (id: number) => {
-        try {
-            await api.patch(`/agendamento/${id}/status`, { status: 'VISITA_MARCADA_PARA_HOJE' }, {});
-            toast.success('Visita marcada para hoje!');
-            refreshAll();
-        } catch (error: unknown) {
-            const err = error as { response?: { data?: { error?: string } } };
-            toast.error(err.response?.data?.error || 'Erro ao atualizar status');
+        } finally {
+            setBulkLoading(false);
         }
     };
 
@@ -225,6 +336,11 @@ function AgendamentosListViewContent() {
         try {
             await api.delete(`/agendamento/${id}`, {});
             toast.success('Agendamento excluído com sucesso!');
+            setSelectedIds((prev) => {
+                const next = new Set(prev);
+                next.delete(id);
+                return next;
+            });
             refreshAll();
         } catch (error: unknown) {
             const err = error as { response?: { status?: number; data?: { error?: string } } };
@@ -310,43 +426,8 @@ function AgendamentosListViewContent() {
         return stats[f];
     };
 
-    const renderPrimaryAction = (ag: Agendamento) => {
-        if (ag.status === 'AGUARDANDO_AGENDAMENTO' && hasPermission('agendamentos.visitar')) {
-            return (
-                <button
-                    type="button"
-                    className={styles.btnPrimary}
-                    onClick={(e) => {
-                        e.stopPropagation();
-                        handleMarcarParaHoje(ag.id);
-                    }}
-                >
-                    <FaCalendarDay size={14} />
-                    Marcar para hoje
-                </button>
-            );
-        }
-        if (ag.status === 'VISITA_MARCADA_PARA_HOJE' && hasPermission('agendamentos.visitar')) {
-            return (
-                <button
-                    type="button"
-                    className={styles.btnPrimary}
-                    onClick={(e) => {
-                        e.stopPropagation();
-                        handleVisitar(ag.id);
-                    }}
-                >
-                    <FaClipboardCheck size={14} />
-                    Concluir
-                </button>
-            );
-        }
-        return null;
-    };
-
     const renderRowActions = (ag: Agendamento) => (
         <div className={styles.actions}>
-            {renderPrimaryAction(ag)}
             {hasPermission('agendamentos.editar') && (
                 <Link
                     href={`/agendamentos/${ag.id}/editar`}
@@ -371,6 +452,29 @@ function AgendamentosListViewContent() {
                 </button>
             )}
         </div>
+    );
+
+    const renderStatusCell = (ag: Agendamento) => (
+        <div className={styles.statusCell}>
+            <span className={`${styles.badge} ${styles[statusBadgeClass(ag.status)]}`}>
+                {statusLabel[ag.status]}
+            </span>
+            {canSeeMarcadoPor && ag.status === 'VISITA_MARCADA_PARA_HOJE' && ag.userMarcado && (
+                <span className={styles.marcadoPor}>Marcado por: {ag.userMarcado.username}</span>
+            )}
+        </div>
+    );
+
+    const renderCheckbox = (ag: Agendamento) => (
+        <input
+            type="checkbox"
+            className={styles.checkbox}
+            checked={selectedIds.has(ag.id)}
+            onChange={() => toggleSelect(ag.id)}
+            onClick={(e) => e.stopPropagation()}
+            aria-label={`Selecionar ${ag.nome}`}
+            disabled={bulkLoading}
+        />
     );
 
     if (!mounted) return null;
@@ -459,6 +563,69 @@ function AgendamentosListViewContent() {
                             </div>
                         </div>
 
+                        {canVisitar && selectedIds.size > 0 && (
+                            <div className={styles.bulkBar} role="region" aria-label="Ações em lote">
+                                <div className={styles.bulkInfo}>
+                                    <strong>{selectedIds.size}</strong> selecionado{selectedIds.size === 1 ? '' : 's'}
+                                    <button
+                                        type="button"
+                                        className={styles.bulkClear}
+                                        onClick={clearSelection}
+                                        disabled={bulkLoading}
+                                    >
+                                        Limpar
+                                    </button>
+                                </div>
+                                <div className={styles.bulkActions}>
+                                    <button
+                                        type="button"
+                                        className={styles.btnPrimary}
+                                        disabled={bulkLoading || selectedAguardando.length === 0}
+                                        title={
+                                            selectedAguardando.length === 0
+                                                ? 'Selecione itens em Aguardando'
+                                                : `Marcar ${selectedAguardando.length} para hoje`
+                                        }
+                                        onClick={() => runBulkAction('marcar_hoje')}
+                                    >
+                                        <FaCalendarDay size={14} />
+                                        Marcar para hoje
+                                        {selectedAguardando.length > 0 ? ` (${selectedAguardando.length})` : ''}
+                                    </button>
+                                    <button
+                                        type="button"
+                                        className={styles.btnPrimary}
+                                        disabled={bulkLoading || selectedHoje.length === 0}
+                                        title={
+                                            selectedHoje.length === 0
+                                                ? 'Selecione itens Agendado para hoje'
+                                                : `Concluir ${selectedHoje.length}`
+                                        }
+                                        onClick={() => runBulkAction('concluir')}
+                                    >
+                                        <FaClipboardCheck size={14} />
+                                        Concluir
+                                        {selectedHoje.length > 0 ? ` (${selectedHoje.length})` : ''}
+                                    </button>
+                                    <button
+                                        type="button"
+                                        className={styles.btnSecondary}
+                                        disabled={bulkLoading || selectedHoje.length === 0}
+                                        title={
+                                            selectedHoje.length === 0
+                                                ? 'Selecione itens Agendado para hoje'
+                                                : `Desmarcar ${selectedHoje.length}`
+                                        }
+                                        onClick={() => runBulkAction('desmarcar')}
+                                    >
+                                        <FaUndo size={14} />
+                                        Desmarcar
+                                        {selectedHoje.length > 0 ? ` (${selectedHoje.length})` : ''}
+                                    </button>
+                                </div>
+                            </div>
+                        )}
+
                         {loading ? (
                             <div className={styles.loading}>Carregando agendamentos…</div>
                         ) : agendamentos.length === 0 ? (
@@ -474,6 +641,19 @@ function AgendamentosListViewContent() {
                                     <table className={styles.table}>
                                         <thead>
                                             <tr>
+                                                <th className={styles.checkCol}>
+                                                    <input
+                                                        type="checkbox"
+                                                        className={styles.checkbox}
+                                                        checked={allPageSelected}
+                                                        ref={(el) => {
+                                                            if (el) el.indeterminate = somePageSelected && !allPageSelected;
+                                                        }}
+                                                        onChange={toggleSelectAllPage}
+                                                        aria-label="Selecionar todos da página"
+                                                        disabled={bulkLoading}
+                                                    />
+                                                </th>
                                                 <th>Nome</th>
                                                 <th className={styles.hideMobile}>Endereço/Setor</th>
                                                 <th className={styles.hideTablet}>Melhor data</th>
@@ -486,9 +666,12 @@ function AgendamentosListViewContent() {
                                             {agendamentos.map((ag) => (
                                                 <tr
                                                     key={ag.id}
-                                                    className={styles.row}
+                                                    className={`${styles.row} ${selectedIds.has(ag.id) ? styles.rowSelected : ''}`}
                                                     onClick={() => router.push(`/agendamentos/${ag.id}`)}
                                                 >
+                                                    <td className={styles.checkCol} onClick={(e) => e.stopPropagation()}>
+                                                        {renderCheckbox(ag)}
+                                                    </td>
                                                     <td>
                                                         <strong className={styles.nomeText}>{ag.nome}</strong>
                                                     </td>
@@ -502,11 +685,7 @@ function AgendamentosListViewContent() {
                                                     <td className={styles.hideMobile}>
                                                         <WhatsAppPhoneLink phone={ag.telefone} />
                                                     </td>
-                                                    <td>
-                                                        <span className={`${styles.badge} ${styles[statusBadgeClass(ag.status)]}`}>
-                                                            {statusLabel[ag.status]}
-                                                        </span>
-                                                    </td>
+                                                    <td>{renderStatusCell(ag)}</td>
                                                     <td className={styles.actionsCol} onClick={(e) => e.stopPropagation()}>
                                                         {renderRowActions(ag)}
                                                     </td>
@@ -520,10 +699,16 @@ function AgendamentosListViewContent() {
                                     {agendamentos.map((ag) => (
                                         <div
                                             key={ag.id}
-                                            className={styles.mobileCard}
+                                            className={`${styles.mobileCard} ${selectedIds.has(ag.id) ? styles.rowSelected : ''}`}
                                             onClick={() => router.push(`/agendamentos/${ag.id}`)}
                                         >
                                             <div className={styles.mobileCardHeader}>
+                                                <label
+                                                    className={styles.mobileCheck}
+                                                    onClick={(e) => e.stopPropagation()}
+                                                >
+                                                    {renderCheckbox(ag)}
+                                                </label>
                                                 <strong>{ag.nome}</strong>
                                             </div>
                                             <p className={styles.mobileMeta}>
@@ -534,9 +719,7 @@ function AgendamentosListViewContent() {
                                                 <WhatsAppPhoneLink phone={ag.telefone} />
                                             </p>
                                             <div className={styles.mobileStatus}>
-                                                <span className={`${styles.badge} ${styles[statusBadgeClass(ag.status)]}`}>
-                                                    {statusLabel[ag.status]}
-                                                </span>
+                                                {renderStatusCell(ag)}
                                             </div>
                                             <div className={styles.mobileActions} onClick={(e) => e.stopPropagation()}>
                                                 {renderRowActions(ag)}
@@ -565,7 +748,7 @@ function AgendamentosListViewContent() {
                                             totalPages={pagination.totalPages}
                                             total={pagination.total}
                                             onPageChange={setPage}
-                                            disabled={loading}
+                                            disabled={loading || bulkLoading}
                                         />
                                     )}
                                 </div>

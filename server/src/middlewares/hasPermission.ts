@@ -40,6 +40,22 @@ async function getPermissionsForUser(userId: number): Promise<Set<string>> {
     return permissions;
 }
 
+export async function userHasPermission(
+    user: { id: number; is_admin: boolean },
+    permissionName: string
+): Promise<boolean> {
+    if (user.is_admin) return true;
+    const permissions = await getPermissionsForUser(user.id);
+    return permissions.has(permissionName);
+}
+
+/** Admin ou quem edita agendamentos (ex.: farmacêutico) vê claims de todos os agentes. */
+export async function userCanViewAllAgendamentos(
+    user: { id: number; is_admin: boolean }
+): Promise<boolean> {
+    return userHasPermission(user, "agendamentos.editar");
+}
+
 export function hasPermission(permissionName: string) {
     return async (request: Request, response: Response, next: NextFunction) => {
         try {
@@ -56,9 +72,9 @@ export function hasPermission(permissionName: string) {
 
             // Verificar se o usuário tem a permissão necessária
             const permissions = await getPermissionsForUser(authenticatedUser.id);
-            const hasPermission = permissions.has(permissionName);
+            const allowed = permissions.has(permissionName);
 
-            if (!hasPermission) {
+            if (!allowed) {
                 return response.status(403).json({ error: "Acesso negado. Permissão necessária: " + permissionName });
             }
 

@@ -37,6 +37,11 @@ interface Agendamento {
         username: string;
         email: string;
     } | null;
+    userMarcado: {
+        id: number;
+        username: string;
+        email: string;
+    } | null;
     status: 'AGUARDANDO_AGENDAMENTO' | 'VISITA_MARCADA_PARA_HOJE' | 'VISITADO';
     lotes?: LoteDoado[];
 }
@@ -158,20 +163,19 @@ export default function AgendamentoViewPage() {
     const handleVisitar = async (id: number) => {
         try {
 
-            // Obter o ID do usuário atual
-            const userResponse = await api.get('/detail', {});
-
-            await api.patch(`/agendamento/${id}/visitar?userId=${userResponse.data.id}`, {}, {});
+            // Obter o ID do usuário atual — removido: sessão no backend
+            await api.patch(`/agendamento/${id}/visitar`, {}, {});
 
             toast.success('Agendamento marcado como visitado!');
             loadAgendamento(id); // Recarrega a lista
-        } catch (error: any) {
+        } catch (error: unknown) {
             console.error('Erro ao marcar como visitado:', error);
-            if (error.response?.status === 401) {
+            const err = error as { response?: { status?: number; data?: { error?: string } } };
+            if (err.response?.status === 401) {
                 toast.error('Sessão expirada. Faça login novamente.');
                 router.push('/login');
             } else {
-                toast.error('Erro ao marcar como visitado');
+                toast.error(err.response?.data?.error || 'Erro ao marcar como visitado');
             }
         }
     };
@@ -179,7 +183,7 @@ export default function AgendamentoViewPage() {
     const handleMarcarHoje = async (id: number) => {
         try {
             await api.patch(`/agendamento/${id}/status`, { status: 'VISITA_MARCADA_PARA_HOJE' }, {});
-            toast.success('Visita marcada para hoje!');
+            toast.success('Visita marcada para hoje! Agora só você (e a supervisão) vê este agendamento.');
             loadAgendamento(id);
         } catch (error: any) {
             console.error('Erro ao marcar visita para hoje:', error);
@@ -188,7 +192,7 @@ export default function AgendamentoViewPage() {
     };
 
     const handleDesmarcar = async (id: number) => {
-        if (!confirm('Desmarcar coleta? O agendamento voltará para Aguardando.')) {
+        if (!confirm('Desmarcar coleta? O agendamento voltará para Aguardando e ficará visível para todos os agentes.')) {
             return;
         }
 
@@ -459,10 +463,22 @@ export default function AgendamentoViewPage() {
                                         <span className={styles.label}>Última atualização</span>
                                         <span className={styles.value}>{formatDate(agendamento.modified)}</span>
                                     </div>
+                                    {agendamento.status === 'VISITA_MARCADA_PARA_HOJE' && agendamento.userMarcado && hasPermission('agendamentos.editar') && (
+                                        <div className={styles.infoItem}>
+                                            <span className={styles.label}>Marcado para hoje por</span>
+                                            <span className={styles.value}>{agendamento.userMarcado.username}</span>
+                                        </div>
+                                    )}
                                     {agendamento.status === 'VISITADO' && agendamento.user && (
                                         <div className={styles.infoItem}>
                                             <span className={styles.label}>Visitado por</span>
                                             <span className={styles.value}>{agendamento.user.username}</span>
+                                        </div>
+                                    )}
+                                    {agendamento.status === 'VISITADO' && agendamento.userMarcado && hasPermission('agendamentos.editar') && (
+                                        <div className={styles.infoItem}>
+                                            <span className={styles.label}>Marcado para hoje por</span>
+                                            <span className={styles.value}>{agendamento.userMarcado.username}</span>
                                         </div>
                                     )}
                                 </div>

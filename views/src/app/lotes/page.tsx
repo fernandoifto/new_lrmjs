@@ -8,7 +8,7 @@ import Header from '../home/components/header';
 import Menu from '../components/menu';
 import WithPermission from '@/components/withPermission';
 import { usePermissions } from '@/hooks/usePermissions';
-import { FaBoxes, FaFilePdf, FaPlus, FaEye, FaEdit, FaTrash, FaHandHoldingHeart } from 'react-icons/fa';
+import { FaBoxes, FaFilePdf, FaPlus, FaEye, FaEdit, FaTrash, FaHandHoldingHeart, FaBarcode } from 'react-icons/fa';
 import Link from 'next/link';
 import jsPDF from 'jspdf';
 import type { PaginationMeta } from '@/lib/pagedApi';
@@ -371,6 +371,10 @@ export default function LotesPage() {
                             subtitle="Gerencie os lotes de medicamentos do sistema"
                             actions={
                                 <>
+                                    <Link href="/lotes/rastreio" className={styles.btnSecondary} title="Consultar etiqueta">
+                                        <FaBarcode size={16} />
+                                        Consultar etiqueta
+                                    </Link>
                                     {pagination != null && pagination.total > 0 && (
                                         <button
                                             type="button"

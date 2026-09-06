@@ -6,7 +6,7 @@ import { toast } from 'react-toastify';
 import Header from '../home/components/header';
 import Menu from '../components/menu';
 import WithPermission from '@/components/withPermission';
-import { FaPills, FaBoxes, FaTags, FaFlask } from 'react-icons/fa';
+import { FaPills, FaBoxes, FaTags, FaFlask, FaBarcode } from 'react-icons/fa';
 import styles from './page.module.css';
 import Link from 'next/link';
 
@@ -41,6 +41,14 @@ export default function MedicamentosPage() {
                                 </div>
                                 <h3>Lotes</h3>
                                 <p>Gerencie os lotes de medicamentos do sistema</p>
+                            </Link>
+
+                            <Link href="/lotes/rastreio" className={styles.buttonCard}>
+                                <div className={styles.buttonIcon}>
+                                    <FaBarcode size={32} />
+                                </div>
+                                <h3>Consultar etiqueta</h3>
+                                <p>Busque doador, medicamento, lote e triagem pelo código</p>
                             </Link>
 
                             <Link href="/medicamentos/list" className={styles.buttonCard}>

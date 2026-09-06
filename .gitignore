@@ -15,6 +15,7 @@ out
 build
 old/
 docs/
+doc/
 
 # Production
 /dist

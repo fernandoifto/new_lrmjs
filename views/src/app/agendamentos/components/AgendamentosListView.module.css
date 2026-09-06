@@ -335,6 +335,95 @@
   color: #047857;
 }
 
+.statusCell {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 0.25rem;
+}
+
+.marcadoPor {
+  font-size: 0.72rem;
+  color: var(--cor-texto-claro, #64748b);
+  line-height: 1.2;
+}
+
+.checkCol {
+  width: 2.5rem;
+  text-align: center;
+  vertical-align: middle;
+}
+
+.checkbox {
+  width: 1rem;
+  height: 1rem;
+  accent-color: var(--cor-primaria, #059669);
+  cursor: pointer;
+}
+
+.rowSelected {
+  background: rgba(5, 150, 105, 0.06);
+}
+
+.bulkBar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+  flex-wrap: wrap;
+  margin-bottom: 0.85rem;
+  padding: 0.75rem 1rem;
+  border: 1px solid rgba(5, 150, 105, 0.25);
+  border-radius: 10px;
+  background: rgba(5, 150, 105, 0.06);
+}
+
+.bulkInfo {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  font-size: 0.9rem;
+  color: var(--cor-texto, #334155);
+}
+
+.bulkClear {
+  border: none;
+  background: transparent;
+  color: var(--cor-texto-claro, #64748b);
+  font-size: 0.85rem;
+  text-decoration: underline;
+  cursor: pointer;
+  padding: 0;
+}
+
+.bulkClear:hover:not(:disabled) {
+  color: var(--cor-texto, #334155);
+}
+
+.bulkClear:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.bulkActions {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  flex-wrap: wrap;
+}
+
+.bulkActions .btnPrimary:disabled,
+.bulkActions .btnSecondary:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+}
+
+.mobileCheck {
+  display: inline-flex;
+  align-items: center;
+  margin-right: 0.5rem;
+}
+
 .actionsCol {
   width: 1%;
   white-space: nowrap;
@@ -345,6 +434,7 @@
   align-items: center;
   gap: 0.35rem;
   justify-content: flex-end;
+  flex-wrap: nowrap;
 }
 
 .btnPrimary {
@@ -364,6 +454,26 @@
 
 .btnPrimary:hover {
   background: #047857;
+}
+
+.btnSecondary {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  padding: 0.4rem 0.65rem;
+  border: 1px solid var(--cor-borda, #cbd5e1);
+  border-radius: 6px;
+  background: #fff;
+  color: var(--cor-texto, #334155);
+  font-size: 0.8rem;
+  font-weight: 500;
+  cursor: pointer;
+  white-space: nowrap;
+}
+
+.btnSecondary:hover {
+  background: #f8fafc;
+  border-color: #94a3b8;
 }
 
 .btnIcon {
@@ -460,9 +570,25 @@
 
   .mobileCardHeader {
     display: flex;
-    flex-direction: column;
+    flex-direction: row;
+    align-items: center;
     gap: 0.35rem;
     margin-bottom: 0.5rem;
+  }
+
+  .bulkBar {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .bulkActions {
+    width: 100%;
+  }
+
+  .bulkActions .btnPrimary,
+  .bulkActions .btnSecondary {
+    flex: 1 1 auto;
+    justify-content: center;
   }
 
   .mobileMeta {
@@ -480,8 +606,8 @@
     gap: 0.5rem;
     margin-top: 0.75rem;
     align-items: center;
-    flex-wrap: wrap;
-    justify-content: space-between;
+    flex-wrap: nowrap;
+    justify-content: flex-end;
   }
 
   .hideMobile {

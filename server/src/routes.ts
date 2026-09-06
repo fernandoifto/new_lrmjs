@@ -15,7 +15,7 @@ import { AuthUserController, CreateUserController, DetailUserController, ForgotP
 import { CreateTipoMedicamentoController, ListTiposMedicamentosController, GetTipoMedicamentoController, UpdateTipoMedicamentoController, DeleteTipoMedicamentoController } from "./controllers/tiposMedicamentosController";
 import { CreateFormaFarmaceuticaController, ListFormasFarmaceuticasController, GetFormaFarmaceuticaController, UpdateFormaFarmaceuticaController, DeleteFormaFarmaceuticaController } from "./controllers/formasFarmaceuticasController";
 import { CreateMedicamentoController, ListMedicamentosController, GetMedicamentoController, UpdateMedicamentoController, DeleteMedicamentoController } from "./controllers/medicamentosController";
-import { CreateLoteController, ListLotesController, ListLotesDisponiveisController, GetLoteController, UpdateLoteController, DeleteLoteController, ListLotesByAgendamentoController } from "./controllers/lotesController";
+import { CreateLoteController, ListLotesController, ListLotesDisponiveisController, GetLoteController, GetLoteByRastreioController, UpdateLoteController, DeleteLoteController, ListLotesByAgendamentoController } from "./controllers/lotesController";
 import { CreatePacienteController, ListPacientesController, GetPacienteController, GetPacienteByCPFController, UpdatePacienteController, DeletePacienteController } from "./controllers/pacientesController";
 import { CreateRetiradaController, ListRetiradasController, GetRetiradaController, UpdateRetiradaController, DeleteRetiradaController } from "./controllers/retiradasController";
 import { CreateSolicitacaoController, ListSolicitacoesController, GetSolicitacaoController, ConfirmarSolicitacaoController, ConcluirDoacaoController, RecusarSolicitacaoController, DeleteSolicitacaoController, ListSolicitacoesByPacienteController } from "./controllers/solicitacoesController";
@@ -42,7 +42,7 @@ router.get("/agendamentos", isAuthenticated, hasPermission("agendamentos.ver"), 
 router.get("/agendamento/:id/lotes", isAuthenticated, hasPermission("agendamentos.ver"), new ListLotesByAgendamentoController().handle);
 router.get("/agendamento/:id", isAuthenticated, hasPermission("agendamentos.ver"), new GetAgendamentoController().handle);
 router.put("/agendamento/:id", isAuthenticated, hasPermission("agendamentos.editar"), new UpdateAgendamentoController().handle);
-router.patch("/agendamento/:id/status", isAuthenticated, hasPermission("agendamentos.editar"), new AtualizarStatusAgendamentoController().handle);
+router.patch("/agendamento/:id/status", isAuthenticated, hasPermission("agendamentos.visitar"), new AtualizarStatusAgendamentoController().handle);
 router.patch("/agendamento/:id/visitar", isAuthenticated, hasPermission("agendamentos.visitar"), new MarcarVisitadoController().handle);
 router.patch("/agendamento/:id/desmarcar", isAuthenticated, hasPermission("agendamentos.visitar"), new DesmarcarAgendamentoController().handle);
 router.delete("/agendamento/:id", isAuthenticated, hasPermission("agendamentos.excluir"), new DeleteAgendamentoController().handle);
@@ -87,6 +87,7 @@ router.delete("/medicamento/:id", isAuthenticated, hasPermission("medicamentos.e
 router.post("/lote", isAuthenticated, hasPermission("lotes.criar"), new CreateLoteController().handle);
 router.get("/lotes", isAuthenticated, hasPermission("lotes.ver"), new ListLotesController().handle);
 router.get("/lotes-disponiveis", new ListLotesDisponiveisController().handle); // Rota pública para lotes disponíveis
+router.get("/lotes/rastreio", isAuthenticated, hasPermission("lotes.ver"), new GetLoteByRastreioController().handle);
 router.get("/lote/:id", isAuthenticated, hasPermission("lotes.ver"), new GetLoteController().handle);
 router.put("/lote/:id", isAuthenticated, hasPermission("lotes.editar"), new UpdateLoteController().handle);
 router.delete("/lote/:id", isAuthenticated, hasPermission("lotes.excluir"), new DeleteLoteController().handle);

@@ -104,7 +104,7 @@ function NovoLotePageContent() {
                         if (ag.status === 'VISITADO') {
                             setFormData(prev => ({ ...prev, id_agendamento: String(ag.id) }));
                             setAgendamentoLocked(true);
-                            setAgendamentoLabel(`${ag.nome} (#${ag.id})`);
+                            setAgendamentoLabel(ag.nome);
                             setAgendamentosConcluidos([{ id: ag.id, nome: ag.nome, status: ag.status }]);
                             return;
                         }
@@ -378,7 +378,7 @@ try {
                                                         <option value="">Selecione um agendamento concluído</option>
                                                         {agendamentosConcluidos.map((agendamento) => (
                                                             <option key={agendamento.id} value={agendamento.id}>
-                                                                {agendamento.nome} (#{agendamento.id})
+                                                                {agendamento.nome}
                                                             </option>
                                                         ))}
                                                     </select>

@@ -8,9 +8,10 @@ import Header from '../../home/components/header';
 import Menu from '../../components/menu';
 import WithPermission from '@/components/withPermission';
 import { usePermissions } from '@/hooks/usePermissions';
-import { FaEdit, FaTrash } from 'react-icons/fa';
+import { FaEdit, FaTrash, FaTags } from 'react-icons/fa';
 import styles from './page.module.css';
 import Link from 'next/link';
+import { buildCodigoRastreioLote } from '@/lib/loteRastreio';
 
 interface Lote {
     id: number;
@@ -35,6 +36,11 @@ interface Lote {
         id: number;
         nome: string;
         status: string;
+    };
+    user?: {
+        id: number;
+        username: string;
+        email: string;
     };
     created: string;
     modified: string;
@@ -91,7 +97,10 @@ export default function LoteViewPage() {
 
     const isExpired = (dateString: string) => {
         const date = new Date(dateString);
-        return date < new Date();
+        const hoje = new Date();
+        hoje.setHours(0, 0, 0, 0);
+        date.setHours(0, 0, 0, 0);
+        return date < hoje;
     };
 
     const handleDelete = async (id: number) => {
@@ -132,6 +141,16 @@ export default function LoteViewPage() {
                                 ← Voltar
                             </Link>
                             <div className={styles.headerActions}>
+                                {lote && !isExpired(lote.datavencimento) && (
+                                    <Link
+                                        href={`/lotes/${lote.id}/etiqueta`}
+                                        className={styles.btnEtiqueta}
+                                        title="Gerar etiquetas de unitarização"
+                                    >
+                                        <FaTags size={16} />
+                                        Gerar Etiquetas de Unitarização
+                                    </Link>
+                                )}
                                 {lote && hasPermission('lotes.editar') && (
                                     <Link 
                                         href={`/lotes/${lote.id}/editar`}
@@ -199,6 +218,16 @@ export default function LoteViewPage() {
                                                     {isExpired(lote.datavencimento) && ' (Vencido)'}
                                                 </span>
                                             </div>
+                                            <div className={styles.infoItem}>
+                                                <span className={styles.label}>Código de rastreio</span>
+                                                <span className={styles.value}>
+                                                    {buildCodigoRastreioLote({
+                                                        id: lote.id,
+                                                        numero: lote.numero,
+                                                        datavencimento: lote.datavencimento,
+                                                    })}
+                                                </span>
+                                            </div>
                                         </div>
                                     </div>
 
@@ -232,9 +261,25 @@ export default function LoteViewPage() {
                                                     <span className={styles.label}>Doador / Agendamento</span>
                                                     <span className={styles.value}>
                                                         <Link href={`/agendamentos/${lote.agendamento.id}`}>
-                                                            {lote.agendamento.nome} (#{lote.agendamento.id})
+                                                            {lote.agendamento.nome}
                                                         </Link>
                                                     </span>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    )}
+
+                                    {lote.user && (
+                                        <div className={styles.section}>
+                                            <h3>Responsável pela triagem</h3>
+                                            <div className={styles.infoGrid}>
+                                                <div className={styles.infoItem}>
+                                                    <span className={styles.label}>Farmacêutico / Usuário</span>
+                                                    <span className={styles.value}>{lote.user.username}</span>
+                                                </div>
+                                                <div className={styles.infoItem}>
+                                                    <span className={styles.label}>E-mail</span>
+                                                    <span className={styles.value}>{lote.user.email}</span>
                                                 </div>
                                             </div>
                                         </div>

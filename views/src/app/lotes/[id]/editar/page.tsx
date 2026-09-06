@@ -291,7 +291,7 @@ export default function EditarLotePage() {
                                                     <option value="">Selecione um agendamento concluído</option>
                                                     {agendamentosConcluidos.map((agendamento) => (
                                                         <option key={agendamento.id} value={agendamento.id}>
-                                                            {agendamento.nome} (#{agendamento.id})
+                                                            {agendamento.nome}
                                                         </option>
                                                     ))}
                                                 </select>

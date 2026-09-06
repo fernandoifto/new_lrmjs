@@ -31,11 +31,17 @@ interface IUpdateAgendamento {
     id_turno?: number;
     id_user?: number;
     status?: AgendamentoStatus;
+    id_user_marcado?: number | null;
 }
 
 export type AgendamentoStatus = "AGUARDANDO_AGENDAMENTO" | "VISITA_MARCADA_PARA_HOJE" | "VISITADO";
 
 export type AgendamentoSortField = "created" | "nome" | "setor" | "datavisita";
+
+export interface AgendamentoViewerContext {
+    userId: number;
+    canViewAll: boolean;
+}
 
 export interface ListAgendamentosOptions {
     q?: string;
@@ -44,7 +50,20 @@ export interface ListAgendamentosOptions {
     setor?: string;
     sortBy?: AgendamentoSortField;
     sortOrder?: "asc" | "desc";
+    viewer?: AgendamentoViewerContext;
 }
+
+const userSelect = {
+    id: true,
+    username: true,
+    email: true,
+} as const;
+
+const agendamentoInclude = {
+    turno: true,
+    user: { select: userSelect },
+    userMarcado: { select: userSelect },
+} as const;
 
 function buildSearchWhere(term: string) {
     const digits = term.replace(/\D/g, "");
@@ -74,26 +93,51 @@ function isAgendamentoStatus(value: unknown): value is AgendamentoStatus {
     return value === "AGUARDANDO_AGENDAMENTO" || value === "VISITA_MARCADA_PARA_HOJE" || value === "VISITADO";
 }
 
-function validateStatusTransition(current: AgendamentoStatus, next: AgendamentoStatus, allowRollback = true) {
+function validateStatusTransition(current: AgendamentoStatus, next: AgendamentoStatus) {
     if (current === next) return;
 
-    if (allowRollback) return;
-
-    const allowedForward: Record<AgendamentoStatus, AgendamentoStatus[]> = {
+    const allowed: Record<AgendamentoStatus, AgendamentoStatus[]> = {
         AGUARDANDO_AGENDAMENTO: ["VISITA_MARCADA_PARA_HOJE"],
         VISITA_MARCADA_PARA_HOJE: ["VISITADO", "AGUARDANDO_AGENDAMENTO"],
         VISITADO: [],
     };
 
-    if (!allowedForward[current].includes(next)) {
+    if (!allowed[current].includes(next)) {
         throw new Error("Transição de status inválida");
     }
 }
 
-//Modelo de criar agendamento
+/** Agentes sem visão elevada só veem "hoje" se forem o dono do claim (ou legado sem claim). */
+function buildVisibilityWhere(viewer?: AgendamentoViewerContext) {
+    if (!viewer || viewer.canViewAll) return null;
+    return {
+        OR: [
+            { status: { not: "VISITA_MARCADA_PARA_HOJE" } },
+            { id_user_marcado: null },
+            { id_user_marcado: viewer.userId },
+        ],
+    };
+}
+
+function assertClaimAccess(
+    agendamento: { status: string; id_user_marcado: number | null },
+    userId: number | undefined,
+    canOverrideClaim: boolean,
+    actionLabel: string
+) {
+    if (canOverrideClaim) return;
+    if (agendamento.status !== "VISITA_MARCADA_PARA_HOJE") return;
+    if (agendamento.id_user_marcado == null) return;
+    if (!userId || agendamento.id_user_marcado !== userId) {
+        throw new Error(`Este agendamento já está marcado para outro agente. Não é possível ${actionLabel}.`);
+    }
+}
+
+//Modelo de criar agendamento (público: nunca aceita id_user do cliente)
 class CreateAgendamentosModel{
-    async execute({ nome, endereco, numero, setor, cep, telefone, datavisita, fotos, google_maps_url, id_turno, id_user }: 
+    async execute({ nome, endereco, numero, setor, cep, telefone, datavisita, fotos, google_maps_url, id_turno }: 
         IAgendamento) {
+        const safeMapsUrl = parseAndValidateGoogleMapsUrl(google_maps_url);
         const agendamento = await prismaClient.agendamentos.create({
             data: {
                 nome: nome,
@@ -104,21 +148,12 @@ class CreateAgendamentosModel{
                 telefone: telefone,
                 datavisita: datavisita,
                 fotos: fotos || null,
-                google_maps_url: google_maps_url || null,
+                google_maps_url: safeMapsUrl,
                 id_turno: id_turno,
-                id_user: id_user,
+                id_user: null,
                 status: "AGUARDANDO_AGENDAMENTO",
             },
-            include: {
-                turno: true,
-                user: {
-                    select: {
-                        id: true,
-                        username: true,
-                        email: true
-                    }
-                }
-            }
+            include: agendamentoInclude,
         });
         return agendamento;
     }
@@ -133,6 +168,10 @@ class ListAgendamentosModel {
         const sortOrder = opts?.sortOrder ?? "desc";
         // eslint-disable-next-line @typescript-eslint/no-explicit-any
         const andParts: any[] = [];
+        const visibility = buildVisibilityWhere(opts?.viewer);
+        if (visibility) {
+            andParts.push(visibility);
+        }
         if (filtroStatus) {
             andParts.push({ status: filtroStatus });
         }
@@ -149,16 +188,7 @@ class ListAgendamentosModel {
 
         const base = {
             where,
-            include: {
-                turno: true,
-                user: {
-                    select: {
-                        id: true,
-                        username: true,
-                        email: true
-                    }
-                }
-            },
+            include: agendamentoInclude,
             orderBy: buildOrderBy(sortBy, sortOrder),
         };
         const [total, items] = await Promise.all([
@@ -174,13 +204,29 @@ class ListAgendamentosModel {
 }
 
 class AgendamentosStatsModel {
-    async execute() {
+    async execute(viewer?: AgendamentoViewerContext) {
+        const visibility = buildVisibilityWhere(viewer);
+        const baseWhere = visibility ? { AND: [visibility] } : {};
+
         const [total, aguardando, visitaHoje, visitado, setoresRows] = await Promise.all([
-            prismaClient.agendamentos.count(),
-            prismaClient.agendamentos.count({ where: { status: "AGUARDANDO_AGENDAMENTO" } }),
-            prismaClient.agendamentos.count({ where: { status: "VISITA_MARCADA_PARA_HOJE" } }),
-            prismaClient.agendamentos.count({ where: { status: "VISITADO" } }),
+            prismaClient.agendamentos.count({ where: baseWhere }),
+            prismaClient.agendamentos.count({
+                where: visibility
+                    ? { AND: [visibility, { status: "AGUARDANDO_AGENDAMENTO" }] }
+                    : { status: "AGUARDANDO_AGENDAMENTO" },
+            }),
+            prismaClient.agendamentos.count({
+                where: visibility
+                    ? { AND: [visibility, { status: "VISITA_MARCADA_PARA_HOJE" }] }
+                    : { status: "VISITA_MARCADA_PARA_HOJE" },
+            }),
+            prismaClient.agendamentos.count({
+                where: visibility
+                    ? { AND: [visibility, { status: "VISITADO" }] }
+                    : { status: "VISITADO" },
+            }),
             prismaClient.agendamentos.findMany({
+                where: baseWhere,
                 select: { setor: true },
                 distinct: ["setor"],
                 orderBy: { setor: "asc" },
@@ -199,20 +245,13 @@ class AgendamentosStatsModel {
 
 //Modelo de visualizar agendamento
 class GetAgendamentoModel {
-    async execute(id: number) {
+    async execute(id: number, viewer?: AgendamentoViewerContext) {
         const agendamento = await prismaClient.agendamentos.findUnique({
             where: {
                 id: id
             },
             include: {
-                turno: true,
-                user: {
-                    select: {
-                        id: true,
-                        username: true,
-                        email: true
-                    }
-                },
+                ...agendamentoInclude,
                 lotes: {
                     include: {
                         medicamento: true,
@@ -227,6 +266,16 @@ class GetAgendamentoModel {
         if (!agendamento) {
             throw new Error("Agendamento não encontrado");
         }
+
+        if (
+            viewer &&
+            !viewer.canViewAll &&
+            agendamento.status === "VISITA_MARCADA_PARA_HOJE" &&
+            agendamento.id_user_marcado != null &&
+            agendamento.id_user_marcado !== viewer.userId
+        ) {
+            throw new Error("Agendamento não encontrado");
+        }
         
         return agendamento;
     }
@@ -234,7 +283,11 @@ class GetAgendamentoModel {
 
 //Modelo de editar agendamento
 class UpdateAgendamentoModel {
-    async execute(id: number, data: IUpdateAgendamento) {
+    async execute(
+        id: number,
+        data: IUpdateAgendamento,
+        opts?: { actorUserId?: number; canOverrideClaim?: boolean }
+    ) {
         // Verificar se o agendamento existe
         const agendamentoExists = await prismaClient.agendamentos.findUnique({
             where: { id: id }
@@ -244,6 +297,7 @@ class UpdateAgendamentoModel {
             throw new Error("Agendamento não encontrado");
         }
         
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
         const updateData: any = {};
         
         if (data.nome) updateData.nome = data.nome;
@@ -264,7 +318,7 @@ class UpdateAgendamentoModel {
                 throw new Error("Status de agendamento inválido");
             }
             const currentStatus = (agendamentoExists.status as AgendamentoStatus) || "AGUARDANDO_AGENDAMENTO";
-            validateStatusTransition(currentStatus, data.status, true);
+            validateStatusTransition(currentStatus, data.status);
             if (currentStatus === "VISITADO" && data.status !== "VISITADO") {
                 const lotesVinculados = await prismaClient.lotes.count({ where: { id_agendamento: id } });
                 if (lotesVinculados > 0) {
@@ -272,10 +326,40 @@ class UpdateAgendamentoModel {
                 }
             }
             updateData.status = data.status;
-            if (data.status !== "VISITADO") {
+            if (data.status === "VISITA_MARCADA_PARA_HOJE") {
+                if (!opts?.actorUserId) {
+                    throw new Error("É necessário informar o agente que está marcando a visita");
+                }
+                assertClaimAccess(
+                    agendamentoExists,
+                    opts.actorUserId,
+                    Boolean(opts?.canOverrideClaim),
+                    "alterar"
+                );
                 updateData.id_user = null;
-            } else if (updateData.id_user === undefined && agendamentoExists.id_user == null) {
-                throw new Error("É necessário informar o usuário responsável ao marcar como visitado");
+                updateData.id_user_marcado = opts.actorUserId;
+            } else if (data.status === "AGUARDANDO_AGENDAMENTO") {
+                assertClaimAccess(
+                    agendamentoExists,
+                    opts?.actorUserId,
+                    Boolean(opts?.canOverrideClaim),
+                    "desmarcar"
+                );
+                updateData.id_user = null;
+                updateData.id_user_marcado = null;
+            } else if (data.status === "VISITADO") {
+                assertClaimAccess(
+                    agendamentoExists,
+                    opts?.actorUserId,
+                    Boolean(opts?.canOverrideClaim),
+                    "concluir"
+                );
+                if (updateData.id_user === undefined && agendamentoExists.id_user == null && !opts?.actorUserId) {
+                    throw new Error("É necessário informar o usuário responsável ao marcar como visitado");
+                }
+                if (updateData.id_user === undefined && opts?.actorUserId) {
+                    updateData.id_user = opts.actorUserId;
+                }
             }
         }
         
@@ -284,16 +368,7 @@ class UpdateAgendamentoModel {
                 id: id
             },
             data: updateData,
-            include: {
-                turno: true,
-                user: {
-                    select: {
-                        id: true,
-                        username: true,
-                        email: true
-                    }
-                }
-            }
+            include: agendamentoInclude,
         });
         
         return agendamento;
@@ -302,49 +377,21 @@ class UpdateAgendamentoModel {
 
 //Modelo de marcar agendamento como visitado
 class MarcarVisitadoModel {
-    async execute(id: number, idUserVisitou: number) {
-        const agendamentoExists = await prismaClient.agendamentos.findUnique({
-            where: { id: id }
+    async execute(id: number, idUserVisitou: number, canOverrideClaim = false) {
+        const atualizar = new AtualizarStatusAgendamentoModel();
+        return atualizar.execute(id, "VISITADO", {
+            idUser: idUserVisitou,
+            canOverrideClaim,
         });
-        
-        if (!agendamentoExists) {
-            throw new Error("Agendamento não encontrado");
-        }
-        
-        const currentStatus = (agendamentoExists.status as AgendamentoStatus) || "AGUARDANDO_AGENDAMENTO";
-        if (currentStatus === "VISITADO") {
-            throw new Error("Agendamento já foi visitado");
-        }
-        if (currentStatus !== "VISITA_MARCADA_PARA_HOJE") {
-            throw new Error("Para concluir a visita, primeiro marque como 'Visita marcada para hoje'");
-        }
-        
-        const agendamento = await prismaClient.agendamentos.update({
-            where: {
-                id: id
-            },
-            data: {
-                id_user: idUserVisitou,
-                status: "VISITADO"
-            },
-            include: {
-                turno: true,
-                user: {
-                    select: {
-                        id: true,
-                        username: true,
-                        email: true
-                    }
-                }
-            }
-        });
-        
-        return agendamento;
     }
 }
 
 class AtualizarStatusAgendamentoModel {
-    async execute(id: number, status: AgendamentoStatus, idUserVisitou?: number | null) {
+    async execute(
+        id: number,
+        status: AgendamentoStatus,
+        opts?: { idUser?: number | null; canOverrideClaim?: boolean }
+    ) {
         if (!isAgendamentoStatus(status)) {
             throw new Error("Status de agendamento inválido");
         }
@@ -357,7 +404,7 @@ class AtualizarStatusAgendamentoModel {
         }
 
         const currentStatus = (agendamentoExists.status as AgendamentoStatus) || "AGUARDANDO_AGENDAMENTO";
-        validateStatusTransition(currentStatus, status, false);
+        validateStatusTransition(currentStatus, status);
 
         if (currentStatus === "VISITADO" && status !== "VISITADO") {
             const lotesVinculados = await prismaClient.lotes.count({ where: { id_agendamento: id } });
@@ -366,39 +413,108 @@ class AtualizarStatusAgendamentoModel {
             }
         }
 
-        if (status === "VISITADO" && (!idUserVisitou || Number.isNaN(idUserVisitou))) {
+        const idUser = opts?.idUser ?? null;
+        const canOverrideClaim = Boolean(opts?.canOverrideClaim);
+
+        if (status === "VISITADO" && (!idUser || Number.isNaN(idUser))) {
             throw new Error("É necessário informar o usuário responsável ao marcar como visitado");
         }
 
-        const agendamento = await prismaClient.agendamentos.update({
-            where: { id },
-            data: {
-                status,
-                id_user: status === "VISITADO" ? idUserVisitou! : null,
-            },
-            include: {
-                turno: true,
-                user: {
-                    select: {
-                        id: true,
-                        username: true,
-                        email: true,
-                    },
+        // Claim atômico: evita dois agentes marcarem o mesmo agendamento em paralelo.
+        if (status === "VISITA_MARCADA_PARA_HOJE") {
+            if (!idUser || Number.isNaN(idUser)) {
+                throw new Error("É necessário informar o agente que está marcando a visita");
+            }
+            const claimed = await prismaClient.agendamentos.updateMany({
+                where: {
+                    id,
+                    status: "AGUARDANDO_AGENDAMENTO",
                 },
+                data: {
+                    status: "VISITA_MARCADA_PARA_HOJE",
+                    id_user: null,
+                    id_user_marcado: idUser,
+                },
+            });
+            if (claimed.count === 0) {
+                throw new Error("Agendamento indisponível para marcação (já reservado ou status alterado)");
+            }
+            return prismaClient.agendamentos.findUniqueOrThrow({
+                where: { id },
+                include: agendamentoInclude,
+            });
+        }
+
+        if (status === "AGUARDANDO_AGENDAMENTO") {
+            assertClaimAccess(agendamentoExists, idUser ?? undefined, canOverrideClaim, "desmarcar");
+            const whereDesmarcar = canOverrideClaim
+                ? { id, status: "VISITA_MARCADA_PARA_HOJE" as const }
+                : {
+                    id,
+                    status: "VISITA_MARCADA_PARA_HOJE" as const,
+                    OR: [{ id_user_marcado: idUser }, { id_user_marcado: null }],
+                };
+            const cleared = await prismaClient.agendamentos.updateMany({
+                where: whereDesmarcar,
+                data: {
+                    status: "AGUARDANDO_AGENDAMENTO",
+                    id_user: null,
+                    id_user_marcado: null,
+                },
+            });
+            if (cleared.count === 0) {
+                throw new Error("Não foi possível desmarcar este agendamento");
+            }
+            return prismaClient.agendamentos.findUniqueOrThrow({
+                where: { id },
+                include: agendamentoInclude,
+            });
+        }
+
+        // VISITADO
+        assertClaimAccess(agendamentoExists, idUser ?? undefined, canOverrideClaim, "concluir");
+        const whereVisitar = canOverrideClaim
+            ? { id, status: "VISITA_MARCADA_PARA_HOJE" as const }
+            : {
+                id,
+                status: "VISITA_MARCADA_PARA_HOJE" as const,
+                OR: [{ id_user_marcado: idUser }, { id_user_marcado: null }],
+            };
+        const visited = await prismaClient.agendamentos.updateMany({
+            where: whereVisitar,
+            data: {
+                status: "VISITADO",
+                id_user: idUser!,
             },
         });
-        return agendamento;
+        if (visited.count === 0) {
+            throw new Error("Não foi possível concluir a visita deste agendamento");
+        }
+        return prismaClient.agendamentos.findUniqueOrThrow({
+            where: { id },
+            include: agendamentoInclude,
+        });
     }
 }
 
 //Modelo de deletar agendamento
 class DeleteAgendamentoModel {
-    async execute(id: number) {
+    async execute(id: number, viewer?: AgendamentoViewerContext) {
         const agendamentoExists = await prismaClient.agendamentos.findUnique({
             where: { id: id }
         });
         
         if (!agendamentoExists) {
+            throw new Error("Agendamento não encontrado");
+        }
+
+        if (
+            viewer &&
+            !viewer.canViewAll &&
+            agendamentoExists.status === "VISITA_MARCADA_PARA_HOJE" &&
+            agendamentoExists.id_user_marcado != null &&
+            agendamentoExists.id_user_marcado !== viewer.userId
+        ) {
             throw new Error("Agendamento não encontrado");
         }
 
@@ -427,4 +543,3 @@ export {
     AtualizarStatusAgendamentoModel,
     DeleteAgendamentoModel
 }
-

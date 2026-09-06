@@ -55,7 +55,8 @@
 
 .btnBack,
 .btnEdit,
-.btnDelete {
+.btnDelete,
+.btnEtiqueta {
   padding: 0.75rem 1.5rem;
   border-radius: 8px;
   text-decoration: none;
@@ -86,6 +87,15 @@
 
 .btnEdit:hover {
   background-color: #047857;
+}
+
+.btnEtiqueta {
+  background-color: rgba(5, 150, 105, 0.12);
+  color: var(--cor-primaria);
+}
+
+.btnEtiqueta:hover {
+  background-color: rgba(5, 150, 105, 0.22);
 }
 
 .btnDelete {
@@ -237,7 +247,8 @@
 
   .btnBack,
   .btnEdit,
-  .btnDelete {
+  .btnDelete,
+  .btnEtiqueta {
     width: 100%;
     justify-content: center;
   }
