@@ -1,4 +1,5 @@
 import { Request, Response } from "express";
+import { routeParam } from "../utils/parseId";
 import { parsePaginationParams, paginatedResponse } from "../utils/pagination";
 import { parseSortField, parseSortOrder } from "../utils/sorting";
 import { CreateRetiradaModel, ListRetiradasModel, GetRetiradaModel, UpdateRetiradaModel, DeleteRetiradaModel } from "../models/retiradasModels";
@@ -55,7 +56,7 @@ class GetRetiradaController {
             const { id } = req.params;
 
             const getRetiradaModel = new GetRetiradaModel();
-            const retirada = await getRetiradaModel.execute(parseInt(id));
+            const retirada = await getRetiradaModel.execute(parseInt(routeParam(id)));
 
             return res.status(200).json(retirada);
         } catch (error: any) {
@@ -71,7 +72,7 @@ class UpdateRetiradaController {
             const { qtde, id_lotes, id_pacientes } = req.body;
 
             const updateRetiradaModel = new UpdateRetiradaModel();
-            const retirada = await updateRetiradaModel.execute(parseInt(id), {
+            const retirada = await updateRetiradaModel.execute(parseInt(routeParam(id)), {
                 qtde,
                 id_lotes,
                 id_pacientes
@@ -90,7 +91,7 @@ class DeleteRetiradaController {
             const { id } = req.params;
 
             const deleteRetiradaModel = new DeleteRetiradaModel();
-            const result = await deleteRetiradaModel.execute(parseInt(id));
+            const result = await deleteRetiradaModel.execute(parseInt(routeParam(id)));
 
             return res.status(200).json(result);
         } catch (error: any) {

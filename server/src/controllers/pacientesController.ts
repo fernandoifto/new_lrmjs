@@ -1,4 +1,5 @@
 import { Request, Response } from "express";
+import { routeParam } from "../utils/parseId";
 import { parsePaginationParams, paginatedResponse } from "../utils/pagination";
 import { parseSortField, parseSortOrder } from "../utils/sorting";
 import { CreatePacienteModel, ListPacientesModel, GetPacienteModel, GetPacienteByCPFModel, UpdatePacienteModel, DeletePacienteModel } from "../models/pacientesModels";
@@ -60,7 +61,7 @@ class GetPacienteController {
             const { id } = req.params;
 
             const getPacienteModel = new GetPacienteModel();
-            const paciente = await getPacienteModel.execute(parseInt(id));
+            const paciente = await getPacienteModel.execute(parseInt(routeParam(id)));
 
             return res.status(200).json(paciente);
         } catch (error: any) {
@@ -75,7 +76,7 @@ class GetPacienteByCPFController {
             const { cpf } = req.params;
 
             const getPacienteByCPFModel = new GetPacienteByCPFModel();
-            const paciente = await getPacienteByCPFModel.execute(cpf);
+            const paciente = await getPacienteByCPFModel.execute(routeParam(cpf));
 
             return res.status(200).json({
                 id: paciente.id,
@@ -94,7 +95,7 @@ class UpdatePacienteController {
             const data = req.body;
 
             const updatePacienteModel = new UpdatePacienteModel();
-            const paciente = await updatePacienteModel.execute(parseInt(id), data);
+            const paciente = await updatePacienteModel.execute(parseInt(routeParam(id)), data);
 
             return res.status(200).json(paciente);
         } catch (error: any) {
@@ -109,7 +110,7 @@ class DeletePacienteController {
             const { id } = req.params;
 
             const deletePacienteModel = new DeletePacienteModel();
-            const result = await deletePacienteModel.execute(parseInt(id));
+            const result = await deletePacienteModel.execute(parseInt(routeParam(id)));
 
             return res.status(200).json(result);
         } catch (error: any) {

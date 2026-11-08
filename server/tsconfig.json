@@ -1,5 +1,8 @@
 {
   "compilerOptions": {
+    /* moduleResolution "node" continua válido no TypeScript 6 e será removido só no 7. */
+    "ignoreDeprecations": "6.0",
+    "types": ["node", "jest"],
     /* Visit https://aka.ms/tsconfig to read more about this file */
 
     /* Projects */

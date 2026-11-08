@@ -1,4 +1,5 @@
 import { Request, Response } from "express";
+import { routeParam } from "../utils/parseId";
 import { parsePaginationParams, paginatedResponse } from "../utils/pagination";
 import { parseSortField, parseSortOrder } from "../utils/sorting";
 import { 
@@ -48,7 +49,7 @@ export class GetTipoMedicamentoController {
         try {
             const { id } = request.params;
             const getTipoMedicamento = new GetTipoMedicamentoModel();
-            const tipoMedicamento = await getTipoMedicamento.execute(parseInt(id));
+            const tipoMedicamento = await getTipoMedicamento.execute(parseInt(routeParam(id)));
             return response.json(tipoMedicamento);
         } catch (error: any) {
             return response.status(404).json({ error: error.message });
@@ -63,7 +64,7 @@ export class UpdateTipoMedicamentoController {
             const { descricao } = request.body;
             const updateTipoMedicamento = new UpdateTipoMedicamentoModel();
             
-            const tipoMedicamento = await updateTipoMedicamento.execute(parseInt(id), { descricao });
+            const tipoMedicamento = await updateTipoMedicamento.execute(parseInt(routeParam(id)), { descricao });
             return response.json(tipoMedicamento);
         } catch (error: any) {
             return response.status(400).json({ error: error.message });
@@ -77,7 +78,7 @@ export class DeleteTipoMedicamentoController {
             const { id } = request.params;
             const deleteTipoMedicamento = new DeleteTipoMedicamentoModel();
             
-            const result = await deleteTipoMedicamento.execute(parseInt(id));
+            const result = await deleteTipoMedicamento.execute(parseInt(routeParam(id)));
             return response.json(result);
         } catch (error: any) {
             return response.status(400).json({ error: error.message });

@@ -2,7 +2,8 @@
 # Build context: views/
 # Porta padrão: 3000 (Coolify pode sobrescrever via PORT)
 
-FROM node:22-bookworm-slim AS builder
+# Node.js 22.23.4 — release de segurança de 21/10/2026 (Brotli, TLS e DNS).
+FROM node:22.23.4-bookworm-slim AS builder
 
 WORKDIR /app
 
@@ -17,7 +18,7 @@ ENV NODE_ENV=production
 
 RUN npm run build:prod
 
-FROM node:22-bookworm-slim AS runner
+FROM node:22.23.4-bookworm-slim AS runner
 
 WORKDIR /app
 

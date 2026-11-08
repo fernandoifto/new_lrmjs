@@ -1,4 +1,5 @@
 import { Request, Response } from "express";
+import { routeParam } from "../utils/parseId";
 import { parsePaginationParams, paginatedResponse } from "../utils/pagination";
 import { parseSortField, parseSortOrder } from "../utils/sorting";
 import { CreateSolicitacaoModel, ListSolicitacoesModel, GetSolicitacaoModel, ConfirmarSolicitacaoModel, ConcluirDoacaoModel, RecusarSolicitacaoModel, DeleteSolicitacaoModel, ListSolicitacoesByPacienteModel } from "../models/solicitacoesModels";
@@ -106,7 +107,7 @@ class GetSolicitacaoController {
             const { id } = req.params;
 
             const getSolicitacaoModel = new GetSolicitacaoModel();
-            const solicitacao = await getSolicitacaoModel.execute(parseInt(id));
+            const solicitacao = await getSolicitacaoModel.execute(parseInt(routeParam(id)));
 
             return res.status(200).json(attachUploadTokensToSolicitacao(solicitacao));
         } catch (error: any) {
@@ -121,7 +122,7 @@ class ConfirmarSolicitacaoController {
             const { id } = req.params;
 
             const confirmarSolicitacaoModel = new ConfirmarSolicitacaoModel();
-            const solicitacao = await confirmarSolicitacaoModel.execute(parseInt(id));
+            const solicitacao = await confirmarSolicitacaoModel.execute(parseInt(routeParam(id)));
 
             return res.status(200).json(attachUploadTokensToSolicitacao(solicitacao));
         } catch (error: any) {
@@ -141,7 +142,7 @@ class ConcluirDoacaoController {
             }
 
             const concluirDoacaoModel = new ConcluirDoacaoModel();
-            const retirada = await concluirDoacaoModel.execute(parseInt(id), id_users);
+            const retirada = await concluirDoacaoModel.execute(parseInt(routeParam(id)), id_users);
 
             return res.status(200).json(retirada);
         } catch (error: any) {
@@ -156,7 +157,7 @@ class RecusarSolicitacaoController {
             const { id } = req.params;
 
             const recusarSolicitacaoModel = new RecusarSolicitacaoModel();
-            const solicitacao = await recusarSolicitacaoModel.execute(parseInt(id));
+            const solicitacao = await recusarSolicitacaoModel.execute(parseInt(routeParam(id)));
 
             return res.status(200).json(attachUploadTokensToSolicitacao(solicitacao));
         } catch (error: any) {
@@ -171,7 +172,7 @@ class DeleteSolicitacaoController {
             const { id } = req.params;
 
             const deleteSolicitacaoModel = new DeleteSolicitacaoModel();
-            const result = await deleteSolicitacaoModel.execute(parseInt(id));
+            const result = await deleteSolicitacaoModel.execute(parseInt(routeParam(id)));
 
             return res.status(200).json(result);
         } catch (error: any) {

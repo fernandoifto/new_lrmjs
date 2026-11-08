@@ -1,5 +1,5 @@
 import prismaClient from "../tools/prisma";
-import type { PrismaClient } from "../tools/generated/prisma";
+import type { PrismaClient } from "../tools/generated/prisma/client";
 import type { ParsedPagination } from "../utils/pagination";
 
 interface IRetirada {

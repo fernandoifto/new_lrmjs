@@ -13,7 +13,6 @@ import {
     ListToolsRequestSchema,
     Tool,
 } from '@modelcontextprotocol/sdk/types.js';
-import { z } from 'zod';
 import { WhatsAppWebService } from '../implementations/WhatsAppWebService';
 import { WhatsAppBusinessService } from '../implementations/WhatsAppBusinessService';
 import { IWhatsAppService } from '../interfaces/IWhatsAppService';

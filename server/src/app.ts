@@ -1,5 +1,4 @@
 import express, { Request, Response, NextFunction } from "express";
-import "express-async-errors";
 import cors from "cors";
 import cookieParser from "cookie-parser";
 import path from "path";
@@ -14,6 +13,8 @@ const isProd = process.env.NODE_ENV === "production";
  */
 export function buildApp() {
     const app = express();
+    // Mantém o parser estendido do Express 4. A versão instalada do qs já inclui a correção de segurança.
+    app.set("query parser", "extended");
 
     const frontendOrigin = process.env.FRONTEND_ORIGIN;
     app.use(
@@ -34,7 +35,12 @@ export function buildApp() {
 
     app.use(router);
 
-    app.use((err: Error, _req: Request, res: Response, _next: NextFunction) => {
+    app.use((err: Error, _req: Request, res: Response, next: NextFunction) => {
+        if (res.headersSent) {
+            next(err);
+            return;
+        }
+
         if (err instanceof Error) {
             // eslint-disable-next-line no-console
             console.error(err);

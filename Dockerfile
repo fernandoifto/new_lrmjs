@@ -4,8 +4,8 @@
 # Documentação: DEPLOY.md
 # =============================================================================
 
-# Imagem base: Node 22 (LTS atual; compatível com Next 16 e React 19)
-FROM node:22-bookworm-slim AS base
+# Node.js 22.23.4 — release de segurança de 21/10/2026 (Brotli, TLS e DNS).
+FROM node:22.23.4-bookworm-slim AS base
 
 # OpenSSL/ca-certificates: necessários para Prisma e HTTPS (ex.: Supabase)
 RUN apt-get update \

@@ -1,4 +1,15 @@
 /**
+ * Express 5 tipa parâmetros de rota como string ou lista.
+ * As rotas deste sistema declaram um único valor.
+ */
+export function routeParam(value: string | string[] | undefined): string {
+    if (Array.isArray(value)) {
+        return value[0] ?? "";
+    }
+    return value ?? "";
+}
+
+/**
  * Parseia IDs positivos estritos (apenas dígitos, sem "12abc" → 12).
  */
 export function parsePositiveInt(raw: unknown, label = "ID"): number {

@@ -2,7 +2,8 @@
 # Build context: server/
 # Porta padrão: 3333 (Coolify pode sobrescrever via PORT)
 
-FROM node:22-bookworm-slim AS builder
+# Node.js 22.23.4 — release de segurança de 21/10/2026 (Brotli, TLS e DNS).
+FROM node:22.23.4-bookworm-slim AS builder
 
 WORKDIR /app
 
@@ -17,12 +18,13 @@ COPY package.json package-lock.json ./
 RUN npm ci
 
 COPY prisma ./prisma
+COPY prisma.config.ts ./
 COPY tsconfig.json tsconfig.build.json ./
 COPY src ./src
 
 RUN npm run build:prod
 
-FROM node:22-bookworm-slim AS runner
+FROM node:22.23.4-bookworm-slim AS runner
 
 WORKDIR /app
 
@@ -36,6 +38,7 @@ ENV HOST=0.0.0.0
 
 COPY package.json package-lock.json ./
 COPY prisma ./prisma
+COPY prisma.config.ts ./
 RUN npm ci --omit=dev
 
 COPY --from=builder /app/dist ./dist

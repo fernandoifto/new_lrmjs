@@ -1,14 +1,17 @@
-import { PrismaClient } from "../generated/prisma";
+import { PrismaPg } from "@prisma/adapter-pg";
+import { PrismaClient } from "../generated/prisma/client";
 
-// Garantir que DATABASE_URL está definida
 if (!process.env.DATABASE_URL) {
-  throw new Error("DATABASE_URL environment variable is not set");
+    throw new Error("DATABASE_URL environment variable is not set");
 }
 
-// Inicializar PrismaClient com a URL de conexão padrão
-// O Prisma Client já tem suporte nativo para PostgreSQL através da DATABASE_URL
+const adapter = new PrismaPg({
+    connectionString: process.env.DATABASE_URL,
+});
+
 const prismaClient = new PrismaClient({
-  log: process.env.NODE_ENV === "development" ? ["query", "error", "warn"] : ["error"],
+    adapter,
+    log: process.env.NODE_ENV === "development" ? ["query", "error", "warn"] : ["error"],
 });
 
 export default prismaClient;

@@ -1,6 +1,6 @@
 import prismaClient from "../tools/prisma";
 import type { ParsedPagination } from "../utils/pagination";
-import type { PrismaClient } from "../tools/generated/prisma";
+import type { PrismaClient } from "../tools/generated/prisma/client";
 
 interface ISolicitacao {
     qtde: number;

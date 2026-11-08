@@ -1,4 +1,5 @@
 import { Request, Response } from "express";
+import { routeParam } from "../utils/parseId";
 import { parsePaginationParams, paginatedResponse } from "../utils/pagination";
 import { parseSortField, parseSortOrder } from "../utils/sorting";
 import { 
@@ -48,7 +49,7 @@ export class GetFormaFarmaceuticaController {
         try {
             const { id } = request.params;
             const getFormaFarmaceutica = new GetFormaFarmaceuticaModel();
-            const formaFarmaceutica = await getFormaFarmaceutica.execute(parseInt(id));
+            const formaFarmaceutica = await getFormaFarmaceutica.execute(parseInt(routeParam(id)));
             return response.json(formaFarmaceutica);
         } catch (error: any) {
             return response.status(404).json({ error: error.message });
@@ -63,7 +64,7 @@ export class UpdateFormaFarmaceuticaController {
             const { descricao } = request.body;
             const updateFormaFarmaceutica = new UpdateFormaFarmaceuticaModel();
             
-            const formaFarmaceutica = await updateFormaFarmaceutica.execute(parseInt(id), { descricao });
+            const formaFarmaceutica = await updateFormaFarmaceutica.execute(parseInt(routeParam(id)), { descricao });
             return response.json(formaFarmaceutica);
         } catch (error: any) {
             return response.status(400).json({ error: error.message });
@@ -77,7 +78,7 @@ export class DeleteFormaFarmaceuticaController {
             const { id } = request.params;
             const deleteFormaFarmaceutica = new DeleteFormaFarmaceuticaModel();
             
-            const result = await deleteFormaFarmaceutica.execute(parseInt(id));
+            const result = await deleteFormaFarmaceutica.execute(parseInt(routeParam(id)));
             return response.json(result);
         } catch (error: any) {
             return response.status(400).json({ error: error.message });

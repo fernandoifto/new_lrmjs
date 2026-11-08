@@ -1,5 +1,6 @@
 import { AuthUserModel, CreateUserModel, ForgotPasswordModel, ResetPasswordModel, ListUsersModel, GetUserModel, UpdateUserModel, DeleteUserModel } from "../models/usersModels";
 import { Request, Response } from "express";
+import { routeParam } from "../utils/parseId";
 import { parsePaginationParams, paginatedResponse } from "../utils/pagination";
 import { parseSortField, parseSortOrder } from "../utils/sorting";
 import prismaClient from "../tools/prisma";
@@ -113,7 +114,7 @@ export class GetUserController {
         try {
             const { id } = request.params;
             const getUser = new GetUserModel();
-            const user = await getUser.execute(parseInt(id));
+            const user = await getUser.execute(parseInt(routeParam(id)));
             return response.json(user);
         } catch (error: any) {
             return response.status(404).json({ error: error.message });
@@ -128,7 +129,7 @@ export class UpdateUserController {
             const { username, email, password } = request.body;
             const updateUser = new UpdateUserModel();
             
-            const user = await updateUser.execute(parseInt(id), {
+            const user = await updateUser.execute(parseInt(routeParam(id)), {
                 username,
                 email,
                 password
@@ -147,7 +148,7 @@ export class DeleteUserController {
             const { id } = request.params;
             const deleteUser = new DeleteUserModel();
             
-            const result = await deleteUser.execute(parseInt(id));
+            const result = await deleteUser.execute(parseInt(routeParam(id)));
             
             return response.json(result);
         } catch (error: any) {

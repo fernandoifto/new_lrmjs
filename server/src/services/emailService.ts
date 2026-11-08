@@ -1,4 +1,4 @@
-import nodemailer from "nodemailer";
+import nodemailer, { type Transporter } from "nodemailer";
 
 interface IEmailOptions {
     to: string;
@@ -7,7 +7,7 @@ interface IEmailOptions {
 }
 
 export class EmailService {
-    private transporter: nodemailer.Transporter;
+    private transporter: Transporter;
 
     constructor() {
         this.transporter = nodemailer.createTransport({

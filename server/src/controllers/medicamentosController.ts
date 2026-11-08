@@ -1,4 +1,5 @@
 import { Request, Response } from "express";
+import { routeParam } from "../utils/parseId";
 import { parsePaginationParams, paginatedResponse } from "../utils/pagination";
 import { parseSortField, parseSortOrder } from "../utils/sorting";
 import { 
@@ -48,7 +49,7 @@ export class GetMedicamentoController {
         try {
             const { id } = request.params;
             const getMedicamento = new GetMedicamentoModel();
-            const medicamento = await getMedicamento.execute(parseInt(id));
+            const medicamento = await getMedicamento.execute(parseInt(routeParam(id)));
             return response.json(medicamento);
         } catch (error: any) {
             return response.status(404).json({ error: error.message });
@@ -63,7 +64,7 @@ export class UpdateMedicamentoController {
             const { descricao, principioativo } = request.body;
             const updateMedicamento = new UpdateMedicamentoModel();
             
-            const medicamento = await updateMedicamento.execute(parseInt(id), { descricao, principioativo });
+            const medicamento = await updateMedicamento.execute(parseInt(routeParam(id)), { descricao, principioativo });
             return response.json(medicamento);
         } catch (error: any) {
             return response.status(400).json({ error: error.message });
@@ -77,7 +78,7 @@ export class DeleteMedicamentoController {
             const { id } = request.params;
             const deleteMedicamento = new DeleteMedicamentoModel();
             
-            const result = await deleteMedicamento.execute(parseInt(id));
+            const result = await deleteMedicamento.execute(parseInt(routeParam(id)));
             return response.json(result);
         } catch (error: any) {
             return response.status(400).json({ error: error.message });
